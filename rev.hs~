@@ -1,0 +1,34 @@
+import Control.Concurrent
+import Control.Monad
+import System.IO
+import Control.Exception
+import System.IO.Silently
+import Foreign.Marshal.Alloc
+import System.Posix
+import System.Timeout
+
+main = test2
+
+test2 = do  
+	    x <-  (forkProcess (do (print $ tt) ))
+	    y <- getProcessStatus True True x
+	    forever $ print y	
+		
+
+tt = last $ quicksort  $ foldr (++) [] $ replicate 34545345 "salutasdfdfsfsdfsdfsdfsdfsdfsdfsfdfsdff"
+
+
+quicksort :: Ord a => [a] -> [a]
+quicksort []     = []
+quicksort (p:xs) = (quicksort lesser) ++ [p] ++ (quicksort greater)
+    where
+        lesser  = filter (< p) xs
+        greater = filter (>= p) xs
+
+
+humm =  bracket (release2) (\_ ->putChar 'c') (\_ -> putChar 'c')
+
+release2 = handle (heap)  (print tt)  
+
+heap :: SomeException -> IO ()
+heap _  = print "Wow"

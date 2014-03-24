@@ -1,0 +1,35 @@
+{-# OPTIONS -XOverloadedStrings #-}
+import Network.AMQP
+
+import qualified Data.ByteString.Lazy.Char8 as BL
+import Data.Time.Clock
+
+
+main = do
+    conn <- openConnection "127.0.0.1" "/" "guest" "guest"
+    chan <- openChannel conn
+
+    
+    --declare queues, exchanges and bindings
+  
+    declareQueue chan newQueue {queueName = "myQueue"}
+    
+    --declareExchange chan newExchange {exchangeName = "topicExchg", exchangeType = "topic"}
+    
+    --bindQueue chan "myQueueEN" "topicExchg" "en.*"
+    
+   
+    publishMsg chan "" "hello" 
+        (newMsg {msgBody = (BL.pack "hello world"), 
+                 msgDeliveryMode = Just NonPersistent}
+                )
+                    
+                
+    closeConnection conn
+
+
+showTime :: IO ()
+showTime = do
+    time <- getCurrentTime
+    putStrLn $ show $ utctDayTime $ time
+
