@@ -9,7 +9,7 @@ module Evaluator.EvalParse(
 
 import Evaluator.DValeur
 import Evaluator.FunctionExc
-import Evaluator.MonParse
+import Evaluator.MyParse
 import Data.Maybe
 import Data.Dynamic
 import Data.List
