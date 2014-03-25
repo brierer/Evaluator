@@ -34,7 +34,7 @@ instance Ord DValue where
 instance Show DValue where
 	show (DNum d) = show d
 	show (DString d) = show  d
-	show (DArray d) = "[" ++ foldr (++) [] ((show $ head d) : fmap (("," ++) . show) (tail d)) ++ "]"
+	show (DArray d) = "[" ++ foldr (++) [] ((show $ head $ d) : fmap (("," ++) . show) (tail d)) ++ "]"
 	show (Dyn d) = show d	
 	show (DNot)  = show ""
 	show (DObj ds)  = "{" ++ printTag ds ++ "}"
