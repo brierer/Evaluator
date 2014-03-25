@@ -10,6 +10,8 @@ module Evaluator.EvalParse(
 import Evaluator.DValeur
 import Evaluator.FunctionExc
 import Evaluator.EqParser
+import Evaluator.FunctionDV
+
 import Data.Maybe
 import Data.Dynamic
 import Data.List
