@@ -15,7 +15,7 @@ import Data.Maybe
 import Data.Typeable
 
 
-data DValeur = DArray [DValeur] | DString String | DNum Double | DBool Bool | DCom String | DFunction (String,[DValeur]) | Dyn Dynamic | DNot
+data DValeur = DArray [DValeur] | DString String | DNum Double | DBool Bool | DCom String | DFunction (String,[DValeur]) | DObj [(String,DValeur)] | Dyn Dynamic | DNot
     deriving (Typeable)
 
 instance Eq DValeur where
@@ -24,16 +24,28 @@ instance Eq DValeur where
 instance Ord DValeur where
 	(>=) (DNum d1) (DNum d2) = d1 >= d2
 	(>) (DNum d1) (DNum d2) = d1 > d2
+	(<) (DNum d1) (DNum d2) = d2 >= d1
+	(<=) (DNum d1) (DNum d2) = d2 > d1
 	compare (DNum d1) (DNum d2) = compare  d1  d2
 	compare x (DNot) = GT
 	compare (DNot) (x) = LT
+	compare _ _ = EQ
 
 instance Show DValeur where
 	show (DNum d) = show d
 	show (DString d) = show  d
 	show (DArray d) = "[" ++ foldr (++) [] ((show $ head d) : fmap (("," ++) . show) (tail d)) ++ "]"
 	show (Dyn d) = show d	
-	show (DNot)  = show ""	
+	show (DNot)  = show ""
+	show (DObj ds)  = "{" ++ printTag ds ++ "}"
+
+ 	
+
+printTag :: [(String, DValeur)] -> String
+printTag (d:[]) = (fst d) ++ ":" ++ (show $ snd d) 
+printTag (d:ds) = (fst d) ++ ":" ++ (show $ snd d)   ++ "," ++ printTag ds
+
+
 
 fromDValeur :: DValeur -> Dynamic 
 fromDValeur (DNum d ) = toDyn (d)

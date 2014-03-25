@@ -60,9 +60,10 @@ valeur :: Parser DValeur
 valeur = between (jspace) (mspace) (
                  choice [ try (DBool <$> pBool)
                  ,try (DNum <$> pNum)
-		 ,try (DString <$> pString)
+				 ,try (DString <$> pString)
                  ,try (DArray <$> pArray)
-                 ,DFunction <$> function ] <?> "a valid desktop value"
+ 				 ,try (DObj <$> pObject)
+                 ,DFunction <$> pFunction ] <?> "a valid desktop value"
                  )
 
 
@@ -84,6 +85,7 @@ pBool = (True <$ string "true" <|> False <$ string "false")
 pNum :: Parser Double
 pNum = float 
 
+
 pString :: Parser [Char]
 pString = between (char $ chr(34)) (char $ chr(34)) (many letter)
 
@@ -98,11 +100,25 @@ jspace = many  ( space)
 ctuple :: a -> b -> (a,b)
 ctuple a b =  (a,b)
 
-function :: Parser ( String , [DValeur])
-function  = ctuple <$> pFunction <*> ((many space) *> (choice [(pArguments), (return [])] )) 
+pObject :: Parser [(String,DValeur)]
+pObject = between (char '{' )  (char '}') (tag `sepBy` (char ','))
 
-pFunction :: Parser  String
-pFunction =  many1 (letter)
+tag :: Parser (String, DValeur)
+tag =  (ctuple <$> tagName <*> tagValue)
+
+tagName :: Parser String
+tagName = between (many space) ( (many space) *> (char ':') ) (function)
+
+tagValue :: Parser DValeur
+tagValue = valeur
+
+
+
+pFunction :: Parser ( String , [DValeur])
+pFunction  = ctuple <$> function <*> ((many space) *> (choice [(pArguments), (return [])] )) 
+
+function :: Parser  String
+function =  many1 (letter)
 
 
 valideChar = (['a'..'z'] ++ 
