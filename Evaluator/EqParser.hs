@@ -1,40 +1,40 @@
 
 module Evaluator.EqParser (
-    fromDValeur,
-    typeOfDValeur,
+    fromDValue,
+    typeOfDValue,
     run,
     bloc
     ) where
 
 
-import Evaluator.DValeur    
+import Evaluator.DValue    
 import Text.Parsec hiding ((<|>), many, optional)
 import Text.Parsec.String (Parser)
 import Control.Applicative
 import Numeric
 import Data.Char
 
-run :: Parser [(String,DValeur)] -> String -> Either String [(String,DValeur)]
+run :: Parser [(String,DValue)] -> String -> Either String [(String,DValue)]
 run p input
         = case (parse p "" input) of 
            Right x -> Right x
            Left  x  -> Left $ "Parser Error:" ++ (show x)
 
  
-fichier :: Parser [(String,DValeur)]
+fichier :: Parser [(String,DValue)]
 fichier = bloc 
  
-bloc :: Parser [(String,DValeur)]
+bloc :: Parser [(String,DValue)]
 bloc = many ((paire))
  
-paire :: Parser (String,DValeur)
+paire :: Parser (String,DValue)
 paire = liftA2 (,) clef (char '=' *> valeurs)
  
 --isPair :: Parser Char
 --isPair = try(char '\n' <|> ( between (many space) (many space)  (many letter) ) `endBy` char '=')
 
 
---commentaire :: Parser (String,DValeur)
+--commentaire :: Parser (String,DValue)
 --commentaire = liftA2 (,) ( show . sourceLine <$> getPosition) (DCom <$> (char '#' *> many (noneOf  "\n"))) 
 
 eol :: Parser Char
@@ -45,7 +45,7 @@ clef :: Parser String
 clef = between (many (eol) <|> mspace  ) (many space) (many1 letter) <?> "valid clef"
                  
 
-valeurs :: Parser DValeur
+valeurs :: Parser DValue
 valeurs =  (valeur) <* (lookAhead(isPair) <|> eof ) 
                  
  
@@ -56,7 +56,7 @@ isPair =  (between (mspace) (mspace) (many letter)) *> (char '=') *> return () <
 --newLine :: Parser String
 --newLine = (many1 (try(char ';') <|> try(newline))) *>  (many space) *> (many1 letter) <* (many space) <* char '='
 
-valeur :: Parser DValeur
+valeur :: Parser DValue
 valeur = between (jspace) (mspace) (
                  choice [ try (DBool <$> pBool)
                  ,try (DNum <$> pNum)
@@ -68,13 +68,13 @@ valeur = between (jspace) (mspace) (
 
 
 
-pArguments :: Parser [DValeur]
+pArguments :: Parser [DValue]
 pArguments = ( (char '('  ) *> (valeur) `sepBy` (char ',') <* (char ')') ) 
 
-pArray :: Parser [DValeur]
+pArray :: Parser [DValue]
 pArray = ( (char '['  ) *> (valeur) `sepBy` (char ',') <* (char ']') ) 
 
-pValeurs :: Parser [DValeur]
+pValeurs :: Parser [DValue]
 pValeurs = many valeur
 
 
@@ -100,21 +100,21 @@ jspace = many  ( space)
 ctuple :: a -> b -> (a,b)
 ctuple a b =  (a,b)
 
-pObject :: Parser [(String,DValeur)]
+pObject :: Parser [(String,DValue)]
 pObject = between (char '{' )  (char '}') (tag `sepBy` (char ','))
 
-tag :: Parser (String, DValeur)
+tag :: Parser (String, DValue)
 tag =  (ctuple <$> tagName <*> tagValue)
 
 tagName :: Parser String
 tagName = between (many space) ( (many space) *> (char ':') ) (function)
 
-tagValue :: Parser DValeur
+tagValue :: Parser DValue
 tagValue = valeur
 
 
 
-pFunction :: Parser ( String , [DValeur])
+pFunction :: Parser ( String , [DValue])
 pFunction  = ctuple <$> function <*> ((many space) *> (choice [(pArguments), (return [])] )) 
 
 function :: Parser  String
