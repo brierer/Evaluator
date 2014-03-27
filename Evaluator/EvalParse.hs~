@@ -101,5 +101,5 @@ function = [ ("table", (toDyn table, show $ typeOf(table))),
 funcDArrayToDNum = [ ("avg", dyn2 avg)]
 
 
-dyn2 :: (DValue -> DValeur) -> (Dynamic, String)
+dyn2 :: (DValue -> DValue) -> (Dynamic, String)
 dyn2 f = (toDyn avg, show $ typeOf(avg))
