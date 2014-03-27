@@ -21,6 +21,7 @@ plotLine (x) (y) p = DObj $ [("type",DString "graph"),("x",x), ("y",y), ("p",p)]
 
 
 
+
 annuity :: Double ->  Double -> [Double]
 annuity i n = take ((round n) :: Int) $ iterate (*(interest)) 1
 				where interest = 1/(1+(i/100))

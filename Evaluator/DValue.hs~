@@ -4,7 +4,6 @@
 module Evaluator.DValue (
     DValue(..),
     fromDValue,
-    fromNum,
     typeOfDValue,
     compareDValueType,
     execFunc

@@ -7,9 +7,11 @@ module Evaluator.EvalParse(
    mean, 
  ) where
 
-import Evaluator.DValeur
+import Evaluator.DValue
 import Evaluator.FunctionExc
-import Evaluator.MonParse
+import Evaluator.EqParser
+import Evaluator.FunctionDV
+
 import Data.Maybe
 import Data.Dynamic
 import Data.List
@@ -32,31 +34,31 @@ evalParse1 s = case  (run bloc s) of
 				Right x -> fst (evalEqs  $ (x)) 
 				Left  x -> show x
 
-evalEqs :: [(String, DValeur)] -> (String, Either String DValeur) 
+evalEqs :: [(String, DValue)] -> (String, Either String DValue) 
 evalEqs (d) = evalEq (M.fromList d) (head d)
 
-evalEq :: M.Map String DValeur -> (String, DValeur) -> (String, Either String DValeur) 
+evalEq :: M.Map String DValue -> (String, DValue) -> (String, Either String DValue) 
 evalEq  m (s, ds ) = (s, evalOne m ds)
 
-evalOne :: M.Map String DValeur ->  DValeur -> Either String DValeur
+evalOne :: M.Map String DValue ->  DValue -> Either String DValue
 evalOne m (DFunction (d,ds)) = evalFunction (d) (ds) m
 evalOne m (DArray ds)  = evalArr m ds 
 evalOne m d       = Right d  
 
-evalArg :: M.Map String DValeur ->  [DValeur]  -> Either String [DValeur]
+evalArg :: M.Map String DValue ->  [DValue]  -> Either String [DValue]
 evalArg  m (d) =  mapM (evalOne m) d
 
-evalArr :: M.Map String DValeur -> [DValeur]  -> Either String DValeur
+evalArr :: M.Map String DValue -> [DValue]  -> Either String DValue
 evalArr m (d)  =  DArray <$> mapM (evalOne m)  d
 
 
-evalFunction ::   String -> [DValeur] -> M.Map String DValeur -> Either String DValeur
+evalFunction ::   String -> [DValue] -> M.Map String DValue -> Either String DValue
 evalFunction f [] m = findEq f m
 evalFunction f ds m = if  (isNativeFunction f)
 					  then (execFunc $ findFuncNative f) =<< (evalArg m ds) 
-					  else (applyToDValeur $ findFunc f) =<< (evalArg m ds) 
+					  else (applyToDValue $ findFunc f) =<< (evalArg m ds) 
 
-findEq :: String  ->  M.Map String DValeur  -> Either String DValeur
+findEq :: String  ->  M.Map String DValue  -> Either String DValue
 findEq s m = (evalOne m $ fromJust (M.lookup s m))
 
 findFuncNative :: String -> (Dynamic, String)
@@ -91,73 +93,13 @@ function = [ ("table", (toDyn table, show $ typeOf(table))),
   	     ("sort", (toDyn sortD, show $ typeOf(sortD))),
  	     ("sortTable", (toDyn sortTable, show $ typeOf(sortTable))),
 	     ("take", (toDyn takeD, show $ typeOf(takeD))),
+  	     ("avg", (toDyn avg, show $ typeOf(avg))),
   	     ("col", (toDyn col, show $ typeOf(col)))
 	   ]
 
-table :: DValeur -> DValeur
-table (DArray x) = DString $ show $  x
+
+funcDArrayToDNum = [ ("avg", dyn2 avg)]
 
 
-plotLine :: DValeur -> DValeur
-plotLine (x) = DString $ "{\"type\":\"graph\",\"data\":" ++ ( show $  x) ++ "}"
-
-
-annuity :: Double ->  Double -> [Double]
-annuity i n = take ((round n) :: Int) $ iterate (*(interest)) 1
-				where interest = 1/(1+(i/100))
-
-gt :: DValeur -> DValeur -> DValeur
-gt (DNum d1) (DNum d2) = if (d1 > d2) then (DNum d1) else DNot
-gt (d1) (DArray d2) = mapArray (gt d1) d2  
-
-sortD :: DValeur -> DValeur
-sortD (DArray ds) = DArray $ reverse $ sort ds 
-
-
-sortTable :: DValeur -> DValeur -> DValeur
-sortTable (DNum d )(DArray ds) = DArray $ map DArray $ tail $ transpose $ reverse $ sort $ transpose (map isArray $ putFirst (floor d) ds)
-
-
-putFirst :: Int -> [DValeur] -> [DValeur]
-putFirst x xs = [(xs !! x)] ++ xs
-
-
---selectCol :: DValeur -> [DValeur] -> [DValeur]
---selectCol (DNum d) (ds) = isArray (ds !! (floor d))
-
-isArray :: DValeur -> [DValeur]
-isArray (DArray ds) = ds   
-
-col :: DValeur -> DValeur -> DValeur
-col (DNum d) (DArray ds) = ds !! (floor d)
-
-takeD :: DValeur -> DValeur -> DValeur
-takeD (DNum d) (DArray ds) = DArray $ map DArray $ map (take $ floor d) $  map  isArray ds  
- 
-
-mapArray :: (DValeur -> DValeur) -> [DValeur] -> DValeur
-mapArray f (ds) = DArray $ map f ds 
-
-nTimes :: Double -> Double -> [Double]
-nTimes n t = replicate ((round n) :: Int) t
-
-multiplyV :: [Double] -> [Double] -> [Double]
-multiplyV v b = zipWith (*) v b
-
-slide :: Double -> Double -> Double -> [Double]
-slide a b n = enumFromThenTo a b (a+(b-a)*n) 
- 
-addV :: [Double] -> Double
-addV a = sum a
-
-sum2 :: Double -> Double
-sum2 a = a + 2
-
-add  ::  Double -> Double -> Double
-add a b = (a + b)  
-
-mean :: [Double]  ->  Double
-mean x  = sum (x) / (genericLength (x))
-
-c :: Double -> [Double] -> [Double]
-c d ds = (d:ds)
+dyn2 :: (DValue -> DValeur) -> (Dynamic, String)
+dyn2 f = (toDyn avg, show $ typeOf(avg))

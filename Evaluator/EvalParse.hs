@@ -93,6 +93,13 @@ function = [ ("table", (toDyn table, show $ typeOf(table))),
   	     ("sort", (toDyn sortD, show $ typeOf(sortD))),
  	     ("sortTable", (toDyn sortTable, show $ typeOf(sortTable))),
 	     ("take", (toDyn takeD, show $ typeOf(takeD))),
+  	     ("avg", (toDyn avg, show $ typeOf(avg))),
   	     ("col", (toDyn col, show $ typeOf(col)))
 	   ]
 
+
+funcDArrayToDNum = [ ("avg", dyn2 avg)]
+
+
+dyn2 :: (DValue -> DValue) -> (Dynamic, String)
+dyn2 f = (toDyn avg, show $ typeOf(avg))
