@@ -10,7 +10,7 @@ import Control.Applicative
 import Statistics.Distribution.Normal as D
 import qualified Data.Map as M
 import Evaluator.Stats
-
+import Control.Monad
 
 table :: DValue -> DValue -> DValue
 table (DArray x) p = DObj $ [("type",DString "table"),("data",DArray x), ("p",p)]
@@ -67,8 +67,8 @@ isNum:: DValue -> Bool
 isNum (DNum x) = True
 isNum _ = False
 
-avg :: DValue -> DValue
-avg x = DNum $ average $ selectNum x 
+avg :: DValue -> DValue -> DValue
+avg (DNum x)  (DNum y) = DNum $ x + y  
 
 ---------------------------------------
 nTimes :: Double -> Double -> [Double]
@@ -95,6 +95,44 @@ mean x  = sum (x) / (genericLength (x))
 c :: Double -> [Double] -> [Double]
 c d ds = (d:ds)
 
+
+
+----------------------
+
+
+
+
+plus2 :: DValue -> DValue  -> Either String DValue
+plus2 x y = do 
+	    x1 <- vNum x
+	    x2 <- vNum y
+	    Right $ DNum $ ((+) x1) x2  
+
+app (x,y) = appPlus x y 
+
+appPlus x y =  applyTwo DNum (+) (vNum x) (vNum y) `mplus` 
+	       applyTwo DString (++) (vString x) (vString y)
+
+
+n3 =  \f -> appTwoLambda DNum f vNum vNum
+s3 =  \f -> appTwoLambda DString f vString vString
+
+
+
+pam :: [a -> b] -> a -> [b]
+pam f x = map g f
+  where g h = h x
+
+--orr :: Either String DValue -> Either String DValue -> Either String DValue
+--orr (Right x) _ = Right x
+--orr _  x = x  
+
+
+appTwoLambda :: (c -> DValue) ->  (a -> b -> c)  -> (DValue -> Either String a) -> (DValue -> Either String b)  -> (DValue -> DValue -> Either String DValue)
+appTwoLambda g f a b = (\x y -> applyTwo g f (a x) (b y)) 
+
+applyTwo :: (c -> DValue) ->  (a -> b -> c)  -> Either String a -> Either String b  -> Either String DValue
+applyTwo g f a b  = g <$> (f <$> a <*> b) 
 
 
 

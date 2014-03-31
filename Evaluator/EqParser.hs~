@@ -1,6 +1,7 @@
 
 module Evaluator.EqParser (
     fromDValue,
+    typeOfDValue,
     run,
     bloc
     ) where

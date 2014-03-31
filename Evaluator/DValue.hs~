@@ -3,10 +3,13 @@
 
 module Evaluator.DValue (
     DValue(..),
+    EitherDValue,
+    EitherDValues,
     fromDValue,
-    typeOfDValue,
-    compareDValueType,
-    execFunc
+    fromNum,
+    execFunc,
+    vNum,
+    vString	
     ) where
 
 import Data.List
@@ -17,6 +20,9 @@ import Data.Typeable
 
 data DValue = DArray [DValue] | DString String | DNum Double | DBool Bool | DCom String | DFunction (String,[DValue]) | DObj [(String,DValue)] | Dyn Dynamic | DNot
     deriving (Typeable)
+
+type EitherDValue = Either String DValue
+type EitherDValues = Either String [DValue]
 
 instance Eq DValue where
 	(==) (DNum d1) (DNum d2) = d1 == d2
@@ -34,6 +40,7 @@ instance Ord DValue where
 instance Show DValue where
 	show (DNum d) = show d
 	show (DString d) = show  d
+	show (DArray []) = "[]" 
 	show (DArray d) = "[" ++ foldr (++) [] ((show $ head $ d) : fmap (("," ++) . show) (tail d)) ++ "]"
 	show (Dyn d) = show d	
 	show (DNot)  = show ""
@@ -53,22 +60,10 @@ fromDValue (DNum d ) = toDyn (d)
 fromDValue (x) = toDyn $ (read $ (show x) :: [Double]) 
 
 -------------------------------
-func :: Double -> Double -> Double
-func x y = x+y  
-
-f = toDyn (func)
-d = DNum 3.0
-c = DNum 4.0
-r = manyAppFunc f [d,t]
-t = DArray [d,c]
-x = applyDyn f d
-y = applyDyn f t
-
 
 fromD :: DValue -> Dynamic
 fromD (Dyn d) = d 
 
---------------------------------
 
 execFunc :: (Dynamic , String) -> [DValue] -> Either String DValue
 execFunc (f,s) d = Right $ manyAppFunc f d 
@@ -100,16 +95,13 @@ convertDyn (DArray d) = DArray $ map convertDyn d
 fromNum ::  DValue -> Double
 fromNum (DNum d) = d 
 
+vNum :: DValue -> Either String Double
+vNum (DNum d) = Right d
+vNum _ =	Left "Cmon"
+
+vString :: DValue -> Either String String
+vString (DString d) = Right d
+vString _ =	Left "Cmon"
 
 
-typeOfDValue :: DValue -> String
-typeOfDValue (DNum d) = "Double"
-typeOfDValue (DArray d)  = "[Double]" 
-
-
-compareDValueType :: DValue -> String -> Either String DValue
-compareDValueType  (DArray d) x =  if ((( "[" ++ typeOfDValue (d!!0)) ++ "]") == x) then (Right $ DArray d) 
-					else ( Left "Bad argument pass to the function" ) ;
-compareDValueType (d) x = if (( typeOfDValue (d)) == x) then (Right d) 
-					else ( Left "Bad argument pass to the function" ) ;
 

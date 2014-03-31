@@ -16,6 +16,7 @@ import Data.Maybe
 import Data.Dynamic
 import Data.List
 import Control.Applicative
+import Control.Exception
 import Statistics.Distribution.Normal as D
 import qualified Data.Map as M
 
@@ -34,31 +35,37 @@ evalParse1 s = case  (run bloc s) of
 				Right x -> fst (evalEqs  $ (x)) 
 				Left  x -> show x
 
-evalEqs :: [(String, DValue)] -> (String, Either String DValue) 
+
+------------------------------------
+
+
+evalEqs :: [(String, DValue)] -> (String, EitherDValue) 
 evalEqs (d) = evalEq (M.fromList d) (head d)
 
-evalEq :: M.Map String DValue -> (String, DValue) -> (String, Either String DValue) 
+evalEq :: M.Map String DValue -> (String, DValue) -> (String, EitherDValue) 
 evalEq  m (s, ds ) = (s, evalOne m ds)
 
-evalOne :: M.Map String DValue ->  DValue -> Either String DValue
-evalOne m (DFunction (d,ds)) = evalFunction (d) (ds) m
+evalOne :: M.Map String DValue ->  DValue -> EitherDValue
+evalOne m (DFunction (d,ds)) = (evalFunction (d) (ds) m)
 evalOne m (DArray ds)  = evalArr m ds 
 evalOne m d       = Right d  
 
-evalArg :: M.Map String DValue ->  [DValue]  -> Either String [DValue]
+evalArg :: M.Map String DValue ->  [DValue]  -> EitherDValues
 evalArg  m (d) =  mapM (evalOne m) d
 
-evalArr :: M.Map String DValue -> [DValue]  -> Either String DValue
+evalArr :: M.Map String DValue -> [DValue]  -> EitherDValue
 evalArr m (d)  =  DArray <$> mapM (evalOne m)  d
 
 
-evalFunction ::   String -> [DValue] -> M.Map String DValue -> Either String DValue
+evalFunction ::   String -> [DValue] -> M.Map String DValue -> EitherDValue
 evalFunction f [] m = findEq f m
 evalFunction f ds m = if  (isNativeFunction f)
 					  then (execFunc $ findFuncNative f) =<< (evalArg m ds) 
 					  else (applyToDValue $ findFunc f) =<< (evalArg m ds) 
 
-findEq :: String  ->  M.Map String DValue  -> Either String DValue
+---------------------------------------
+
+findEq :: String  ->  M.Map String DValue  -> EitherDValue
 findEq s m = (evalOne m $ fromJust (M.lookup s m))
 
 findFuncNative :: String -> (Dynamic, String)
@@ -71,7 +78,7 @@ isNativeFunction :: String -> Bool
 isNativeFunction f = case  (lookup f functionNative) of
 						Nothing -> False
 						_ -> True
-
+-----------------------------------------------
 
 
 functionNative = [
@@ -98,7 +105,7 @@ function = [ ("table", (toDyn table, show $ typeOf(table))),
 	   ]
 
 
-funcDArrayToDNum = [ ("avg", dyn2 avg)]
+---funcDArrayToDNum = [ ("avg", dyn2 avg)]
 
 
 dyn2 :: (DValue -> DValue) -> (Dynamic, String)

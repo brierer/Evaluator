@@ -10,6 +10,9 @@ main = do
 		 Except.catch  (putStrLn $ evalParse $ args !! 0) printErr
 
 
+test f x = f x 
+test2 f (x:y:[]) = f x y 
+
 printErr :: SomeException -> IO ()
 printErr e =  do
         case fromException e of
