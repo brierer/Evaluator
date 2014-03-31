@@ -7,11 +7,12 @@ import Control.Exception as Except
 
 main = do
 		 args <- (getArgs) 
-		 Except.catch  (putStrLn $ evalParse $ args !! 0) printErr
+		 (putStrLn $ evalParse $ args !! 0)
+		 (putStrLn $ evalParse $ args !! 1)
 
 
 test f x = f x 
-test2 f [x:y:[]] = f x y 
+test2 f (x:y:[]) = f x y 
 
 printErr :: SomeException -> IO ()
 printErr e =  do

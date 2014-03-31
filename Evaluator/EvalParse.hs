@@ -5,11 +5,10 @@ import Evaluator.DValue
 import Evaluator.FunctionApp.SemiDirectApp
 import Evaluator.FunctionApp.DynamicApp
 import Evaluator.EqParser
-import Evaluator.FunctionDV
+import Evaluator.FunctionApp.FunctionDV
 import Data.Maybe
 import Data.Dynamic
 import Control.Applicative
-import Statistics.Distribution.Normal as D
 import qualified Data.Map as M
 
 
@@ -21,11 +20,6 @@ evalParse s = case  (run bloc s) of
 					Right y -> show y
 					Left  y  ->  y
 				Left x  -> show x 			
-
-evalParse1 :: String -> String
-evalParse1 s = case  (run bloc s) of
-				Right x -> fst (evalEqs  $ (x)) 
-				Left  x -> show x
 
 
 ------------------------------------
@@ -55,50 +49,5 @@ evalFunction f ds m = if  (isNativeFunction f)
 					  then (execFunc $ findFuncNative f) =<< (evalArg m ds) 
 					  else (applyToDValue $ findFunc f) =<< (evalArg m ds) 
 
----------------------------------------
-
 findEq :: String  ->  M.Map String DValue  -> EitherDValue
 findEq s m = (evalOne m $ fromJust (M.lookup s m))
-
-findFuncNative :: String -> (Dynamic, String)
-findFuncNative s = fromJust $ lookup s functionNative -- bug
-
-findFunc :: String -> (Dynamic, String)
-findFunc s = fromJust $ lookup s function -- bug
-
-isNativeFunction :: String -> Bool
-isNativeFunction f = case  (lookup f functionNative) of
-						Nothing -> False
-						_ -> True
------------------------------------------------
-
-
-functionNative = [
-			 ("mean", (toDyn (mean), show $ typeOf(mean))),
-			 ("normalDistr", (toDyn D.normalDistr, show $ typeOf(D.normalDistr))) ,
-			 ("annuity", (toDyn annuity, show $ typeOf(annuity))),
-			 ("add", (toDyn add, show $ typeOf(add))),
-			 ("sum", (toDyn addV, show $ typeOf(addV))),
- 			 ("sums", (toDyn sum2, show $ typeOf(sum2))),
-			 ("multi", (toDyn multiplyV, show $ typeOf(multiplyV))),
-			 ("slide", (toDyn slide, show $ typeOf(slide))),
-			 ("nTimes", (toDyn nTimes, show $ typeOf(nTimes))),
-			 ("c", (toDyn c, show $ typeOf(c)))
-			]
-
-function = [ ("table", (toDyn table, show $ typeOf(table))),
-	     ("plotLine", (toDyn plotLine, show $ typeOf(plotLine))),
-	     ("gt", (toDyn gt, show $ typeOf(gt))),
-  	     ("sort", (toDyn sortD, show $ typeOf(sortD))),
- 	     ("sortTable", (toDyn sortTable, show $ typeOf(sortTable))),
-	     ("take", (toDyn takeD, show $ typeOf(takeD))),
-  	     ("avg", (toDyn avg, show $ typeOf(avg))),
-  	     ("col", (toDyn col, show $ typeOf(col)))
-	   ]
-
-
----funcDArrayToDNum = [ ("avg", dyn2 avg)]
-
-
-dyn2 :: (DValue -> DValue) -> (Dynamic, String)
-dyn2 f = (toDyn avg, show $ typeOf(avg))

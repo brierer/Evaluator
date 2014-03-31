@@ -7,7 +7,7 @@ import Control.Exception as Except
 
 main = do
 		 args <- (getArgs) 
-		 Except.catch  (putStrLn $ evalParse $ args !! 0) printErr
+		 (putStrLn $ evalParse $ args !! 0)
 
 
 test f x = f x 
