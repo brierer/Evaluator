@@ -7,10 +7,8 @@ module Evaluator.FunctionExc (
 import Evaluator.DValue
 import Data.List
 import Data.Dynamic
-import Data.Maybe
 import Data.List.Split
-import Control.Applicative
-import Control.Exception
+
 
 splitArguments :: String -> [String]
 splitArguments s = init $ splitOn " -> " s

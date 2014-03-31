@@ -1,22 +1,13 @@
-module Evaluator.EvalParse(
-   evalParse,
-   evalParse1,
-   evalOne,
-   evalArr,
-   table,
-   mean, 
- ) where
+module Evaluator.EvalParse
+ where
 
 import Evaluator.DValue
 import Evaluator.FunctionExc
 import Evaluator.EqParser
 import Evaluator.FunctionDV
-
 import Data.Maybe
 import Data.Dynamic
-import Data.List
 import Control.Applicative
-import Control.Exception
 import Statistics.Distribution.Normal as D
 import qualified Data.Map as M
 

@@ -10,7 +10,6 @@ import Evaluator.DValue
 import Text.Parsec hiding ((<|>), many, optional)
 import Text.Parsec.String (Parser)
 import Control.Applicative
-import Numeric
 import Data.Char
 
 run :: Parser [(String,DValue)] -> String -> Either String [(String,DValue)]

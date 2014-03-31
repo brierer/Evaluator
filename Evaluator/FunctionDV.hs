@@ -1,15 +1,9 @@
 module Evaluator.FunctionDV  where
 
 import Evaluator.DValue
-import Evaluator.FunctionExc
 import Evaluator.EqParser
-import Data.Maybe
-import Data.Dynamic
 import Data.List
 import Control.Applicative
-import Statistics.Distribution.Normal as D
-import qualified Data.Map as M
-import Evaluator.Stats
 import Control.Monad
 
 table :: DValue -> DValue -> DValue

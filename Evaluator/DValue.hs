@@ -1,25 +1,20 @@
 {-# LANGUAGE DeriveDataTypeable, StandaloneDeriving #-}
 
 
-module Evaluator.DValue (
-    DValue(..),
-    EitherDValue,
-    EitherDValues,
-    fromDValue,
-    fromNum,
-    execFunc,
-    vNum,
-    vString	
-    ) where
+module Evaluator.DValue     
+ where
 
-import Data.List
+
 import Data.Dynamic
 import Data.Maybe
-import Data.Typeable
 
 
-data DValue = DArray [DValue] | DString String | DNum Double | DBool Bool | DCom String | DFunction (String,[DValue]) | DObj [(String,DValue)] | Dyn Dynamic | DNot
-    deriving (Typeable)
+
+data DValue = DArray [DValue] | DString String | DNum Double | DBool Bool | DCom String | DFunction (String,[DValue]) | DObj [(String,DValue)] | Dyn Dynamic | DNot  deriving (Typeable)
+
+data Tvalue = Arr | Num | Str | Boo | Obj 
+
+   
 
 type EitherDValue = Either String DValue
 type EitherDValues = Either String [DValue]
@@ -59,6 +54,21 @@ fromDValue :: DValue -> Dynamic
 fromDValue (DNum d ) = toDyn (d)
 fromDValue (x) = toDyn $ (read $ (show x) :: [Double]) 
 
+fromNum ::  DValue -> Double
+fromNum (DNum d) = d 
+
+fromString :: DValue -> String
+fromString (DString x) = x
+
+vNum :: DValue -> Either String Double
+vNum (DNum d) = Right d
+vNum _ =	Left "Cmon"
+
+vString :: DValue -> Either String String
+vString (DString d) = Right d
+vString _ =	Left "Cmon"
+
+
 -------------------------------
 
 fromD :: DValue -> Dynamic
@@ -90,17 +100,6 @@ convertDyn (Dyn d) =  case show $ dynTypeRep  d of
 convertDyn (DArray d) = DArray $ map convertDyn d
 
 -----------------------------
-
-fromNum ::  DValue -> Double
-fromNum (DNum d) = d 
-
-vNum :: DValue -> Either String Double
-vNum (DNum d) = Right d
-vNum _ =	Left "Cmon"
-
-vString :: DValue -> Either String String
-vString (DString d) = Right d
-vString _ =	Left "Cmon"
 
 
 

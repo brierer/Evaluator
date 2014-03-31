@@ -3,13 +3,7 @@ module Evaluator.FunctionDV  where
 import Evaluator.DValue
 import Evaluator.FunctionExc
 import Evaluator.EqParser
-import Data.Maybe
-import Data.Dynamic
-import Data.List
 import Control.Applicative
-import Statistics.Distribution.Normal as D
-import qualified Data.Map as M
-import Evaluator.Stats
 import Control.Monad
 import Data.Either
 
@@ -17,18 +11,18 @@ listOfFunctionWithTwoArgs = [("addition",\ x y -> n2n (+) x y `mplus` s2s (++) x
 listOfFunctionWithOneArgs = [("plus2",\ x -> n1n (+2) x)]
 
 
-applyOnTwo :: String -> DValue -> DValue -> Either String DValue
+applyOnTwo :: String -> DValue -> DValue -> EitherDValue
 applyOnTwo f x y = case (lookup f listOfFunctionWithTwoArgs) of
 				Just g -> g x y  
  			        Nothing -> Left $ "No function found" ++ f
 
-applyOnOne :: String -> DValue -> Either String DValue
+applyOnOne :: String -> DValue -> EitherDValue
 applyOnOne f x  = case (lookup f listOfFunctionWithOneArgs) of
 				Just g -> g x   
 			        Nothing -> Left $ "No function found" ++ f
 
 
-applyOn :: String -> [DValue] -> Either String DValue
+applyOn :: String -> [DValue] -> EitherDValue
 applyOn f (DArray x:[]) = Right $ DArray $ rights $ map (applyOnOne f) x 
 applyOn f (x:[])   = applyOnOne f x
 applyOn f (DArray x:DArray y:[]) = Right $ DArray $ rights $ zipWith (applyOnTwo f) x y 
@@ -43,10 +37,10 @@ pam f x = map g f
   where g h = h x
 
 
-a1 :: (b -> DValue) ->  (a -> b)  -> Either String a -> Either String DValue
+a1 :: (b -> DValue) ->  (a -> b)  -> Either String a -> EitherDValue
 a1 g f a = g <$> (f <$> a) 
 
-a2 :: (c -> DValue) ->  (a -> b -> c)  -> Either String a -> Either String b  -> Either String DValue
+a2 :: (c -> DValue) ->  (a -> b -> c)  -> Either String a -> Either String b  -> EitherDValue
 a2 g f a b  = g <$> (f <$> a <*> b) 
 
 
