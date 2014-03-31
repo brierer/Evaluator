@@ -2,7 +2,8 @@ module Evaluator.EvalParse
  where
 
 import Evaluator.DValue
-import Evaluator.FunctionExc
+import Evaluator.FunctionApp.SemiDirectApp
+import Evaluator.FunctionApp.DynamicApp
 import Evaluator.EqParser
 import Evaluator.FunctionDV
 import Data.Maybe
