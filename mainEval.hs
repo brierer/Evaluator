@@ -7,14 +7,13 @@ import Control.Exception as Except
 
 main = do
 		 args <- (getArgs) 
-		 (putStrLn $ evalParse $ args !! 0)
+		 let  result = evalParse $ args !! 0
+		 Except.catch  (putStrLn $ snd $ result)  (printErr $ fst result )
 
 
 test f x = f x 
 test2 f (x:y:[]) = f x y 
 
-printErr :: SomeException -> IO ()
-printErr e =  do
-        case fromException e of
-                Just (x:: PatternMatchFail) -> putStrLn "I caught the exception" >> print x
-                nothing -> return ()
+printErr :: String -> SomeException -> IO ()
+printErr s e =  do
+         	putStrLn $ "Error:" ++ s
