@@ -1,7 +1,6 @@
 module Evaluator.FunctionDV  where
 
 import Evaluator.DValue
-import Evaluator.FunctionExc
 import Evaluator.EqParser
 import Control.Applicative
 import Control.Monad

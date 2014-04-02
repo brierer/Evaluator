@@ -1,31 +1,32 @@
 
 module Evaluator.EqParser (
-    fromDValue,
+    Pvalue(..),
     run,
     bloc
     ) where
 
-
-import Evaluator.DValue    
+ 
 import Text.Parsec hiding ((<|>), many, optional)
 import Text.Parsec.String (Parser)
 import Control.Applicative
 import Data.Char
 
-run :: Parser [(String,DValue)] -> String -> Either String [(String,DValue)]
+data Pvalue = Parray [Pvalue] | Pstring String | Pnum Double | Pbool Bool | Pcom String | Pfunction (String,[Pvalue]) | Pobj [(String,Pvalue)]
+
+run :: Parser [(String,Pvalue)] -> String -> Either String [(String,Pvalue)]
 run p input
         = case (parse p "" input) of 
            Right x -> Right x
            Left  x  -> Left $ "Parser Error:" ++ (show x)
 
  
-fichier :: Parser [(String,DValue)]
+fichier :: Parser [(String,Pvalue)]
 fichier = bloc 
  
-bloc :: Parser [(String,DValue)]
+bloc :: Parser [(String,Pvalue)]
 bloc = many ((paire))
  
-paire :: Parser (String,DValue)
+paire :: Parser (String,Pvalue)
 paire = liftA2 (,) clef (char '=' *> valeurs)
  
 --isPair :: Parser Char
@@ -43,7 +44,7 @@ clef :: Parser String
 clef = between (many (eol) <|> mspace  ) (many space) (many1 letter) <?> "valid clef"
                  
 
-valeurs :: Parser DValue
+valeurs :: Parser Pvalue
 valeurs =  (valeur) <* (lookAhead(isPair) <|> eof ) 
                  
  
@@ -54,25 +55,25 @@ isPair =  (between (mspace) (mspace) (many letter)) *> (char '=') *> return () <
 --newLine :: Parser String
 --newLine = (many1 (try(char ';') <|> try(newline))) *>  (many space) *> (many1 letter) <* (many space) <* char '='
 
-valeur :: Parser DValue
+valeur :: Parser Pvalue
 valeur = between (jspace) (mspace) (
-                 choice [ try (DBool <$> pBool)
-                 ,try (DNum <$> pNum)
-				 ,try (DString <$> pString)
-                 ,try (DArray <$> pArray)
- 				 ,try (DObj <$> pObject)
-                 ,DFunction <$> pFunction ] <?> "a valid desktop value"
+                 choice [ try (Pbool <$> pBool)
+                 ,try (Pnum <$> pNum)
+				 ,try (Pstring <$> pString)
+                 ,try (Parray <$> pArray)
+ 				 ,try (Pobj <$> pObject)
+                 ,Pfunction <$> pFunction ] <?> "a valid desktop value"
                  )
 
 
 
-pArguments :: Parser [DValue]
+pArguments :: Parser [Pvalue]
 pArguments = ( (char '('  ) *> (valeur) `sepBy` (char ',') <* (char ')') ) 
 
-pArray :: Parser [DValue]
+pArray :: Parser [Pvalue]
 pArray = ( (char '['  ) *> (valeur) `sepBy` (char ',') <* (char ']') ) 
 
-pValeurs :: Parser [DValue]
+pValeurs :: Parser [Pvalue]
 pValeurs = many valeur
 
 
@@ -98,21 +99,21 @@ jspace = many  ( space)
 ctuple :: a -> b -> (a,b)
 ctuple a b =  (a,b)
 
-pObject :: Parser [(String,DValue)]
+pObject :: Parser [(String,Pvalue)]
 pObject = between (char '{' )  (char '}') (tag `sepBy` (char ','))
 
-tag :: Parser (String, DValue)
+tag :: Parser (String, Pvalue)
 tag =  (ctuple <$> tagName <*> tagValue)
 
 tagName :: Parser String
 tagName = between (many space) ( (many space) *> (char ':') ) (function)
 
-tagValue :: Parser DValue
+tagValue :: Parser Pvalue
 tagValue = valeur
 
 
 
-pFunction :: Parser ( String , [DValue])
+pFunction :: Parser ( String , [Pvalue])
 pFunction  = ctuple <$> function <*> ((many space) *> (choice [(pArguments), (return [])] )) 
 
 function :: Parser  String
