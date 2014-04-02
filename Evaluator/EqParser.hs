@@ -59,10 +59,10 @@ valeur :: Parser Pvalue
 valeur = between (jspace) (mspace) (
                  choice [ try (Pbool <$> pBool)
                  ,try (Pnum <$> pNum)
-				 ,try (Pstring <$> pString)
+	         ,try (Pstring <$> pString)
                  ,try (Parray <$> pArray)
- 				 ,try (Pobj <$> pObject)
-                 ,Pfunction <$> pFunction ] <?> "a valid desktop value"
+ 		 ,try (Pobj <$> pObject)
+                 ,Pfunction <$> pFunction ] <?> "a function"
                  )
 
 

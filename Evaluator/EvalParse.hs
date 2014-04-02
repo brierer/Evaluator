@@ -20,7 +20,7 @@ evalParse s = case  (run bloc s) of
 				 case (evalEqs $ (x)) of
 					(v, Right y) -> (v , (show y))
 					(v, Left  y) -> (v , (show y))
-				Left x  -> ("" ,show x) 			
+				Left x  -> ("" ,x) 			
 
 
 ------------------------------------
@@ -57,9 +57,9 @@ evalArr m (d)  =  ("",DArray <$> evalMany m  d)
 
 evalFunction ::   String -> [Pvalue] -> M.Map String Pvalue -> (String, EitherDValue) 
 evalFunction f [] m = (f,findEq f m)
-evalFunction f ds m = (f,if  (isNativeFunction f)
-					  then (execFunc $ findFuncNative f) =<< (evalArg m ds) 
-					  else (applyToDValue $ findFunc f) =<< (evalArg m ds)) 
+evalFunction f ds m = (f,if  (isSemiDirectFunction f)
+					  then (applyToDValue $ findFunc f) =<< (evalArg m ds) 
+					  else (applyOn $ f) =<< (evalArg m ds)) 
 
 findEq :: String  ->  M.Map String Pvalue  -> EitherDValue
 findEq s m = snd $ (evalOne m $ fromJust (M.lookup s m))

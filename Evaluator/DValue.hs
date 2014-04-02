@@ -10,7 +10,7 @@ import Data.Maybe
 
 
 
-data DValue = DArray [DValue] | DString String | DNum Double | DBool Bool | DCom String | DFunction (String,[DValue]) | DObj [(String,DValue)] | Dyn Dynamic | DNot  deriving (Typeable)
+data DValue = DArray [DValue] |  DOrray [DValue] | DString String | DNum Double | DBool Bool | DCom String | DFunction (String,[DValue]) | DObj [(String,DValue)] | Dyn Dynamic | DNot  deriving (Typeable)
 
 data Tvalue = Arr | Num | Str | Boo | Obj 
 
@@ -37,6 +37,7 @@ instance Show DValue where
 	show (DString d) = show  d
 	show (DArray []) = "[]" 
 	show (DArray d) = "[" ++ foldr (++) [] ((show $ head $ d) : fmap (("," ++) . show) (tail d)) ++ "]"
+	show (DOrray x) = show $ DArray x
 	show (Dyn d) = show d	
 	show (DNot)  = show ""
 	show (DObj ds)  = "{" ++ printTag ds ++ "}"

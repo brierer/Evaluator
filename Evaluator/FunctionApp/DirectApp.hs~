@@ -1,4 +1,4 @@
-module Evaluator.FunctionDV  where
+module Evaluator.FunctionApp.DirectApp  where
 
 import Evaluator.DValue
 import Evaluator.EqParser
@@ -22,11 +22,11 @@ applyOnOne f x  = case (lookup f listOfFunctionWithOneArgs) of
 
 
 applyOn :: String -> [DValue] -> EitherDValue
-applyOn f (DArray x:[]) = Right $ DArray $ rights $ map (applyOnOne f) x 
+applyOn f (DOrray x:[]) = Right $ DArray $ rights $ map (applyOnOne f) x 
 applyOn f (x:[])   = applyOnOne f x
-applyOn f (DArray x:DArray y:[]) = Right $ DArray $ rights $ zipWith (applyOnTwo f) x y 
-applyOn f (DArray x:y:[]) = Right $ DArray $ rights $ pam (map  (applyOnTwo f) x) y 
-applyOn f (x:DArray y:[]) = Right $ DArray $ rights  $ (map (applyOnTwo f x) y) 
+applyOn f (DOrray x:DOrray y:[]) = Right $ DArray $ rights $ zipWith (applyOnTwo f) x y 
+applyOn f (DOrray x:y:[]) = Right $ DArray $ rights $ pam (map  (applyOnTwo f) x) y 
+applyOn f (x:DOrray y:[]) = Right $ DArray $ rights  $ (map (applyOnTwo f x) y) 
 applyOn f (x:y:[]) = applyOnTwo f x y
 
 
