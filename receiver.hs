@@ -30,9 +30,11 @@ saveMessage con msg =  do
 			putTime	
 			let key = fst $ break (==';')  msg 
 			let eq  = tail $ snd $ break (==';') msg
-			putStrLn eq		
+			putStrLn eq
+			let result = snd $ evalParse $ eq
+			putStrLn result		
 			runRedis con $ do
-      					set (B.pack key) (B.pack $ snd $ evalParse $ eq) 
+      					set (B.pack key) (B.pack $ result) 
 		                        return ()
 			putTime	
 

@@ -11,7 +11,7 @@ import Data.Maybe
 import Data.Dynamic
 import Control.Applicative
 import qualified Data.Map as M
-
+import Data.Either
 
 
 evalParse :: String -> (String,String)
@@ -35,7 +35,7 @@ evalEq  m (s, ds ) = evalOne m ds
 evalOne :: M.Map String Pvalue ->  Pvalue -> (String,EitherDValue) 
 evalOne m (Pfunction (d,ds)) = evalFunction (d) (ds) m
 evalOne m (Parray ds)  = evalArr m ds
-evalOne m (Pobj ds)  = evalArr m (map snd $ ds)
+evalOne m (Pobj ds)  = evalObj m ds
 evalOne m d       = ("",Right $ p_to_Dvalue d) 
 
 p_to_Dvalue :: Pvalue -> DValue 
@@ -43,10 +43,20 @@ p_to_Dvalue (Pnum x) = DNum x
 p_to_Dvalue (Pstring x) = DString x
 p_to_Dvalue (Pbool x) = DBool x
 
+tupleIt :: String -> DValue -> (String,DValue) 
+tupleIt x y = (x,y)
 
+evalObjTuples ::  M.Map String Pvalue ->  [(String,Pvalue)] -> Either String [(String,DValue)]
+evalObjTuples m (ds) = (evalObjFst ds) <$> (evalMany  m (map snd ds))
+
+evalObjFst :: [(String,Pvalue)] -> ([DValue] -> [(String,DValue)])
+evalObjFst ds = (zipWith tupleIt (map fst ds))
+
+evalObj :: M.Map String Pvalue ->  [(String,Pvalue)] -> (String, EitherDValue)
+evalObj m (ds) =  ("", DObj <$> evalObjTuples m ds)
 
 evalMany ::  M.Map String Pvalue ->  [Pvalue] -> EitherDValues 
-evalMany m d =  mapM (\d -> snd $ evalOne m d)  d
+evalMany m d =  mapM (\x -> snd $ evalOne m x)  d
 
 evalArg :: M.Map String Pvalue ->  [Pvalue]  -> EitherDValues
 evalArg  m (d) =  evalMany m d
