@@ -14,13 +14,44 @@ data DValue = DArray [DValue] |  DOrray [DValue] | DString String | DNum Double 
 
 data Tvalue = Arr | Num | Str | Boo | Obj 
 
-   
+data DState = DState {
+      dvalue :: DValue
+    , string :: String
+    } deriving (Show)   
 
 type EitherDValue = Either String DValue
 type EitherDValues = Either String [DValue]
 
+--newtype Eval a = Eval {
+  --    runEval :: DState -> Either String (a, DState)
+    --}
+
+
+---putState :: DState -> Eval ()
+---putState s = Eval (\_ -> Right ((), s))
+
+{-
+identity :: a -> Eval a
+identity a = Eval (\s -> Right (a, s))
+
+
+(==>) :: Eval a -> (a -> Eval b) -> Eval b
+firstEval ==> secondEval  =  Eval chainedEval
+  where chainedEval initState   =
+          case runEval firstEval initState of
+            Left errMessage ->
+                Left errMessage
+            Right (firstResult, newState) ->
+                runEval (secondEval firstResult) newState
+
+-}
+--instance Monad Eval where
+--    return = identity
+ --   (>>=) = (==>)
+
 instance Eq DValue where
 	(==) (DNum d1) (DNum d2) = d1 == d2
+
 	
 instance Ord DValue where
 	(>=) (DNum d1) (DNum d2) = d1 >= d2
