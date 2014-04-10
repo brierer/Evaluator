@@ -12,6 +12,7 @@ import Control.Applicative
 import Data.Char
 
 data Pvalue = Parray [Pvalue] | Pstring String | Pnum Double | Pbool Bool | Pcom String | Pfunction (String,[Pvalue]) | Pobj [(String,Pvalue)]
+	deriving (Show) 
 
 run :: Parser [(String,Pvalue)] -> String -> Either String [(String,Pvalue)]
 run p input

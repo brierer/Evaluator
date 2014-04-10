@@ -7,7 +7,7 @@ module Evaluator.DValue
 
 import Data.Dynamic
 import Data.Maybe
-
+import Control.Applicative
 
 
 data DValue = DArray [DValue] |  DOrray [DValue] | DString String | DNum Double | DBool Bool | DCom String | DFunction (String,[DValue]) | DObj [(String,DValue)] | Dyn Dynamic | DNot  deriving (Typeable)
@@ -21,6 +21,11 @@ data DState = DState {
 
 type EitherDValue = Either String DValue
 type EitherDValues = Either String [DValue]
+
+
+
+commentStack :: String -> DState -> DState
+commentStack s d = DState (dvalue d) (s ++ string d)
 
 --newtype Eval a = Eval {
   --    runEval :: DState -> Either String (a, DState)
@@ -100,6 +105,21 @@ vString :: DValue -> Either String String
 vString (DString d) = Right d
 vString _ =	Left "Cmon"
 
+convertListOfDState :: Either String [DState] -> Either String [DValue]
+convertListOfDState ds = map dvalue <$> ds 
+ 
+convertTupleDState :: [(String,DState)] -> [(String,DValue)]
+convertTupleDState (d:[]) = [(fst d, dvalue $ snd d)]
+convertTupleDState (d:ds) = (fst d, dvalue $ snd d) : convertTupleDState ds
 
 
+
+concatStringTuple :: Either String [(String, DState)]  -> String
+concatStringTuple (Right ds) = foldr (++) "" (map (string.snd) ds)
+concatStringTuple _ = ""
+
+
+concatString :: Either String [DState]  -> String
+concatString (Right ds) = foldr (++) "" (map string ds)
+concatString  _ = ""
 
