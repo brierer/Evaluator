@@ -6,14 +6,15 @@ import Data.List
 import Control.Exception as Except
 
 main = do
-		 args <- (getArgs) 
-		 let  result = evalParse $ args !! 0
-		 Except.catch  (putStrLn $ snd $ result)  (printErr $ fst result )
+		 args <- return ["x=table([[2,3]],{a:2})"]
+--(getArgs) 
+		 s <- runParse $ (args)  !! 0
+	  	 Except.catch (putStrLn (s)) (fatalError)
 
 
-test f x = f x 
-test2 f (x:y:[]) = f x y 
 
-printErr :: String -> SomeException -> IO ()
-printErr s e =  do
-         	putStrLn $ "Error:" ++ s
+fatalError :: SomeException -> IO ()
+fatalError e = putStrLn "An error when evaluating" 		 
+
+
+

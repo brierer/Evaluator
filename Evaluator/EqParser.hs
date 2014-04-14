@@ -91,7 +91,7 @@ pString = between (char $ chr(34)) (char $ chr(34)) (many letter)
 
       
 mspace :: Parser [Char]
-mspace = many (space <|> newline) 
+mspace = many (space <|> char ';') 
 
 jspace :: Parser [Char]
 jspace = many  ( space)

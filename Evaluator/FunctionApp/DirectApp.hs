@@ -13,12 +13,12 @@ listOfFunctionWithOneArgs = [("plusTwo",\ x -> n1n (+2) x)]
 applyOnTwo :: String -> DValue -> DValue -> EitherDValue
 applyOnTwo f x y = case (lookup f listOfFunctionWithTwoArgs) of
 				Just g -> g x y  
- 			        Nothing -> Left $ "No function found" ++ f
+ 			        Nothing -> Left $ "No function found " ++ f
 
 applyOnOne :: String -> DValue -> EitherDValue
 applyOnOne f x  = case (lookup f listOfFunctionWithOneArgs) of
 				Just g -> g x   
-			        Nothing -> Left $ "No function found" ++ f
+			        Nothing -> Left $ "No function found " ++ f
 
 
 applyOn :: String -> [DValue] -> EitherDValue
@@ -37,7 +37,7 @@ pam f x = map g f
 
 
 a1 :: (b -> DValue) ->  (a -> b)  -> Either String a -> EitherDValue
-a1 g f a = g <$> (f <$> a) 
+a1 g f a =  g <$> (f <$> a) 
 
 a2 :: (c -> DValue) ->  (a -> b -> c)  -> Either String a -> Either String b  -> EitherDValue
 a2 g f a b  = g <$> (f <$> a <*> b) 
@@ -49,3 +49,7 @@ n1s f x =   a1 DString f (vNum x)
 n2n f x y =   a2 DNum f (vNum x) (vNum y) 
 s2s f x y=    a2 DString f (vString x) (vString y) 
 
+
+(*+) :: Double -> Double -> Double
+0 *+ y = error "Non"
+y *+ x= x*y

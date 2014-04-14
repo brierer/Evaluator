@@ -10,7 +10,8 @@ import Data.Maybe
 import Control.Applicative
 
 
-data DValue = DArray [DValue] |  DOrray [DValue] | DString String | DNum Double | DBool Bool | DCom String | DFunction (String,[DValue]) | DObj [(String,DValue)] | Dyn Dynamic | DNot  deriving (Typeable)
+
+data DValue = DArray [DValue] |  DOrray [DValue] | DString String | DNum Double | DBool Bool | DCom String | DFunction (String,[DValue]) | DObj [(String, DValue)] | Dyn Dynamic | DNot  deriving (Typeable)
 
 data Tvalue = Arr | Num | Str | Boo | Obj 
 
@@ -99,11 +100,11 @@ fromString (DString x) = x
 
 vNum :: DValue -> Either String Double
 vNum (DNum d) = Right d
-vNum _ =	Left "Cmon"
-
+--vNum d =	Left $ "Bad type" 
+ 
 vString :: DValue -> Either String String
 vString (DString d) = Right d
-vString _ =	Left "Cmon"
+--vString _ =	Left "Bad type"
 
 convertListOfDState :: Either String [DState] -> Either String [DValue]
 convertListOfDState ds = map dvalue <$> ds 
