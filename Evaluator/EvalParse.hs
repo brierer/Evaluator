@@ -20,12 +20,17 @@ import Control.Exception as Except
 import System.Environment   
 
 
-type EvaluatedValue = ErrorT String (Writer [String]) DValue
-type EvaluatedValues = ErrorT String (Writer [String]) [DValue]
+type EvaluatedValue = ErrorT String (Writer [Stack]) DValue
+type EvaluatedValues = ErrorT String (Writer [Stack]) [DValue]
 
+data StackInfo = Stack (StackInfoType,String)
+data StackInfoType = Function | Argument | Equation | Bool | Number | Str (deriving Show)
 
 data EvalStatut = GoodEval | BadEval | ErrorEval 
 data EvalResult = EvalResult EvalStatut String String
+
+instance Show Stack where
+	show Stack info msg = show info ++ ":" ++ msg 
 
 instance Show EvalStatut where
 	show GoodEval = "'ok'"
