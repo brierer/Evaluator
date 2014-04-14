@@ -20,26 +20,26 @@ import Control.Exception as Except
 import System.Environment   
 
 
-type EvaluatedValue = ErrorT String (Writer [Stack]) DValue
-type EvaluatedValues = ErrorT String (Writer [Stack]) [DValue]
+type EvaluatedValue = ErrorT String (Writer [StackInfo]) DValue
+type EvaluatedValues = ErrorT String (Writer [StackInfo]) [DValue]
 
-data StackInfo = Stack (StackInfoType,String)
-data StackInfoType = Function | Argument | Equation | Bool | Number | Str (deriving Show)
+data StackInfo = StackInfo (StackInfoType,String)
+data StackInfoType = Function | Array | Argument | Equation | Bool | Number | Str deriving ( Show )
 
 data EvalStatut = GoodEval | BadEval | ErrorEval 
 data EvalResult = EvalResult EvalStatut String String
 
-instance Show Stack where
-	show Stack info msg = show info ++ ":" ++ msg 
+instance Show StackInfo where
+	show (StackInfo (info,msg)) = "{" ++ (show $ show info) ++ ":" ++ show msg ++ "}"
 
 instance Show EvalStatut where
-	show GoodEval = "'ok'"
-	show BadEval = "'tko'"
-	show ErrorEval = "'ko'"
+	show GoodEval = "\"ok\""
+	show BadEval = "\"tko\""
+	show ErrorEval = "\"ko\""
 
 
 instance Show EvalResult where 
-	show (EvalResult statut res stack) = "{'statut':" ++ show statut ++ ",'res':" ++ res ++ ",'stack':" ++ stack ++ "}"
+	show (EvalResult statut res stack) = "{\"statut\":" ++ show statut ++ ",\"res\":" ++ res ++ ",\"stack\":" ++ stack ++ "}"
 
 
 runParse s = case  (run bloc s) of 
@@ -76,11 +76,11 @@ errorEval w e=  do
 safePrint :: Show w => [w] -> IO String
 safePrint (s:[]) = do
 		   putStrLn $ show s
-		   Except.catch (return $ show s) (\(x :: SomeException) -> return "'Error'") 
+		   Except.catch (return $ show s) (\(x :: SomeException) -> return "\"Error\"") 
 safePrint (s:ss) = do
 		   putStrLn $ show s
-		   one <-  Except.catch (return $ show s) (\(x :: SomeException) -> return "'Error'") --
-		   many <- Except.catch (safePrint ss) (\(x :: SomeException) -> return "'Error'") 
+		   one <-  Except.catch (return $ show s) (\(x :: SomeException) -> return "\"Error\"") --
+		   many <- Except.catch (safePrint ss) (\(x :: SomeException) -> return "\"Error\"") 
 		   return $ one ++ "," ++ many
  
 
@@ -91,26 +91,25 @@ evalEqs :: [(String, Pvalue)] -> EvaluatedValue
 evalEqs (d) = evalEq (M.fromList d) (head d)
 
 evalEq :: M.Map String Pvalue -> (String, Pvalue) -> EvaluatedValue
-evalEq  m (s, ds ) = tell [s] >> evalOne m ds
+evalEq  m (s, ds ) = tell [StackInfo (Equation,s)] >> evalOne m ds
 
 evalOne :: M.Map String Pvalue -> Pvalue -> EvaluatedValue
 evalOne m (Pfunction (d)) = evalFunction (d) m
 evalOne m (Parray ds)  = evalArr m ds
 evalOne m (Pobj ds)  = evalObj m ds
 evalOne m p =do 
-	     tell ["Value"]	
+	     tell [StackInfo (Number,show p)]	
 	     ErrorT (return (Right $ p_to_Dvalue p)) 
 
 
 evalFunction ::   (String, [Pvalue]) -> M.Map String Pvalue -> EvaluatedValue
-evalFunction (f,[]) m = tell [f] >> findEq f m
+evalFunction (f,[]) m = tell [StackInfo (Function , f)] >> findEq f m
 evalFunction (f,ds) m =  do
-		       tell ["Eval Function:"]		
-		       tell [f]  
-		       --tell ["Ok Args:"]
+		       tell [StackInfo (Function,f)]
+		       tell [StackInfo (Argument,"Begin")]
 		       x <- evalArg m ds
-		       tell ["Ok Args:"]
-		       tell ["Ok eval:"] 
+		       tell [StackInfo (Argument,"Close")]
+		       tell [StackInfo (Function,f ++ " Close")] 
 		       res <- ErrorT $ return $ ((if  (isSemiDirectFunction f)
 					       then (applyToDValue (findFunc f) x) 
      			  		       else (applyOn  f x)))   		       
@@ -120,7 +119,7 @@ findEq :: String  ->  M.Map String Pvalue  -> EvaluatedValue
 findEq s m = (evalOne m $ fromJust (M.lookup s m))
 
 
-evalObjTuples ::  M.Map String Pvalue ->  [(String,Pvalue)] -> ErrorT String (Writer [String]) [(String,DValue)]
+evalObjTuples ::  M.Map String Pvalue ->  [(String,Pvalue)] -> ErrorT String (Writer [StackInfo]) [(String,DValue)]
 evalObjTuples m (ds) = (zip (map fst ds)) <$> (evalMany  m (map snd ds))
 
 
@@ -135,7 +134,7 @@ evalMany ::  M.Map String Pvalue ->  [Pvalue] -> EvaluatedValues
 evalMany m d = mapM (evalOne m )  d
 
 evalArr :: M.Map String Pvalue -> [Pvalue]  -> EvaluatedValue
-evalArr m (d)  = tell ["Array:"] >> DArray <$> evalMany m  d
+evalArr m (d)  = tell [StackInfo (Array,"Begin")] >> DArray <$> evalMany m  d
 
 evalArg :: M.Map String Pvalue ->  [Pvalue]  -> EvaluatedValues
 evalArg  m (d) =  evalMany m d
