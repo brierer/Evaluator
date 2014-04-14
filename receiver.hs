@@ -32,6 +32,7 @@ saveMessage con msg =  do
 			let eq  = tail $ snd $ break (==';') msg
 			putStrLn eq
 			result <- runParse $ eq		
+			putStrLn result			
 			runRedis con $ do
       					set (B.pack key) (B.pack $ result) 
 		                        return ()

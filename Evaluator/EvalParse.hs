@@ -47,7 +47,8 @@ runParse s = case  (run bloc s) of
 		Left  x -> return $ show $ x
 
 evalParse :: [(String,Pvalue)] -> IO String
-evalParse x = do	
+evalParse x = do
+		putStrLn "Start Eval:\n"	
                 let res =  runWriter $ runErrorT $ evalEqs $ (x)
 	        Except.catch (case res of
 					(Right x,w) -> goodEval x w 
@@ -70,17 +71,17 @@ badEval a w  = do
 errorEval :: Show w =>  [w] -> Except.SomeException -> IO String
 errorEval w e=  do
 		s <- (safePrint $ w)   
-		return $ show $  EvalResult ErrorEval ("["++ s ++ "]") (show e)   
+		return $ show $  EvalResult ErrorEval (show $ "Error") ("[" ++ s ++ "]")   
 
 
 safePrint :: Show w => [w] -> IO String
 safePrint (s:[]) = do
 		   putStrLn $ show s
-		   Except.catch (return $ show s) (\(x :: SomeException) -> return "\"Error\"") 
+		   Except.catch (return $ show s) (\(x :: SomeException) -> return "{\"err\":\"Error\"}") 
 safePrint (s:ss) = do
 		   putStrLn $ show s
-		   one <-  Except.catch (return $ show s) (\(x :: SomeException) -> return "\"Error\"") --
-		   many <- Except.catch (safePrint ss) (\(x :: SomeException) -> return "\"Error\"") 
+		   one <-  Except.catch (return $ show s) (\(x :: SomeException) -> return "{\"err\":\"Error\"}") --
+		   many <- Except.catch (safePrint ss) (\(x :: SomeException) -> return "{\"err\":\"Error\"}") 
 		   return $ one ++ "," ++ many
  
 
@@ -98,18 +99,18 @@ evalOne m (Pfunction (d)) = evalFunction (d) m
 evalOne m (Parray ds)  = evalArr m ds
 evalOne m (Pobj ds)  = evalObj m ds
 evalOne m p =do 
-	     tell [StackInfo (Number,show p)]	
+	     --tell [StackInfo (Number,show p)]	
 	     ErrorT (return (Right $ p_to_Dvalue p)) 
 
 
 evalFunction ::   (String, [Pvalue]) -> M.Map String Pvalue -> EvaluatedValue
-evalFunction (f,[]) m = tell [StackInfo (Function , f)] >> findEq f m
+evalFunction (f,[]) m = tell [StackInfo (Equation , f ++ "")] >> findEq f m
 evalFunction (f,ds) m =  do
-		       tell [StackInfo (Function,f)]
-		       tell [StackInfo (Argument,"Begin")]
+		       tell [StackInfo (Function,f ++ "(")]
+		       tell [StackInfo (Argument,"[")]
 		       x <- evalArg m ds
-		       tell [StackInfo (Argument,"Close")]
-		       tell [StackInfo (Function,f ++ " Close")] 
+		       tell [StackInfo (Argument,"]")]
+		       tell [StackInfo (Function,")")] 
 		       res <- ErrorT $ return $ ((if  (isSemiDirectFunction f)
 					       then (applyToDValue (findFunc f) x) 
      			  		       else (applyOn  f x)))   		       
@@ -134,7 +135,7 @@ evalMany ::  M.Map String Pvalue ->  [Pvalue] -> EvaluatedValues
 evalMany m d = mapM (evalOne m )  d
 
 evalArr :: M.Map String Pvalue -> [Pvalue]  -> EvaluatedValue
-evalArr m (d)  = tell [StackInfo (Array,"Begin")] >> DArray <$> evalMany m  d
+evalArr m (d)  = tell [StackInfo (Array,"[")] >> DArray <$> evalMany m  d
 
 evalArg :: M.Map String Pvalue ->  [Pvalue]  -> EvaluatedValues
 evalArg  m (d) =  evalMany m d
