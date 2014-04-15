@@ -6,7 +6,7 @@ import Data.List
 import Control.Exception as Except
 
 main = do
-		 args <- return ["show=[[[addition(2,true)]]]"]
+		 args <- return ["show=descriptive([1,2,3])"]
 --(getArgs) 
 		 s <- runParse $ (args)  !! 0
 	  	 Except.catch (putStrLn (s)) (fatalError)

@@ -5,9 +5,10 @@ import Evaluator.EqParser
 import Control.Applicative
 import Control.Monad
 import Data.Either
-
-listOfFunctionWithTwoArgs = [("addition",\ x y -> n2n (+) x y `mplus` s2s (++) x y)]
-listOfFunctionWithOneArgs = [("plusTwo",\ x -> n1n (+2) x)]
+import Evaluator.Stats
+listOfFunctionWithTwoArgs = [("addition",\ x y -> n2n (+) x y `mplus` s2s (++) x y),
+			     ("nTimes", \x y -> n2i (nTimes) x y)]
+listOfFunctionWithOneArgs = [("descriptive",\ x -> ns1i (descriptive) x)]
 
 
 applyOnTwo :: String -> DValue -> DValue -> EitherDValue
@@ -43,11 +44,21 @@ a2 :: (c -> DValue) ->  (a -> b -> c)  -> Either String a -> Either String b  ->
 a2 g f a b  = g <$> (f <$> a <*> b) 
 
 
+
+
+ns1i f x =   a1 id f (vNums x)
+
 n1n f x =   a1 DNum f (vNum x)
 n1s f x =   a1 DString f (vNum x)
 
+
+
 n2n f x y =   a2 DNum f (vNum x) (vNum y) 
+n2i f x y =   a2 id f (vNum x) (vNum y) 
+
 s2s f x y=    a2 DString f (vString x) (vString y) 
+
+
 
 
 (*+) :: Double -> Double -> Double

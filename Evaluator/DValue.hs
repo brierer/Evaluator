@@ -100,11 +100,14 @@ fromString (DString x) = x
 
 vNum :: DValue -> Either String Double
 vNum (DNum d) = Right d
---vNum d =	Left $ "Bad type" 
+vNum d =	Left $ "Bad type" 
+
+vNums :: DValue -> Either String [Double]
+vNums (DArray ds) = mapM vNum ds  
  
 vString :: DValue -> Either String String
 vString (DString d) = Right d
---vString _ =	Left "Bad type"
+vString _ =	Left "Bad type"
 
 convertListOfDState :: Either String [DState] -> Either String [DValue]
 convertListOfDState ds = map dvalue <$> ds 
