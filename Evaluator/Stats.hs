@@ -35,5 +35,5 @@ descriptive ds = DArray $ [DArray $ Data.List.map DString $ fst desc, DArray $  
 
 
 nTimes :: Double -> Double -> DValue
-nTimes n t = DArray $ Data.List.map DNum $  [n..t] 
+nTimes n t = DNums $  [n..t] 
 

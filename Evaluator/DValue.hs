@@ -11,7 +11,7 @@ import Control.Applicative
 
 
 
-data DValue = DArray [DValue] |  DOrray [DValue] | DString String | DNum Double | DBool Bool | DCom String | DFunction (String,[DValue]) | DObj [(String, DValue)] | Dyn Dynamic | DNot  deriving (Typeable)
+data DValue = DArray [DValue] |  DOrray [DValue] | DString String | DNum Double | DBool Bool | DCom String | DFunction (String,[DValue]) | DObj [(String, DValue)] | Dyn Dynamic | DNot | DNums [Double]  deriving (Typeable)
 
 data Tvalue = Arr | Num | Str | Boo | Obj 
 
@@ -103,7 +103,8 @@ vNum (DNum d) = Right d
 vNum d =	Left $ "Bad type" 
 
 vNums :: DValue -> Either String [Double]
-vNums (DArray ds) = mapM vNum ds  
+vNums (DArray ds) = mapM vNum ds 
+vNums (DNums ds) = Right $ ds 
  
 vString :: DValue -> Either String String
 vString (DString d) = Right d
