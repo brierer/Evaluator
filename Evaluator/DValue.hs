@@ -11,7 +11,16 @@ import Control.Applicative
 
 
 
-data DValue = DArray [DValue] |  DOrray [DValue] | DString String | DNum Double | DBool Bool | DCom String | DFunction (String,[DValue]) | DObj [(String, DValue)] | Dyn Dynamic | DNot | DNums [Double]  deriving (Typeable)
+data DValue = DArray [DValue] |  
+	      DOrray [DValue] | 
+	      DString String  |
+	      DNum Double     |
+	      DBool Bool      | 
+	      DObj [(String, DValue)] | 
+	      Dyn Dynamic     | 
+	      DNot | 
+	      DNums [Double]  
+	      deriving (Typeable)
 
 data Tvalue = Arr | Num | Str | Boo | Obj 
 

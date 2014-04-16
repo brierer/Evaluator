@@ -66,7 +66,7 @@ s2s f x y=    a2 DString f (vString x) (vString y)
 y *+ x= x*y
 
 
-test = ("sum",\x y -> (+) (evalNum x) (evalNum y))
+test = [("sum",\x y -> (+) (evalNum x) (evalNum y))]
 
 
 evalNum :: DValue -> Double
