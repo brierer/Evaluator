@@ -28,32 +28,6 @@ type EitherDValues = Either String [DValue]
 commentStack :: String -> DState -> DState
 commentStack s d = DState (dvalue d) (s ++ string d)
 
---newtype Eval a = Eval {
-  --    runEval :: DState -> Either String (a, DState)
-    --}
-
-
----putState :: DState -> Eval ()
----putState s = Eval (\_ -> Right ((), s))
-
-{-
-identity :: a -> Eval a
-identity a = Eval (\s -> Right (a, s))
-
-
-(==>) :: Eval a -> (a -> Eval b) -> Eval b
-firstEval ==> secondEval  =  Eval chainedEval
-  where chainedEval initState   =
-          case runEval firstEval initState of
-            Left errMessage ->
-                Left errMessage
-            Right (firstResult, newState) ->
-                runEval (secondEval firstResult) newState
-
--}
---instance Monad Eval where
---    return = identity
- --   (>>=) = (==>)
 
 instance Eq DValue where
 	(==) (DNum d1) (DNum d2) = d1 == d2
@@ -110,21 +84,5 @@ vString :: DValue -> Either String String
 vString (DString d) = Right d
 vString _ =	Left "Bad type"
 
-convertListOfDState :: Either String [DState] -> Either String [DValue]
-convertListOfDState ds = map dvalue <$> ds 
- 
-convertTupleDState :: [(String,DState)] -> [(String,DValue)]
-convertTupleDState (d:[]) = [(fst d, dvalue $ snd d)]
-convertTupleDState (d:ds) = (fst d, dvalue $ snd d) : convertTupleDState ds
 
-
-
-concatStringTuple :: Either String [(String, DState)]  -> String
-concatStringTuple (Right ds) = foldr (++) "" (map (string.snd) ds)
-concatStringTuple _ = ""
-
-
-concatString :: Either String [DState]  -> String
-concatString (Right ds) = foldr (++) "" (map string ds)
-concatString  _ = ""
 
