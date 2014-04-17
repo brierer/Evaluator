@@ -12,14 +12,15 @@ import Control.Applicative
 
 
 data DValue = DArray [DValue] |  
-	      DOrray [DValue] | 
+	      DOrray DValue | 
 	      DString String  |
 	      DNum Double     |
 	      DBool Bool      | 
 	      DObj [(String, DValue)] | 
 	      Dyn Dynamic     | 
 	      DNot | 
-	      DNums [Double]  
+	      DNums [Double] |
+	      DStrings [String]  
 	      deriving (Typeable)
 
 data Tvalue = Arr | Num | Str | Boo | Obj 
@@ -57,11 +58,11 @@ instance Show DValue where
 	show (DString d) = show  d
 	show (DArray []) = "[]" 
 	show (DArray d) = "[" ++ foldr (++) [] ((show $ head $ d) : fmap (("," ++) . show) (tail d)) ++ "]"
-	show (DOrray x) = show $ DArray x
+	show (DOrray x) = show $ x
 	show (Dyn d) = show d	
 	show (DNot)  = show ""
 	show (DObj ds)  = "{" ++ printTag ds ++ "}"
-
+	show (DNums x)  =  show x
  	
 
 printTag :: [(String, DValue)] -> String
@@ -83,15 +84,20 @@ fromString (DString x) = x
 
 vNum :: DValue -> Either String Double
 vNum (DNum d) = Right d
-vNum d =	Left $ "Bad type" 
+vNum (DArray ds) =	Left $ "Bad type, need a num , got a array"
+vNum _  = Left $ "Bad type, need num, but got something else"
 
 vNums :: DValue -> Either String [Double]
 vNums (DArray ds) = mapM vNum ds 
 vNums (DNums ds) = Right $ ds 
+
+vStrings :: DValue -> Either String [String]
+--vNums (DArray ds) = mapM vNum ds 
+vStrings (DStrings ds) = Right $ ds
  
 vString :: DValue -> Either String String
 vString (DString d) = Right d
-vString _ =	Left "Bad type"
+vString _ =	Left "Bad type.."
 
 
 
