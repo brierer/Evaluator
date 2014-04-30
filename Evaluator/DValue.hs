@@ -8,7 +8,7 @@ module Evaluator.DValue
 import Data.Dynamic
 import Data.Maybe
 import Control.Applicative
-
+import Data.List
 
 
 data DValue = DArray [DValue] |  
@@ -100,4 +100,14 @@ vString (DString d) = Right d
 vString _ =	Left "Bad type.."
 
 
+convertTable :: DValue ->DValue 
+convertTable (DObj d) = DObj $ d
+convertTable (DArray ds) = DArray $ map DArray $ transpose $ map convertArray ds
+convertTable (DNums ds) =DArray $ map DNum ds
+convertTable d = DArray [ DArray $ [d]]
+
+convertArray :: DValue -> [DValue]
+convertArray (DArray ds) = ds
+convertArray (DNums ds) = map DNum ds
+convertArray (d) = [d] 
 

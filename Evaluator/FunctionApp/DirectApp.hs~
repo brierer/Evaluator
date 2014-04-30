@@ -9,7 +9,8 @@ import Evaluator.Stats
 listOfFunctionWithTwoArgs = [("addition",\ x y -> n2n (+) x y),
 			     ("nTimes", \x y -> n2i (nTimes) x y)]
 listOfFunctionWithOneArgs = [("descriptive",\ x -> ns1i (descriptive) x)
-			     ,("plustwo",n1n (+2) )]
+			     ,("plustwo",n1n (+2) )
+			     ,("show",display)]
 
 
 applyOnTwo :: String -> DValue -> DValue -> EitherDValue
@@ -86,4 +87,6 @@ n2i f x y =   a2 id f (vNum x) (vNum y)
 
 s2s f x y=    a2 DString f (vString x) (vString y) 
 
+
+display (DArray ds) = Right $ DArray $ map convertTable ds
 
