@@ -1,8 +1,9 @@
-
+{-# LANGUAGE DeriveGeneric #-}
 module Evaluator.EqParser (
     Pvalue(..),
     run,
-    bloc
+    bloc,
+    convertAllToPureValue
     ) where
 
  
@@ -10,24 +11,57 @@ import Text.Parsec hiding ((<|>), many, optional)
 import Text.Parsec.String (Parser)
 import Control.Applicative
 import Data.Char
+import GHC.Generics
+import Data.Aeson (FromJSON, ToJSON, decode, encode)
 
 data Pvalue = Parray [Pvalue] | Pstring String | Pnum Double | Pbool Bool | Pcom String | Pfunction (String,[Pvalue]) | Pobj [(String,Pvalue)]
-	deriving (Show) 
+	deriving (Show, Generic) 
 
-run :: Parser [(String,Pvalue)] -> String -> Either String [(String,Pvalue)]
+data OneOrManyValue =  ManyValue ManyValue | SingleValue Pvalue deriving (Show, Generic)
+
+data ManyValue = ArrayValue [OneValue] | FunctionValue (String,[OneValue]) | ObjValue [(String,OneValue)] deriving (Show, Generic)
+
+data OneValue = OneValue String OneOrManyValue String deriving (Show, Generic)
+
+instance ToJSON Pvalue
+instance ToJSON OneOrManyValue
+instance ToJSON OneValue
+instance ToJSON ManyValue
+
+
+
+
+
+convertAllToPureValue :: [(String,OneValue)] -> [(String,Pvalue)] 
+convertAllToPureValue ds = map (mapSnd toPureValue) ds 
+
+toPureValue :: OneValue -> Pvalue
+toPureValue (OneValue _ (ManyValue x) _) = manyValuetoPureValue x
+toPureValue (OneValue _ (SingleValue x) _) =  x
+
+mapSnd :: (a -> b) -> (c, a) -> (c, b)
+mapSnd f (x,y) = (x,f y)
+
+manyValuetoPureValue :: ManyValue -> Pvalue
+manyValuetoPureValue (ArrayValue ds) = Parray $ map toPureValue ds
+manyValuetoPureValue (FunctionValue (s,ds)) = Pfunction $ (s,map toPureValue ds)
+manyValuetoPureValue (ObjValue ds) = Pobj $ zip strings values
+					 where unzipValue = unzip ds
+					       values = map toPureValue (snd unzipValue)
+					       strings = fst unzipValue	
+
+run :: Parser [(String,OneValue)] -> String -> Either String [(String,OneValue)]
 run p input
         = case (parse p "" input) of 
            Right x -> Right x
            Left  x  -> Left $ "Parser Error:" ++ (show x)
 
  
-fichier :: Parser [(String,Pvalue)]
-fichier = bloc 
+
+bloc :: Parser [(String,OneValue)]
+bloc =  many ((paire))
  
-bloc :: Parser [(String,Pvalue)]
-bloc = many ((paire))
- 
-paire :: Parser (String,Pvalue)
+paire :: Parser (String,OneValue)
 paire = liftA2 (,) clef (char '=' *> valeurs)
  
 --isPair :: Parser Char
@@ -45,7 +79,7 @@ clef :: Parser String
 clef = between (many (eol) <|> mspace  ) (many space) (many1 letter) <?> "valid clef"
                  
 
-valeurs :: Parser Pvalue
+valeurs :: Parser OneValue
 valeurs =  (valeur) <* (lookAhead(isPair) <|> eof ) 
                  
  
@@ -56,25 +90,48 @@ isPair =  (between (mspace) (mspace) (many letter)) *> (char '=') *> return () <
 --newLine :: Parser String
 --newLine = (many1 (try(char ';') <|> try(newline))) *>  (many space) *> (many1 letter) <* (many space) <* char '='
 
-valeur :: Parser Pvalue
-valeur = between (jspace) (mspace) (
-                 choice [ try (Pbool <$> pBool)
-                 ,try (Pnum <$> pNum)
-	         ,try (Pstring <$> pString)
-                 ,try (Parray <$> pArray)
- 		 ,try (Pobj <$> pObject)
-                 ,Pfunction <$> pFunction ] <?> "a function"
+valeur :: Parser OneValue
+valeur = between (mspace) (mspace) (
+                 choice [ try (oneOrManyValue)
+                 ] <?> "a function"
                  )
 
+oneOrManyValue :: Parser OneValue
+oneOrManyValue = OneValue <$> pComment <*> (try(singleValue) <|> manyValue)  <*> pComment
 
 
-pArguments :: Parser [Pvalue]
+singleValue :: Parser OneOrManyValue
+singleValue = SingleValue <$> between (mspace) (mspace) (
+                 choice [ try  (Pbool <$> pBool)
+                 ,try (Pnum <$> pNum)
+	         ,try (Pstring <$> pString)
+		]
+		)
+
+
+manyValue :: Parser OneOrManyValue
+manyValue = ManyValue <$> between (mspace) (mspace) (
+                 choice [
+                 try (ArrayValue <$> pArray),
+		 try (FunctionValue <$> pFunction),
+		 try (ObjValue <$> pObject)
+		]
+		)
+
+
+comment :: Parser Pvalue
+comment = (Pcom <$> pComment)
+
+pComment :: Parser [Char]
+pComment = many (between (space) (space) newline)  
+
+pArguments :: Parser [OneValue]
 pArguments = ( (char '('  ) *> (valeur) `sepBy` (char ',') <* (char ')') ) 
 
-pArray :: Parser [Pvalue]
+pArray :: Parser [OneValue]
 pArray = ( (char '['  ) *> (valeur) `sepBy` (char ',') <* (char ']') ) 
 
-pValeurs :: Parser [Pvalue]
+pValeurs :: Parser [OneValue]
 pValeurs = many valeur
 
 
@@ -100,21 +157,21 @@ jspace = many  ( space)
 ctuple :: a -> b -> (a,b)
 ctuple a b =  (a,b)
 
-pObject :: Parser [(String,Pvalue)]
+pObject :: Parser [(String,OneValue)]
 pObject = between (char '{' )  (char '}') (tag `sepBy` (char ','))
 
-tag :: Parser (String, Pvalue)
+tag :: Parser (String, OneValue)
 tag =  (ctuple <$> tagName <*> tagValue)
 
 tagName :: Parser String
 tagName = between (many space) ( (many space) *> (char ':') ) (function)
 
-tagValue :: Parser Pvalue
+tagValue :: Parser OneValue
 tagValue = valeur
 
 
 
-pFunction :: Parser ( String , [Pvalue])
+pFunction :: Parser ( String , [OneValue])
 pFunction  = ctuple <$> function <*> ((many space) *> (choice [(pArguments), (return [])] )) 
 
 function :: Parser  String

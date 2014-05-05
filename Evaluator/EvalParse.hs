@@ -18,7 +18,8 @@ import Control.Monad.Trans.Maybe
 import Control.Monad.Error
 import Control.Exception as Except
 import System.Environment   
-
+import Data.Aeson (FromJSON, ToJSON, decode, encode)
+import Data.Aeson.Encode.Pretty 
 
 type EvaluatedValue = ErrorT String (Writer [StackInfo]) DValue
 type EvaluatedValues = ErrorT String (Writer [StackInfo]) [DValue]
@@ -43,7 +44,9 @@ instance Show EvalResult where
 
 
 runParse s = case  (run bloc s) of 
-		Right x -> evalParse x
+		Right x -> do
+			   result <- evalParse $ convertAllToPureValue x
+			   return $ "{'parse':" ++ (show $ encode x) ++ ",'eval':" ++ result ++ "}" 
 		Left  x -> return $ show $ x
 
 evalParse :: [(String,Pvalue)] -> IO String
