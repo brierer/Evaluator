@@ -91,17 +91,15 @@ isPair =  (between (mspace) (mspace) (many letter)) *> (char '=') *> return () <
 --newLine = (many1 (try(char ';') <|> try(newline))) *>  (many space) *> (many1 letter) <* (many space) <* char '='
 
 valeur :: Parser OneValue
-valeur = between (mspace) (mspace) (
-                 choice [ try (oneOrManyValue)
-                 ] <?> "a function"
-                 )
+valeur = oneOrManyValue
+                 
 
 oneOrManyValue :: Parser OneValue
 oneOrManyValue = OneValue <$> pComment <*> (try(singleValue) <|> manyValue)  <*> pComment
 
 
 singleValue :: Parser OneOrManyValue
-singleValue = SingleValue <$> between (mspace) (mspace) (
+singleValue = SingleValue <$> (
                  choice [ try  (Pbool <$> pBool)
                  ,try (Pnum <$> pNum)
 	         ,try (Pstring <$> pString)
@@ -110,7 +108,7 @@ singleValue = SingleValue <$> between (mspace) (mspace) (
 
 
 manyValue :: Parser OneOrManyValue
-manyValue = ManyValue <$> between (mspace) (mspace) (
+manyValue = ManyValue <$> (
                  choice [
                  try (ArrayValue <$> pArray),
 		 try (FunctionValue <$> pFunction),
@@ -123,7 +121,7 @@ comment :: Parser Pvalue
 comment = (Pcom <$> pComment)
 
 pComment :: Parser [Char]
-pComment = many (between (space) (space) newline)  
+pComment = skipMany space *> many (between (many space) (many space) (char ';'))  
 
 pArguments :: Parser [OneValue]
 pArguments = ( (char '('  ) *> (valeur) `sepBy` (char ',') <* (char ')') ) 
@@ -148,7 +146,7 @@ pString = between (char $ chr(34)) (char $ chr(34)) (many letter)
 
       
 mspace :: Parser [Char]
-mspace = many (space <|> char ';') 
+mspace = many (space) 
 
 jspace :: Parser [Char]
 jspace = many  ( space)
