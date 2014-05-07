@@ -1,36 +1,58 @@
-{-# LANGUAGE DeriveGeneric #-}
+{-# LANGUAGE DeriveGeneric, OverloadedStrings #-}
 module Evaluator.EqParser (
     Pvalue(..),
     run,
     bloc,
-    convertAllToPureValue
+    convertAllToPureValue,
+    encodeValues
     ) where
 
  
 import Text.Parsec hiding ((<|>), many, optional)
 import Text.Parsec.String (Parser)
 import Control.Applicative
+import Control.Monad
 import Data.Char
 import GHC.Generics
-import Data.Aeson (FromJSON, ToJSON, decode, encode)
+import Data.Aeson 
+import Data.Aeson.Encode.Pretty
+import Data.Text (Text, pack)
 
 data Pvalue = Parray [Pvalue] | Pstring String | Pnum Double | Pbool Bool | Pcom String | Pfunction (String,[Pvalue]) | Pobj [(String,Pvalue)]
 	deriving (Show, Generic) 
 
-data OneOrManyValue =  ManyValue ManyValue | SingleValue Pvalue deriving (Show, Generic)
+data OneOrManyValue =  ManyValue ManyValue | SingleValue Pvalue deriving (Show)
 
 data ManyValue = ArrayValue [OneValue] | FunctionValue (String,[OneValue]) | ObjValue [(String,OneValue)] deriving (Show, Generic)
 
-data OneValue = OneValue String OneOrManyValue String deriving (Show, Generic)
+data OneValue = OneValue String OneOrManyValue String deriving (Show)
 
 instance ToJSON Pvalue
-instance ToJSON OneOrManyValue
-instance ToJSON OneValue
-instance ToJSON ManyValue
+instance ToJSON OneOrManyValue where
+	toJSON (ManyValue s) = toJSON s
+	toJSON (SingleValue s) = toJSON s
+
+instance ToJSON OneValue where
+	toJSON (OneValue s1 v s2) = object [ 
+					     "s1"  .= s1
+					   , "v"   .= v
+					   , "s2"        .= s2
+					   ]
+instance ToJSON ManyValue where
+	toJSON (ArrayValue ds) = object [ "a"  .= fmap  toJSON ds ]
+	toJSON (FunctionValue (s,ds)) = object [ "f"  .= object[ "name"  .= s,"arg" .= fmap toJSON ds] ]
+	toJSON (ObjValue ds) = object ["o" .= fmap toJSON ds]
 
 
+encodeValues ds = encodePretty' (config ds) (object (fmap encodeValue ds))  
 
+config :: [(String, a)] -> Config
+config ds = Config { confIndent = 1, confCompare = keyConfig ds }
 
+keyConfig :: [(String, a)] -> (Text -> Text -> Ordering)
+keyConfig ds = (keyOrder $ map (pack.fst) ds)
+
+encodeValue (s,d) =  (pack s) .= d
 
 convertAllToPureValue :: [(String,OneValue)] -> [(String,Pvalue)] 
 convertAllToPureValue ds = map (mapSnd toPureValue) ds 
@@ -72,11 +94,11 @@ paire = liftA2 (,) clef (char '=' *> valeurs)
 --commentaire = liftA2 (,) ( show . sourceLine <$> getPosition) (DCom <$> (char '#' *> many (noneOf  "\n"))) 
 
 eol :: Parser Char
-eol = try(char $ ';') <?> "valid eol"
+eol = try(char $ '\n') <?> "valid eol"
                  
 
 clef :: Parser String
-clef = between (many (eol) <|> mspace  ) (many space) (many1 letter) <?> "valid clef"
+clef = between (mspace  ) (many space) (many1 letter) <?> "valid clef"
                  
 
 valeurs :: Parser OneValue
@@ -121,7 +143,7 @@ comment :: Parser Pvalue
 comment = (Pcom <$> pComment)
 
 pComment :: Parser [Char]
-pComment = skipMany space *> many (between (many space) (many space) (char ';'))  
+pComment = skipMany (char ' ' <|> tab) *> many (eol <* skipMany (char ' ' <|> tab))  
 
 pArguments :: Parser [OneValue]
 pArguments = ( (char '('  ) *> (valeur) `sepBy` (char ',') <* (char ')') ) 
