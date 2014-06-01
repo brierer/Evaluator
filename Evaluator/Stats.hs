@@ -37,3 +37,6 @@ descriptive ds = DArray $ [DArray $ Data.List.map DString $ fst desc, DArray $  
 nTimes :: Double -> Double -> DValue
 nTimes n t = DNums $  [n..t] 
 
+
+multi ::  [Double] -> DValue
+multi ds = DNum $ Data.List.foldr (*) 1 ds

@@ -60,7 +60,7 @@ instance Show DValue where
 	show (DArray d) = "[" ++ foldr (++) [] ((show $ head $ d) : fmap (("," ++) . show) (tail d)) ++ "]"
 	show (DOrray x) = show $ x
 	show (Dyn d) = show d	
-	show (DNot)  = show ""
+	show (DNot)  = "null"
 	show (DObj ds)  = "{" ++ printTag ds ++ "}"
 	show (DNums x)  =  show x
  	
@@ -102,7 +102,8 @@ vString _ =	Left "Bad type.."
 
 convertTable :: DValue ->DValue 
 convertTable (DObj d) = DObj $ d
-convertTable (DArray ds) = DArray $ map DArray $ transpose $ map convertArray ds
+convertTable (DArray ds) = DArray $ map DArray $ transpose $ map (egalizeArrays (maximum $ map length convertArrays)) convertArrays 
+					where convertArrays = map convertArray ds
 convertTable (DNums ds) =DArray $ map DNum ds
 convertTable d = DArray [ DArray $ [d]]
 
@@ -110,4 +111,10 @@ convertArray :: DValue -> [DValue]
 convertArray (DArray ds) = ds
 convertArray (DNums ds) = map DNum ds
 convertArray (d) = [d] 
+
+
+egalizeArrays :: Int -> [DValue] -> [DValue]
+egalizeArrays 0 ds = [DNot]
+egalizeArrays x ds = ds ++ take diff (repeat DNot) 
+			where diff = x - length ds 
 

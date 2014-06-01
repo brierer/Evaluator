@@ -8,9 +8,10 @@ import Data.Either
 import Evaluator.Stats
 listOfFunctionWithTwoArgs = [("addition",\ x y -> n2n (+) x y),
 			     ("nTimes", \x y -> n2i (nTimes) x y)]
-listOfFunctionWithOneArgs = [("descriptive",\ x -> ns1i (descriptive) x)
-			     ,("plustwo",n1n (+2) )
-			     ,("show",display)]
+listOfFunctionWithOneArgs = [("descriptive",\ x -> ns1i (descriptive) x),
+			     ("multi", \x -> ns1i (multi) x )
+			     ("plustwo",n1n (+2) ),
+			     ("show",display)]
 
 
 applyOnTwo :: String -> DValue -> DValue -> EitherDValue
@@ -57,8 +58,9 @@ ns1i f x =   a1 id f (vNums x)
 n1n f (DOrray (x)) = DNums <$> map f <$> (vNums x)
 n1n f x =    DNum <$> f <$> (vNum x)
 
-
 n1s f x =   a1 DString f (vNum x)
+
+ns1n f x = a1 DNum <$> f <$> vNums x  
 
 ns2 f (x) (y) = xx2 f x y vNum vNums
 

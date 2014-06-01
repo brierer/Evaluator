@@ -44,15 +44,13 @@ instance ToJSON ManyValue where
 	toJSON (ObjValue ds) = object ["o" .= fmap toJSON ds]
 
 
-encodeValues ds = encodePretty' (config ds) (object (fmap encodeValue ds))  
+encodeValues ds = encodePretty  ((ds))  
 
-config :: [(String, a)] -> Config
-config ds = Config { confIndent = 1, confCompare = keyConfig ds }
 
 keyConfig :: [(String, a)] -> (Text -> Text -> Ordering)
 keyConfig ds = (keyOrder $ map (pack.fst) ds)
 
-encodeValue (s,d) =  (pack s) .= d
+encodeValue (s,d) =  object ["tag" .= s, "value" .= d]
 
 convertAllToPureValue :: [(String,OneValue)] -> [(String,Pvalue)] 
 convertAllToPureValue ds = map (mapSnd toPureValue) ds 
@@ -143,7 +141,7 @@ comment :: Parser Pvalue
 comment = (Pcom <$> pComment)
 
 pComment :: Parser [Char]
-pComment = skipMany (char ' ' <|> tab) *> many (eol <* skipMany (char ' ' <|> tab))  
+pComment = skipMany (space') *> many (eol <* skipMany (space'))  
 
 pArguments :: Parser [OneValue]
 pArguments = ( (char '('  ) *> (valeur) `sepBy` (char ',') <* (char ')') ) 
@@ -192,11 +190,12 @@ tagValue = valeur
 
 
 pFunction :: Parser ( String , [OneValue])
-pFunction  = ctuple <$> function <*> ((many space) *> (choice [(pArguments), (return [])] )) 
+pFunction  = ctuple <$> function <*> ((many space') *> (choice [(pArguments), (return [])] )) 
 
 function :: Parser  String
 function =  many1 (letter)
 
+space' = char ' ' <|> tab
 
 valideChar = (['a'..'z'] ++ 
               ['A'..'Z'])
