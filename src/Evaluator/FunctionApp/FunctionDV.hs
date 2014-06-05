@@ -20,34 +20,34 @@ findFunc s = fromJust $ lookup s function -- bug
 
 isSemiDirectFunction :: String -> Bool
 isSemiDirectFunction f = case  (lookup f function) of
-						Nothing -> False
-						_ -> True
+                                                Nothing -> False
+                                                _ -> True
 -----------------------------------------------
 
 
 functionNative = [
-			 ("normalDistr", (toDyn D.normalDistr, show $ typeOf(D.normalDistr))) ,
-			 ("annuity", (toDyn annuity, show $ typeOf(annuity))),
-			 ("add", (toDyn add, show $ typeOf(add))),
-			 ("sum", (toDyn addV, show $ typeOf(addV))),
- 			 ("sums", (toDyn sum2, show $ typeOf(sum2))),
-			 ("multi", (toDyn multiplyV, show $ typeOf(multiplyV))),
-			 ("slide", (toDyn slide, show $ typeOf(slide))),
-			 ("nTimes", (toDyn nTimes, show $ typeOf(nTimes))),
-			 ("c", (toDyn c, show $ typeOf(c)))
-			]
+                         ("normalDistr", (toDyn D.normalDistr, show $ typeOf(D.normalDistr))) ,
+                         ("annuity", (toDyn annuity, show $ typeOf(annuity))),
+                         ("add", (toDyn add, show $ typeOf(add))),
+                         ("sum", (toDyn addV, show $ typeOf(addV))),
+                          ("sums", (toDyn sum2, show $ typeOf(sum2))),
+                         ("multi", (toDyn multiplyV, show $ typeOf(multiplyV))),
+                         ("slide", (toDyn slide, show $ typeOf(slide))),
+                         ("nTimes", (toDyn nTimes, show $ typeOf(nTimes))),
+                         ("c", (toDyn c, show $ typeOf(c)))
+                        ]
 
 function = [ ("mean", (toDyn (mean), show $ typeOf(mean))),
-	     ("table", (toDyn table, show $ typeOf(table))),
-	     ("plotLine", (toDyn plotLine, show $ typeOf(plotLine))),
-	     ("gt", (toDyn gt, show $ typeOf(gt))),
-  	     ("sort", (toDyn sortD, show $ typeOf(sortD))),
- 	     ("sortTable", (toDyn sortTable, show $ typeOf(sortTable))),
-	     ("take", (toDyn takeD, show $ typeOf(takeD))),
-  	     ("avg", (toDyn avg, show $ typeOf(avg))),
-  	     ("col", (toDyn col, show $ typeOf(col))),
-	     ("o", (toDyn o, show $ typeOf(o)))
-	   ]
+             ("table", (toDyn table, show $ typeOf(table))),
+             ("plotLine", (toDyn plotLine, show $ typeOf(plotLine))),
+             ("gt", (toDyn gt, show $ typeOf(gt))),
+               ("sort", (toDyn sortD, show $ typeOf(sortD))),
+              ("sortTable", (toDyn sortTable, show $ typeOf(sortTable))),
+             ("take", (toDyn takeD, show $ typeOf(takeD))),
+               ("avg", (toDyn avg, show $ typeOf(avg))),
+               ("col", (toDyn col, show $ typeOf(col))),
+             ("o", (toDyn o, show $ typeOf(o)))
+           ]
 
 ---------------------------------------------------------------
 
@@ -66,7 +66,7 @@ plotLine (x) (y) p = DObj $ [("type",DString "graph"),("x",x), ("y",y), ("p",p)]
 
 annuity :: Double ->  Double -> [Double]
 annuity i n = take ((round n) :: Int) $ iterate (*(interest)) 1
-				where interest = 1/(1+(i/100))
+                                where interest = 1/(1+(i/100))
 
 
 gt (DNum d1) (DNum d2) = if (d1 > d2) then (DNum d1) else DNot
@@ -134,7 +134,7 @@ add a b = (a + b)
 
 mean :: DValue  ->  DValue
 mean a@(DArray xs)  = DNum $ sum (x) / (genericLength (x))
-			where x= selectNum a 
+                        where x= selectNum a 
 
 c :: Double -> [Double] -> [Double]
 c d ds = (d:ds)

@@ -19,7 +19,7 @@ import Data.Aeson.Encode.Pretty
 import Data.Text (Text, pack)
 
 data Pvalue = Parray [Pvalue] | Pstring String | Pnum Double | Pbool Bool | Pcom String | Pfunction (String,[Pvalue]) | Pobj [(String,Pvalue)]
-	deriving (Show, Generic) 
+        deriving (Show, Generic) 
 
 data OneOrManyValue =  ManyValue ManyValue | SingleValue Pvalue deriving (Show)
 
@@ -29,19 +29,19 @@ data OneValue = OneValue String OneOrManyValue String deriving (Show)
 
 instance ToJSON Pvalue
 instance ToJSON OneOrManyValue where
-	toJSON (ManyValue s) = toJSON s
-	toJSON (SingleValue s) = toJSON s
+        toJSON (ManyValue s) = toJSON s
+        toJSON (SingleValue s) = toJSON s
 
 instance ToJSON OneValue where
-	toJSON (OneValue s1 v s2) = object [ 
-					     "s1"  .= s1
-					   , "v"   .= v
-					   , "s2"        .= s2
-					   ]
+        toJSON (OneValue s1 v s2) = object [ 
+                                             "s1"  .= s1
+                                           , "v"   .= v
+                                           , "s2"        .= s2
+                                           ]
 instance ToJSON ManyValue where
-	toJSON (ArrayValue ds) = object [ "a"  .= fmap  toJSON ds ]
-	toJSON (FunctionValue (s,ds)) = object [ "f"  .= object[ "name"  .= s,"arg" .= fmap toJSON ds] ]
-	toJSON (ObjValue ds) = object ["o" .= fmap toJSON ds]
+        toJSON (ArrayValue ds) = object [ "a"  .= fmap  toJSON ds ]
+        toJSON (FunctionValue (s,ds)) = object [ "f"  .= object[ "name"  .= s,"arg" .= fmap toJSON ds] ]
+        toJSON (ObjValue ds) = object ["o" .= fmap toJSON ds]
 
 
 encodeValues ds = encodePretty  ((ds))  
@@ -66,9 +66,9 @@ manyValuetoPureValue :: ManyValue -> Pvalue
 manyValuetoPureValue (ArrayValue ds) = Parray $ map toPureValue ds
 manyValuetoPureValue (FunctionValue (s,ds)) = Pfunction $ (s,map toPureValue ds)
 manyValuetoPureValue (ObjValue ds) = Pobj $ zip strings values
-					 where unzipValue = unzip ds
-					       values = map toPureValue (snd unzipValue)
-					       strings = fst unzipValue	
+                                         where unzipValue = unzip ds
+                                               values = map toPureValue (snd unzipValue)
+                                               strings = fst unzipValue        
 
 run :: Parser [(String,OneValue)] -> String -> Either String [(String,OneValue)]
 run p input
@@ -122,19 +122,19 @@ singleValue :: Parser OneOrManyValue
 singleValue = SingleValue <$> (
                  choice [ try  (Pbool <$> pBool)
                  ,try (Pnum <$> pNum)
-	         ,try (Pstring <$> pString)
-		]
-		)
+                 ,try (Pstring <$> pString)
+                ]
+                )
 
 
 manyValue :: Parser OneOrManyValue
 manyValue = ManyValue <$> (
                  choice [
                  try (ArrayValue <$> pArray),
-		 try (FunctionValue <$> pFunction),
-		 try (ObjValue <$> pObject)
-		]
-		)
+                 try (FunctionValue <$> pFunction),
+                 try (ObjValue <$> pObject)
+                ]
+                )
 
 
 comment :: Parser Pvalue

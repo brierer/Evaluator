@@ -34,6 +34,6 @@ m = M.fromList $ [("x",Pfunction f1),("y",Pfunction f2)]
 evalFunction_test_f2 = evalFunction f2 m
 evalArg_test = evalArg m args2
 applyOn_test = do
-		x <- evalArg m args2	
-		ErrorT $ return $applyOn (fst f2) (x)
+                x <- evalArg m args2        
+                ErrorT $ return $applyOn (fst f2) (x)
 

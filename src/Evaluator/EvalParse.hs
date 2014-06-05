@@ -19,7 +19,7 @@ import Control.Monad.Error
 import Control.Exception as Except
 import System.Environment   
 import Data.Aeson (FromJSON, ToJSON, decode, encode)
-import Data.Aeson.Encode.Pretty 
+import Data.Aeson.Encode.Pretty
 import Data.ByteString.Lazy.Char8 (unpack)
 
 type EvaluatedValue = ErrorT String (Writer [StackInfo]) DValue
@@ -32,61 +32,61 @@ data EvalStatut = GoodEval | BadEval | ErrorEval
 data EvalResult = EvalResult EvalStatut String String
 
 instance Show StackInfo where
-	show (StackInfo (info,msg)) = "{" ++ (show $ show info) ++ ":" ++ show msg ++ "}"
+        show (StackInfo (info,msg)) = "{" ++ (show $ show info) ++ ":" ++ show msg ++ "}"
 
 instance Show EvalStatut where
-	show GoodEval = "\"ok\""
-	show BadEval = "\"tko\""
-	show ErrorEval = "\"ko\""
+        show GoodEval = "\"ok\""
+        show BadEval = "\"tko\""
+        show ErrorEval = "\"ko\""
 
 
 instance Show EvalResult where 
-	show (EvalResult statut res stack) = "{\"statut\":" ++ show statut ++ ",\"res\":" ++ res ++ ",\"stack\":" ++ stack ++ "}"
+        show (EvalResult statut res stack) = "{\"statut\":" ++ show statut ++ ",\"res\":" ++ res ++ ",\"stack\":" ++ stack ++ "}"
 
 
 runParse s = case  (run bloc s) of 
-		Right x -> do
-			   result <- evalParse $ convertAllToPureValue x
-			   return $ "{\"parse\":" ++ (unpack $ (encodeValues x)) ++ ",\"eval\":" ++ result ++ "}" 
-		Left  x -> return $ show $ x
+                Right x -> do
+                           result <- evalParse $ convertAllToPureValue x
+                           return $ "{\"parse\":" ++ (unpack $ (encodeValues x)) ++ ",\"eval\":" ++ result ++ "}" 
+                Left  x -> return $ show $ x
 
 evalParse :: [(String,Pvalue)] -> IO String
 evalParse x = do
-		putStrLn "Start Eval:\n"	
+                putStrLn "Start Eval:\n"        
                 let res =  runWriter $ runErrorT $ evalEqs $ (x)
-	        Except.catch (case res of
-					(Right x,w) -> goodEval x w 
-			       		(Left  x,w) -> badEval x w
-			      ) (errorEval $ snd $ res) 			
+                Except.catch (case res of
+                               (Right x,w) -> goodEval x w 
+                               (Left  x,w) -> badEval x w
+                              ) (errorEval $ snd $ res)                         
 
 goodEval :: (Show a, Show w) => a -> w -> IO String 
 goodEval a w  =do
-		let s = show $  EvalResult GoodEval (show a) (show w)  
-		putStrLn $ s
-		return $ s
+                let s = show $  EvalResult GoodEval (show a) (show w)  
+                putStrLn $ s
+                return $ s
  
-	
+        
 badEval :: (Show a, Show w) =>   a -> w -> IO String
 badEval a w  = do 
-	       let s =  show $ EvalResult BadEval (show a) (show w)  
-	       putStrLn s 	
-	       return $ s
+               let s =  show $ EvalResult BadEval (show a) (show w)  
+               putStrLn s         
+               return $ s
  
 errorEval :: Show w =>  [w] -> Except.SomeException -> IO String
 errorEval w e=  do
-		s <- (safePrint $ w)   
-		return $ show $  EvalResult ErrorEval (show $ "Error") ("[" ++ s ++ "]")   
+                s <- (safePrint $ w)   
+                return $ show $  EvalResult ErrorEval (show $ "Error") ("[" ++ s ++ "]")   
 
 
 safePrint :: Show w => [w] -> IO String
 safePrint (s:[]) = do
-		   putStrLn $ show s
-		   Except.catch (return $ show s) (\(x :: SomeException) -> return "{\"err\":\"Error\"}") 
+                   putStrLn $ show s
+                   Except.catch (return $ show s) (\(x :: SomeException) -> return "{\"err\":\"Error\"}") 
 safePrint (s:ss) = do
-		   putStrLn $ show s
-		   one <-  Except.catch (return $ show s) (\(x :: SomeException) -> return "{\"err\":\"Error\"}") --
-		   many <- Except.catch (safePrint ss) (\(x :: SomeException) -> return "{\"err\":\"Error\"}") 
-		   return $ one ++ "," ++ many
+                   putStrLn $ show s
+                   one <-  Except.catch (return $ show s) (\(x :: SomeException) -> return "{\"err\":\"Error\"}") --
+                   many <- Except.catch (safePrint ss) (\(x :: SomeException) -> return "{\"err\":\"Error\"}") 
+                   return $ one ++ "," ++ many
  
 
 ------------------------------------
@@ -103,22 +103,22 @@ evalOne m (Pfunction (d)) = evalFunction (d) m
 evalOne m (Parray ds)  = evalArr m ds
 evalOne m (Pobj ds)  = evalObj m ds
 evalOne m p =do 
-	     --tell [StackInfo (Number,show p)]	
-	     ErrorT (return (Right $ p_to_Dvalue p)) 
+             --tell [StackInfo (Number,show p)]        
+             ErrorT (return (Right $ p_to_Dvalue p)) 
 
 
 evalFunction ::   (String, [Pvalue]) -> M.Map String Pvalue -> EvaluatedValue
 evalFunction (f,[]) m = tell [StackInfo (Equation , f ++ "")] >> findEq f m
 evalFunction (f,ds) m =  do
-		       tell [StackInfo (Function,f ++ "(")]
-		       tell [StackInfo (Argument,"[")]
-		       x <- evalArg m ds
-		       tell [StackInfo (Argument,"]")]
-		       tell [StackInfo (Function,")")] 
-		       res <- ErrorT $ return $ ((if  (isSemiDirectFunction f)
-					       then (applyToDValue (findFunc f) x) 
-     			  		       else (applyOn  f x)))   		       
-		       return  $ res
+                       tell [StackInfo (Function,f ++ "(")]
+                       tell [StackInfo (Argument,"[")]
+                       x <- evalArg m ds
+                       tell [StackInfo (Argument,"]")]
+                       tell [StackInfo (Function,")")] 
+                       res <- ErrorT $ return $ ((if  (isSemiDirectFunction f)
+                                               then (applyToDValue (findFunc f) x) 
+                                                      else (applyOn  f x)))                          
+                       return  $ res
 
 findEq :: String  ->  M.Map String Pvalue  -> EvaluatedValue
 findEq s m = (evalOne m $ fromJust (M.lookup s m))
@@ -131,9 +131,9 @@ evalObjTuples m (ds) = (zip (map fst ds)) <$> (evalMany  m (map snd ds))
 
 evalObj :: M.Map String Pvalue ->  [(String, Pvalue)] -> EvaluatedValue
 evalObj m d = do
-	 	x <- evalObjTuples m d
-		return $ DObj x
-		
+                x <- evalObjTuples m d
+                return $ DObj x
+                
 
 evalMany ::  M.Map String Pvalue ->  [Pvalue] -> EvaluatedValues
 evalMany m d = mapM (evalOne m )  d

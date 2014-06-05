@@ -23,14 +23,14 @@ import Evaluator.DValue
 
 descriptive :: [Double] -> DValue
 descriptive ds = DArray $ [DArray $ Data.List.map DString $ fst desc, DArray $  Data.List.map DNum $ snd desc]
-		where vs = fromList ds
-		      ps = powers 4 vs
-		      desc = Data.List.unzip $ [("count",fromIntegral $ Stat.count ps),
-						("sum", Stat.sum ps),
-						("mean", Stat.mean ps),	
-						("variance", Stat.variance ps),	
-						("skewness", Stat.skewness ps),	
-						("kurtosis", Stat.kurtosis ps)	]		
+                where vs = fromList ds
+                      ps = powers 4 vs
+                      desc = Data.List.unzip $ [("count",fromIntegral $ Stat.count ps),
+                                                ("sum", Stat.sum ps),
+                                                ("mean", Stat.mean ps),        
+                                                ("variance", Stat.variance ps),        
+                                                ("skewness", Stat.skewness ps),        
+                                                ("kurtosis", Stat.kurtosis ps)        ]                
 
 
 

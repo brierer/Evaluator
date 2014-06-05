@@ -7,22 +7,22 @@ import Control.Monad
 import Data.Either
 import Evaluator.Stats
 listOfFunctionWithTwoArgs = [("addition",\ x y -> n2n (+) x y),
-			     ("nTimes", \x y -> n2i (nTimes) x y)]
+                             ("nTimes", \x y -> n2i (nTimes) x y)]
 listOfFunctionWithOneArgs = [("descriptive",\ x -> ns1i (descriptive) x),
-			     ("multi", \x -> ns1i (multi) x ),
-			     ("plustwo",n1n (+2) ),
-			     ("show",display)]
+                             ("multi", \x -> ns1i (multi) x ),
+                             ("plustwo",n1n (+2) ),
+                             ("show",display)]
 
 
 applyOnTwo :: String -> DValue -> DValue -> EitherDValue
 applyOnTwo f x y = case (lookup f listOfFunctionWithTwoArgs) of
-				Just g -> g x y  
- 			        Nothing -> Left $ "No function found " ++ f
+                    Just g -> g x y  
+                    Nothing -> Left $ "No function found " ++ f
 
 applyOnOne :: String -> DValue -> EitherDValue
 applyOnOne f x  = case (lookup f listOfFunctionWithOneArgs) of
-				Just g -> g x   
-			        Nothing -> Left $ "No function found " ++ f
+                                Just g -> g x   
+                                Nothing -> Left $ "No function found " ++ f
 
 
 applyOn :: String -> [DValue] -> EitherDValue

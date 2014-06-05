@@ -1,6 +1,6 @@
 
 module Evaluator.FunctionApp.DynamicApp(
-		execFunc
+                execFunc
 )where
 
 
@@ -21,8 +21,8 @@ applyDyn :: Dynamic -> DValue -> DValue
 applyDyn f (DNum d) = Dyn $ dynApp f (toDyn d)
 applyDyn f (Dyn d) = Dyn $ dynApp f d
 applyDyn f a@(DArray d)  = if (((show $ dynTypeRep f) !! 0) == '[') 
-				then	 Dyn $ dynApp (f) (fromDValue a)
-				else	 DArray $ applyArray (f) (d)
+                                then         Dyn $ dynApp (f) (fromDValue a)
+                                else         DArray $ applyArray (f) (d)
 
 applyArray :: Dynamic -> [DValue] -> [DValue]
 applyArray f (d:[]) = [Dyn $ dynApp (f) ( fromDValue d)]
@@ -34,7 +34,7 @@ fromD (Dyn d) = d
 
 convertDyn :: DValue -> DValue
 convertDyn (Dyn d) =  case show $ dynTypeRep  d of
-				x | x == "Double" -> DNum $ (fromJust $ fromDynamic d)
-				x | x == "Int"	-> DNum $ (fromJust $ fromDynamic d)
+                                x | x == "Double" -> DNum $ (fromJust $ fromDynamic d)
+                                x | x == "Int"        -> DNum $ (fromJust $ fromDynamic d)
 convertDyn (DArray d) = DArray $ map convertDyn d
 
