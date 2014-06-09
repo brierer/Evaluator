@@ -105,12 +105,11 @@ run p input
            Left  x  -> Left $ "Parser Error:" ++ (show x)
 
 
+equations :: Parser [(String,UnminifyValue)]
+equations =  many ((equation))
 
-bloc :: Parser [(String,UnminifyValue)]
-bloc =  many ((paire))
-
-paire :: Parser (String,UnminifyValue)
-paire = liftA2 (,) clef (char '=' *> valeurs)
+equation :: Parser (String,UnminifyValue)
+equation = liftA2 (,) clef (char '=' *> valeurs)
 
 --isPair :: Parser Char
 --isPair = try(char '\n' <|> ( between (many space) (many space)  (many letter) ) `endBy` char '=')
@@ -145,7 +144,6 @@ valeur = unminifyValue
 unminifyValue :: Parser UnminifyValue
 unminifyValue = UnminifyValue <$> pWhite <*> (try(primaryValue) <|> compositeValue)  <*> pWhite
 
-
 primaryValue :: Parser Pvalue'
 primaryValue = PrimaryValue <$> (
                  choice [ try  (Pbool <$> pBool)
@@ -164,23 +162,14 @@ compositeValue = CompositeValue <$> (
                 ]
                 )
 
-
-comment :: Parser Pvalue
-comment = (Pcom <$> pWhite)
-
-pWhite :: Parser [Char]
-pWhite = skipMany (space') *> many (eol <* skipMany (space'))
-
 pArguments :: Parser [UnminifyValue]
 pArguments = ( (char '('  ) *> (valeur) `sepBy` (char ',') <* (char ')') )
 
 pArray :: Parser [UnminifyValue]
 pArray = ( (char '['  ) *> (valeur) `sepBy` (char ',') <* (char ']') )
 
-pValeurs :: Parser [UnminifyValue]
-pValeurs = many valeur
-
-
+pObject :: Parser [(String,UnminifyValue)]
+pObject = between (char '{' )  (char '}') (tag `sepBy` (char ','))
 
 pBool :: Parser Bool
 pBool = (True <$ string "True" <|> False <$ string "False")
@@ -188,23 +177,11 @@ pBool = (True <$ string "True" <|> False <$ string "False")
 pNum :: Parser Double
 pNum = float
 
-
 pString :: Parser [Char]
 pString = between (char $ chr(34)) (char $ chr(34)) (many letter)
 
-
-mspace :: Parser [Char]
-mspace = many (space)
-
-jspace :: Parser [Char]
-jspace = many  ( space)
-
-
-ctuple :: a -> b -> (a,b)
-ctuple a b =  (a,b)
-
-pObject :: Parser [(String,UnminifyValue)]
-pObject = between (char '{' )  (char '}') (tag `sepBy` (char ','))
+pFunction :: Parser ( String , [UnminifyValue])
+pFunction  = ctuple <$> function <*> ((many space') *> (choice [(pArguments), (return [])] ))
 
 tag :: Parser (String, UnminifyValue)
 tag =  (ctuple <$> tagName <*> tagValue)
@@ -215,13 +192,17 @@ tagName = between (many space) ( (many space) *> (char ':') ) (function)
 tagValue :: Parser UnminifyValue
 tagValue = valeur
 
-
-
-pFunction :: Parser ( String , [UnminifyValue])
-pFunction  = ctuple <$> function <*> ((many space') *> (choice [(pArguments), (return [])] ))
-
 function :: Parser  String
 function =  many1 (letter)
+
+pWhite :: Parser [Char]
+pWhite = skipMany (space') *> many (eol <* skipMany (space'))
+
+mspace :: Parser [Char]
+mspace = many (space)
+
+ctuple :: a -> b -> (a,b)
+ctuple a b =  (a,b)
 
 space' = char ' ' <|> tab
 

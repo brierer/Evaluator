@@ -22,7 +22,7 @@ import           Evaluator.FunctionApp.DynamicApp
 import           Evaluator.FunctionApp.FunctionDV
 import           Evaluator.FunctionApp.SemiDirectApp
 import           System.Environment
-import           Text.PrettyPrint                    as PP
+
 
 type EvaluatedValue = ErrorT String (Writer [StackInfo]) DValue
 type EvaluatedValues = ErrorT String (Writer [StackInfo]) [DValue]
@@ -46,7 +46,7 @@ instance Show EvalResult where
         show (EvalResult statut res stack) = "{\"statut\":" ++ show statut ++ ",\"res\":" ++ res ++ ",\"stack\":" ++ stack ++ "}"
 
 
-runParse s = case  (run bloc s) of
+runParse s = case  (run equations s) of
                 Right x -> do
                            result <- evalParse $ convertAllToPureValue x
                            return $ "{\"parse\":" ++ (unpack $ (encodeValues x)) ++ ",\"eval\":" ++ result ++ "}"
