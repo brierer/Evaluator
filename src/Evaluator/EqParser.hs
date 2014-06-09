@@ -101,6 +101,9 @@ ppUnminifyValue (UnminifyValue s1 p s2 )=  (PP.text s1) PP.<> (ppPvalue' p) PP.<
 convertAllToPureValue :: [(String,UnminifyValue)] -> [(String,Pvalue)]
 convertAllToPureValue ds = map (mapSnd toPureValue) ds
 
+{-|
+Convert Pvalue' to Pvalue by minify Pvalue'  
+-}
 toPureValue :: UnminifyValue -> Pvalue
 toPureValue (UnminifyValue _ (CompositeValue x) _) = minifyPvalue x
 toPureValue (UnminifyValue _ (PrimaryValue x) _) =  x
@@ -109,7 +112,7 @@ mapSnd :: (a -> b) -> (c, a) -> (c, b)
 mapSnd f (x,y) = (x,f y)
 
 {-|
-Convert Pvalue' to Pvalue by minify Pvalue'  
+Convert CompositeValue to Pvalue by minify  
 -}
 minifyPvalue :: CompositeValue -> Pvalue
 minifyPvalue (ArrayValue ds) = Parray $ map toPureValue ds
@@ -122,37 +125,67 @@ minifyPvalue (ObjValue ds) = Pobj $ zip strings values
 
 ----------------------------
 --- Parse Engine -------
-
+{-|
+Main Function to run parse Engine 
+-}
 run :: Parser [(String,UnminifyValue)] -> String -> Either String [(String,UnminifyValue)]
 run p input
         = case (parse p "" input) of
            Right x -> Right x
            Left  x  -> Left $ "Parser Error:" ++ (show x)
 
-
+{-|
+Main Parsing Function to be run by the run function.
+A script of equations is composed of many equations. 
+-}
 equations :: Parser [(String,UnminifyValue)]
-equations =  many ((equation))
+equations =  many equation
 
+{-|
+A equation is composed of a key name associated with
+a value linked with the = sign. 
+key = goodValue
+-}
 equation :: Parser (String,UnminifyValue)
-equation = liftA2 (,) clef (char '=' *> valeurs)
+equation = liftA2 (,) key (char '=' *> goodValue)
 
 eol :: Parser Char
 eol = try(char $ '\n') <?> "valid eol"
 
-clef :: Parser String
-clef = between (mspace) (mspace) (many1 letter) <?> "valid clef"
+{-|
+A key is just many letters 
+-}
+key :: Parser String
+key = between (mspace) (mspace) (many1 letter) <?> "valid key"
 
-valeurs :: Parser UnminifyValue
-valeurs =  (valeur) <* (lookAhead(isPair) <|> eof )
-isPair :: Parser  ()
-isPair =  (between (mspace) (mspace) (many letter)) *> (char '=') *> return () <?> "valid pair"
 
-valeur :: Parser UnminifyValue
-valeur = unminifyValue
+{-|
+A goodValue is a value followed by a equation or eof
+-}
+goodValue :: Parser UnminifyValue
+goodValue =  (value) <* (lookAhead(isEquation) <|> eof )
 
+{-|
+Valid if this is a equation
+-}
+isEquation :: Parser  ()
+isEquation =  (between (mspace) (mspace) (many letter)) *> (char '=') *> return () <?> "valid equation"
+
+{-|
+The value to be parse is just a UnminifyValue
+-}
+value :: Parser UnminifyValue
+value = unminifyValue
+
+{-|
+The value to be parse is just a UnminifyValue
+-}
 unminifyValue :: Parser UnminifyValue
 unminifyValue = UnminifyValue <$> pWhite <*> (try(primaryValue) <|> compositeValue)  <*> pWhite
 
+{-|
+Parse a primary data
+-}
 primaryValue :: Parser Pvalue'
 primaryValue = PrimaryValue <$> (
                  choice [ try  (Pbool <$> pBool)
@@ -160,7 +193,9 @@ primaryValue = PrimaryValue <$> (
                  ,try (Pstring <$> pString)
                 ]
                 )
-
+{-|
+Parse a composite data
+-}
 compositeValue :: Parser Pvalue'
 compositeValue = CompositeValue <$> (
                  choice [
@@ -170,38 +205,71 @@ compositeValue = CompositeValue <$> (
                 ]
                 )
 
-pArguments :: Parser [UnminifyValue]
-pArguments = ( (char '('  ) *> (valeur) `sepBy` (char ',') <* (char ')') )
-
+{-|
+A array is array of values sep by ',' and between [].
+[v1,v2,v3]
+-}
 pArray :: Parser [UnminifyValue]
-pArray = ( (char '['  ) *> (valeur) `sepBy` (char ',') <* (char ']') )
+pArray = ( (char '['  ) *> (value) `sepBy` (char ',') <* (char ']') )
 
+{-|
+A object is a array of tuples sep by ',' and between {}.
+Those tuple are made of tags.
+-}
 pObject :: Parser [(String,UnminifyValue)]
 pObject = between (char '{' )  (char '}') (tag `sepBy` (char ','))
 
+{-|
+A simple bool False or True
+-}
 pBool :: Parser Bool
 pBool = (True <$ string "True" <|> False <$ string "False")
 
+{-|
+A number float.
+-}
 pNum :: Parser Double
 pNum = float
 
+{-|
+A standard string composed with many char between "".
+-}
 pString :: Parser [Char]
 pString = between (char $ chr(34)) (char $ chr(34)) (many letter)
 
+{-|
+A function is a tuple of function name and
+a array of arguments.
+fff(a1,a2,a3)
+-}
 pFunction :: Parser ( String , [UnminifyValue])
-pFunction  = ctuple <$> function <*> ((many space') *> (choice [(pArguments), (return [])] ))
+pFunction  = ctuple <$> functionName <*> ((many space') *> (choice [(pArguments), (return [])] ))
 
+{-|
+A array of arguments is array of values sep by ',' and between ().
+(v1,v2,v3)
+-}
+pArguments :: Parser [UnminifyValue]
+pArguments = ( (char '('  ) *> (value) `sepBy` (char ',') <* (char ')') )
+
+{-|
+A tag is a name associated to a value.
+n : v
+-}
 tag :: Parser (String, UnminifyValue)
 tag =  (ctuple <$> tagName <*> tagValue)
 
+{-|
+The tag name is a many letter follow by ':'
+-}
 tagName :: Parser String
-tagName = between (many space) ( (many space) *> (char ':') ) (function)
+tagName = between (many space) ( (many space) *> (char ':') ) (functionName)
 
 tagValue :: Parser UnminifyValue
-tagValue = valeur
+tagValue = value
 
-function :: Parser  String
-function =  many1 (letter)
+functionName :: Parser  String
+functionName =  many1 (letter)
 
 pWhite :: Parser [Char]
 pWhite = skipMany (space') *> many (eol <* skipMany (space'))
