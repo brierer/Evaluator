@@ -15,6 +15,7 @@ import           Text.Parsec.String       (Parser)
 import qualified Text.PrettyPrint         as PP
 
 
+
 {-|
 The 'Pvalue' type represents values with parse with parsec.
 The structure is JSON-like except for Pfunction which add  
@@ -44,6 +45,9 @@ The UnminifyValue type represents a Pvalue with white characters.
 -}
 data UnminifyValue = UnminifyValue String Pvalue' String deriving (Show, Eq)
 
+----------------------------
+--- Encode to JSON   -------
+
 instance ToJSON Pvalue
 instance ToJSON Pvalue' where
         toJSON (CompositeValue s) = toJSON s
@@ -60,7 +64,25 @@ instance ToJSON CompositeValue where
         toJSON (FunctionValue (s,ds)) = object [ "f"  .= object[ "name"  .= s,"arg" .= fmap toJSON ds] ]
         toJSON (ObjValue ds) = object ["o" .= fmap toJSON ds]
 
+{-|
+Encode to JSON Pvalue'  
+-}
+encodeValues ds = encodePretty ds
 
+keyConfig :: [(String, a)] -> (Text -> Text -> Ordering)
+keyConfig ds = (keyOrder $ map (pack.fst) ds)
+
+{-|
+Encode to JSON equation 
+-}
+encodeValue (s,d) =  object ["tag" .= s, "value" .= d]
+
+----------------------------
+--- Pretty Print -------
+
+{-|
+PrettyPrint Pvalue 
+-}
 prettyPrint (Pstring s) =  PP.doubleQuotes $ PP.text s
 prettyPrint (Pnum d) =  PP.double d
 prettyPrint (Pbool d) = PP.text $ show d
@@ -72,31 +94,34 @@ ppCompositeValue (ArrayValue ps) = PP.brackets $ PP.sep $ map  ppUnminifyValue p
 
 ppUnminifyValue (UnminifyValue s1 p s2 )=  (PP.text s1) PP.<> (ppPvalue' p) PP.<> (PP.text s2)
 
-encodeValues ds = encodePretty  ((ds))
 
-
-keyConfig :: [(String, a)] -> (Text -> Text -> Ordering)
-keyConfig ds = (keyOrder $ map (pack.fst) ds)
-
-encodeValue (s,d) =  object ["tag" .= s, "value" .= d]
+----------------------------
+--- Pvalue' to Pvalue -------
 
 convertAllToPureValue :: [(String,UnminifyValue)] -> [(String,Pvalue)]
 convertAllToPureValue ds = map (mapSnd toPureValue) ds
 
 toPureValue :: UnminifyValue -> Pvalue
-toPureValue (UnminifyValue _ (CompositeValue x) _) = deleteWhite x
+toPureValue (UnminifyValue _ (CompositeValue x) _) = minifyPvalue x
 toPureValue (UnminifyValue _ (PrimaryValue x) _) =  x
 
 mapSnd :: (a -> b) -> (c, a) -> (c, b)
 mapSnd f (x,y) = (x,f y)
 
-deleteWhite :: CompositeValue -> Pvalue
-deleteWhite (ArrayValue ds) = Parray $ map toPureValue ds
-deleteWhite (FunctionValue (s,ds)) = Pfunction $ (s,map toPureValue ds)
-deleteWhite (ObjValue ds) = Pobj $ zip strings values
+{-|
+Convert Pvalue' to Pvalue by minify Pvalue'  
+-}
+minifyPvalue :: CompositeValue -> Pvalue
+minifyPvalue (ArrayValue ds) = Parray $ map toPureValue ds
+minifyPvalue (FunctionValue (s,ds)) = Pfunction $ (s,map toPureValue ds)
+minifyPvalue (ObjValue ds) = Pobj $ zip strings values
                                          where unzipValue = unzip ds
                                                values = map toPureValue (snd unzipValue)
                                                strings = fst unzipValue
+
+
+----------------------------
+--- Parse Engine -------
 
 run :: Parser [(String,UnminifyValue)] -> String -> Either String [(String,UnminifyValue)]
 run p input
@@ -111,35 +136,19 @@ equations =  many ((equation))
 equation :: Parser (String,UnminifyValue)
 equation = liftA2 (,) clef (char '=' *> valeurs)
 
---isPair :: Parser Char
---isPair = try(char '\n' <|> ( between (many space) (many space)  (many letter) ) `endBy` char '=')
-
-
---commentaire :: Parser (String,DValue)
---commentaire = liftA2 (,) ( show . sourceLine <$> getPosition) (DCom <$> (char '#' *> many (noneOf  "\n")))
-
 eol :: Parser Char
 eol = try(char $ '\n') <?> "valid eol"
 
-
 clef :: Parser String
-clef = between (mspace  ) (many space) (many1 letter) <?> "valid clef"
-
+clef = between (mspace) (mspace) (many1 letter) <?> "valid clef"
 
 valeurs :: Parser UnminifyValue
 valeurs =  (valeur) <* (lookAhead(isPair) <|> eof )
-
-
 isPair :: Parser  ()
 isPair =  (between (mspace) (mspace) (many letter)) *> (char '=') *> return () <?> "valid pair"
 
-
---newLine :: Parser String
---newLine = (many1 (try(char ';') <|> try(newline))) *>  (many space) *> (many1 letter) <* (many space) <* char '='
-
 valeur :: Parser UnminifyValue
 valeur = unminifyValue
-
 
 unminifyValue :: Parser UnminifyValue
 unminifyValue = UnminifyValue <$> pWhite <*> (try(primaryValue) <|> compositeValue)  <*> pWhite
@@ -151,7 +160,6 @@ primaryValue = PrimaryValue <$> (
                  ,try (Pstring <$> pString)
                 ]
                 )
-
 
 compositeValue :: Parser Pvalue'
 compositeValue = CompositeValue <$> (
