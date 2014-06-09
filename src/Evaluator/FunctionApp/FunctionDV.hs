@@ -16,10 +16,10 @@ findFuncNative :: String -> (Dynamic, String)
 findFuncNative s = fromJust $ lookup s functionNative -- bug
 
 findFunc :: String -> (Dynamic, String)
-findFunc s = fromJust $ lookup s function -- bug
+findFunc s = fromJust $ lookup s function' -- bug
 
 isSemiDirectFunction :: String -> Bool
-isSemiDirectFunction f = case  (lookup f function) of
+isSemiDirectFunction f = case  (lookup f function') of
                                                 Nothing -> False
                                                 _ -> True
 -----------------------------------------------
@@ -37,7 +37,7 @@ functionNative = [
                          ("c", (toDyn c, show $ typeOf(c)))
                         ]
 
-function = [ ("mean", (toDyn (mean), show $ typeOf(mean))),
+function' = [ ("mean", (toDyn (mean), show $ typeOf(mean))),
              ("table", (toDyn table, show $ typeOf(table))),
              ("plotLine", (toDyn plotLine, show $ typeOf(plotLine))),
              ("gt", (toDyn gt, show $ typeOf(gt))),

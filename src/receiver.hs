@@ -19,7 +19,7 @@ main = do
 
 consumer :: (String -> Channel -> IO () ) ->  IO ()
 consumer f = do
-             conn <- openConnection "localhost" "/" "guest" "guest"
+            conn <- openConnection "localhost" "/" "guest" "guest"
            --conn <- openConnection "107.170.167.54" "/" "guest" "guest"
            --conn <- openConnection "tiger.cloudamqp.com" "vidvjemc" "vidvjemc" "27f27zSadNC1KCEfEJoSrsSDP80Vbtrn"
            -- conn <- openConnection' "lean-fiver-20.bigwig.lshift.net" 11022 "vndrShegf7N4" "5mPGLSH5" "-JSed3pUDdfCEUR9i-Bz1dXwZTtb7iGA"
@@ -27,7 +27,7 @@ consumer f = do
             declareQueue chan newQueue {queueName = "queue"}
             consumeMsgs chan "queue" NoAck (\(m,e) -> f (BL.unpack $ msgBody m) chan) 
             getLine -- wait for keypress
-               closeConnection conn
+            closeConnection conn
             putStrLn "connection closed"        
         
 
@@ -46,7 +46,7 @@ saveMessage con msg c=  do
                                               set (B.pack key) (B.pack $ result)
                                           --world <- get (B.pack key)
                                               --liftIO $ print (world) 
-                                        return ()
+                        return ()
                         putTime        
 
 
