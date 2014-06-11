@@ -6,7 +6,7 @@ import           Evaluator.EvalParse
 import           System.Environment
 
 main = do
-                 args <- return ["show=y\ny=2"]
+                 args <- return ["show=[1,[2,plustwo(1),2.3],3]"]
 --(getArgs)
                  s <- runParse $ (args)  !! 0
                  Except.catch (putStrLn (s)) (fatalError)
@@ -15,6 +15,4 @@ main = do
 
 fatalError :: SomeException -> IO ()
 fatalError e = putStrLn "An error when evaluating"
-
-
 

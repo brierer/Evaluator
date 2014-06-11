@@ -22,7 +22,7 @@ import           Evaluator.FunctionApp.DynamicApp
 import           Evaluator.FunctionApp.FunctionDV
 import           Evaluator.FunctionApp.SemiDirectApp
 import           System.Environment
-
+import           Control.Monad.State
 
 type EvaluatedValue = ErrorT String (Writer [StackInfo]) DValue
 type EvaluatedValues = ErrorT String (Writer [StackInfo]) [DValue]
@@ -91,64 +91,72 @@ safePrint (s:ss) = do
                    return $ one ++ "," ++ many
 
 
-------------------------------------
-
-
+---------------------------------
+type StateValue = State (M.Map String (Either Pvalue EvaluatedValue)) EvaluatedValue
+type StateValues = State (M.Map String (Either Pvalue EvaluatedValue)) [EvaluatedValue]
+type ObjValues = State (M.Map String (Either Pvalue EvaluatedValue)) ( ErrorT String (Writer [StackInfo]) [(String,DValue)])
 evalEqs :: [(String, Pvalue)] -> EvaluatedValue
-evalEqs (d) = evalEq (M.fromList d) (head d)
+evalEqs (d) = evalState (evalEq (head d)) (M.fromList $ map (mapSnd $ Left ) d) 
 
-evalEq :: M.Map String Pvalue -> (String, Pvalue) -> EvaluatedValue
-evalEq  m (s, ds ) = tell [StackInfo (Equation,s)] >> evalOne m ds
+evalEq :: (String, Pvalue) -> StateValue
+evalEq  (s, ds ) = do 
+                  x <- evalOne ds   
+                  return $ tell [StackInfo (Equation,s)] >> x
 
-evalOne :: M.Map String Pvalue -> Pvalue -> EvaluatedValue
-evalOne m (Pfunction (d)) = evalFunction (d) m
-evalOne m (Parray ds)  = evalArr m ds
-evalOne m (Pobj ds)  = evalObj m ds
-evalOne m p =do
+
+evalOne :: Pvalue -> StateValue
+evalOne (Pfunction (d)) = evalFunction d
+evalOne (Parray ds)  = evalArr ds
+evalOne (Pobj ds)  = evalObj ds
+evalOne p =do
              --tell [StackInfo (Number,show p)]
-             ErrorT (return (Right $ p_to_Dvalue p))
+             return $ ErrorT (return (Right $ p_to_Dvalue p))
 
 
-evalFunction ::   (String, [Pvalue]) -> M.Map String Pvalue -> EvaluatedValue
-evalFunction (f,[]) m = tell [StackInfo (Equation , f ++ "")] >> findEq f m
-evalFunction (f,ds) m =  do
-                       tell [StackInfo (Function,f ++ "(")]
-                       tell [StackInfo (Argument,"[")]
-                       x <- evalArg m ds
-                       tell [StackInfo (Argument,"]")]
-                       tell [StackInfo (Function,")")]
-                       res <- ErrorT $ return $ ((if  (isSemiDirectFunction f)
-                                               then (applyToDValue (findFunc f) x)
-                                                      else (applyOn  f x)))
-                       return  $ res
-
-findEq :: String  ->  M.Map String Pvalue  -> EvaluatedValue
-findEq s m = (evalOne m $ fromJust (M.lookup s m))
+evalObj ::   [(String,Pvalue)] -> StateValue
+evalObj (ds) = do
+                    x <- (evalMany (map snd ds))
+                    return $ do
+                            y <- (sequence x)
+                            return $ DObj $ (zip (map fst ds)) y
 
 
-evalObjTuples ::  M.Map String Pvalue ->  [(String,Pvalue)] -> ErrorT String (Writer [StackInfo]) [(String,DValue)]
-evalObjTuples m (ds) = (zip (map fst ds)) <$> (evalMany  m (map snd ds))
+evalFunction ::   (String, [Pvalue]) -> StateValue
+evalFunction (f,[])  = do
+                       x <- findEq f
+                       return $ tell [StackInfo (Equation , f ++ "")] >> x 
+evalFunction (f,ds)  =  do
+                        x <- evalMany ds
+                        return $
+                                 do
+                                 y <-  sequence x
+                                 res <- ErrorT $ return $ if   isSemiDirectFunction f
+                                                          then applyToDValue (findFunc f) y
+                                                          else applyOn  f y
+                                 return  $ res
+
+findEq :: String -> StateValue
+findEq s  = do
+            x <- get
+            let e = M.lookup s x
+            either (evalOne) (return.id) (fromJust e)
 
 
 
-evalObj :: M.Map String Pvalue ->  [(String, Pvalue)] -> EvaluatedValue
-evalObj m d = do
-                x <- evalObjTuples m d
-                return $ DObj x
+--evalObj :: [(String, Pvalue)] -> StateValue
+--evalObj d = do 
+ --             x <- evalObjTuples
+   --           return $ DObj <$> x  
 
+evalMany ::  [Pvalue] -> StateValues
+evalMany d = sequence $ map evalOne d
 
-evalMany ::  M.Map String Pvalue ->  [Pvalue] -> EvaluatedValues
-evalMany m d = mapM (evalOne m )  d
-
-evalArr :: M.Map String Pvalue -> [Pvalue]  -> EvaluatedValue
-evalArr m (d)  = tell [StackInfo (Array,"[")] >> DArray <$> evalMany m  d
-
-evalArg :: M.Map String Pvalue ->  [Pvalue]  -> EvaluatedValues
-evalArg  m (d) =  evalMany m d
+evalArr :: [Pvalue]  -> StateValue
+evalArr d  = do 
+            x  <- evalMany d
+            return $ tell [StackInfo (Array,"[")] >> DArray <$> sequence x
 
 p_to_Dvalue :: Pvalue -> DValue
 p_to_Dvalue (Pnum x) = DNum x
 p_to_Dvalue (Pstring x) = DString x
 p_to_Dvalue (Pbool x) = DBool x
-
-
