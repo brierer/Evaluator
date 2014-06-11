@@ -6,7 +6,7 @@ import           Evaluator.EvalParse
 import           System.Environment
 
 main = do
-                 args <- return ["show=[1,[2,plustwo(1),2.3],3]"]
+                 args <- return ["show=[1,[x,x,x],3]\nx=fib(30)"]
 --(getArgs)
                  s <- runParse $ (args)  !! 0
                  Except.catch (putStrLn (s)) (fatalError)

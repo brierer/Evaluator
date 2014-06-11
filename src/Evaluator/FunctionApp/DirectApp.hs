@@ -11,6 +11,7 @@ listOfFunctionWithTwoArgs = [("addition",\ x y -> n2n (+) x y),
 listOfFunctionWithOneArgs = [("descriptive",\ x -> ns1i (descriptive) x),
                              ("multi", \x -> ns1i (multi) x ),
                              ("plustwo",n1n (+2) ),
+                             ("fib", n1n slow_fib),
                              ("show",display)]
 
 
@@ -92,3 +93,7 @@ s2s f x y=    a2 DString f (vString x) (vString y)
 
 display (DArray ds) = Right $ DArray $ map convertTable ds
 
+slow_fib :: Double -> Double
+slow_fib 0 = 0
+slow_fib 1 = 1
+slow_fib n = slow_fib (n-2) + slow_fib (n-1)

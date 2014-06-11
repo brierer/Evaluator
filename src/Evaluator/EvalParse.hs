@@ -1,4 +1,5 @@
 {-# LANGUAGE ScopedTypeVariables #-}
+{-# LANGUAGE TupleSections #-}
 module Evaluator.EvalParse
  where
 
@@ -100,7 +101,9 @@ evalEqs (d) = evalState (evalEq (head d)) (M.fromList $ map (mapSnd $ Left ) d)
 
 evalEq :: (String, Pvalue) -> StateValue
 evalEq  (s, ds ) = do 
-                  x <- evalOne ds   
+                  x <- evalOne ds
+                  let f _ = Just $ Right $ x 
+                  modify ( M.update (f) s )    
                   return $ tell [StackInfo (Equation,s)] >> x
 
 
@@ -139,8 +142,8 @@ findEq :: String -> StateValue
 findEq s  = do
             x <- get
             let e = M.lookup s x
-            either (evalOne) (return.id) (fromJust e)
-
+            let f = \p -> evalEq (s,p)
+            either (f) (return.id) (fromJust e)
 
 
 --evalObj :: [(String, Pvalue)] -> StateValue
