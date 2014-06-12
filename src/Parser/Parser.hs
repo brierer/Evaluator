@@ -25,10 +25,10 @@ progT :: Parser ProgToken
 formT :: Parser FormToken
 
 -- progT -> (formT '\n')*
-progT = liftM ProgT $ formT `sepBy` many (char '\n')
+progT = ws $ liftM ProgT $ formT `sepBy` many space
 
 -- formT -> id '=' expT
-formT = liftM2 FormT idS (char '=' >> expT)
+formT = ws $ liftM2 FormT idS (wChar '=' >> expT)
 
 {-| Composite expressions -}
 funcT  :: Parser ExpToken
@@ -36,23 +36,23 @@ arrayT :: Parser ExpToken
 objT   :: Parser ExpToken
 
 -- funcT -> id '(' expT* ')'
-funcT  = liftM2 FuncT idS $ between (char '(') (char ')') $ commaSep expT
+funcT  = ws $ liftM2 FuncT idS $ between (wChar '(') (wChar ')') $ commaSep expT
 
 -- arrayT -> '[' expT* ']'
-arrayT = liftM ArrayT $ between (char '[') (char ']') $ commaSep expT
+arrayT = ws $ liftM ArrayT $ between (wChar '[') (wChar ']') $ commaSep expT
 
 -- objT -> '{' pairT* '}'
-objT   = liftM ObjT   $ between (char '{') (char '}') $ commaSep pairT
+objT   = ws $ liftM ObjT   $ between (wChar '{') (wChar '}') $ commaSep pairT
 
 {-| Sequence elements -}
 expT   :: Parser ExpToken
 pairT  :: Parser (IdS,ExpToken)
 
--- expT -> nullT  |  boolT  |  numT  |  strT   |  funcT  |  arrayT  |  objT  |  varT
-expT =     try nullT <|> try boolT <|> try numT <|> try strT  <|> try funcT <|> try arrayT <|> try objT <|> try varT
+-- expT ->      nullT  |      boolT  |      numT  |      strT   |      funcT  |      arrayT  |      objT  |      varT
+expT = ws $ try nullT <|> try boolT <|> try numT <|> try strT  <|> try funcT <|> try arrayT <|> try objT <|> try varT
 
 -- pairT -> idS ':' expT
-pairT = let f x _ = (,) x in liftM3 f idS (char ':') expT
+pairT = ws $ let f x _ = (,) x in liftM3 f idS (wChar ':') expT
 
 {-| Atomic expressions -}
 varT  :: Parser ExpToken
@@ -62,25 +62,25 @@ boolT :: Parser ExpToken
 nullT :: Parser ExpToken
 
 -- varT -> id
-varT = do
+varT = ws $ do
   x <- liftM VarT idS
   notFollowedBy (oneOf "(:")
   return x
 
 -- strT -> '"' ($printable - ['"']) '"'
-strT = liftM StrT $ between (char '"') (char '"') (many $ noneOf "\"")
+strT = ws $ liftM StrT $ between (char '"') (char '"') (many $ noneOf "\"")
 
 -- numT -> integerS ('.' $digit+)? ([eE] integerS)?
-numT = let (<:>) x y = option "" $ liftM2 (:) x y
-           optDec = char '.'   <:> many1 digit
-           optExp = oneOf "eE" <:> integerS
-       in liftM (NumT .read.concat).sequence $ integerS:[optDec,optExp]
+numT = ws $ let (<:>) x y = option "" $ liftM2 (:) x y
+                optDec = wChar '.'   <:> many1 digit
+                optExp = oneOf "eE" <:> integerS
+            in liftM (NumT .read.concat).sequence $ integerS:[optDec,optExp]
 
 -- boolT -> 'true' | 'false'
-boolT = liftM BoolT $ True <$ kw "true" <|> False <$ kw "false"
+boolT = ws $ liftM BoolT $ True <$ kw "true" <|> False <$ kw "false"
 
 -- nullT -> 'null' 
-nullT = kw "null" >> return NullT
+nullT = ws $ kw "null" >> return NullT
 
 
 {-| Subatomic helpers -}
@@ -88,15 +88,22 @@ integerS :: Parser IntegerS
 idS      :: Parser IdS
 
 -- integerS -> '-'? $digit+
-integerS = liftM2 (++) (option "" $ string "-") $ many1 digit
+integerS = ws $ liftM2 (++) (option "" $ string "-") $ many1 digit
 
 -- idS -> alpha [alpha | digit]*
-idS = let alpha = ['a'..'z'] ++ ['A'..'Z'] 
-      in liftM2 (:) (oneOf alpha) $ many (oneOf alpha <|> oneOf ['0'..'9'])
+idS = ws $ let alpha = ['a'..'z'] ++ ['A'..'Z'] 
+           in liftM2 (:) (oneOf alpha) $ many (oneOf alpha <|> oneOf ['0'..'9'])
 
 {-| Misc helpers -}
 kw :: String -> Parser ()
 kw s = string s >> notFollowedBy (noneOf ")}], \n")
 
 commaSep :: Parser a -> Parser [a]
-commaSep p  = p `sepBy` char ','
+commaSep p  = p `sepBy` wChar ','
+
+wChar :: Char -> Parser Char
+wChar = ws . char
+
+ws = between (many space) (many space)
+
+

@@ -16,38 +16,41 @@ import Parser.Parser
 {-# ANN module "HLint: ignore Redundant do" #-}
 
 -- Program
-prop_prog fs                 = Right (ProgT fs)               == parse progT  "" (parseables' "\n" fs)
-prop_form (IdA s) e          = Right (FormT s e)              == parse formT  "" (s ++ "=" ++ parseable e)
+prop_prog fs                 = eqCase (ProgT fs)              progT  (parseable (ProgT fs))
+prop_form (IdA s) e          = eqCase (FormT s e)             formT  (parseable (FormT s e))
+                                                                      
+-- Composite expressions                                              
+prop_func (IdA s) es         = eqCase (FuncT s es)            funcT  (parseable (FuncT s es))
+prop_array es                = eqCase (ArrayT es)             arrayT (parseable (ArrayT es))
+prop_obj ps                  = eqCase (ObjT (map unPair ps))  objT   (parseable (ObjT (map unPair ps)))
+                                                                      
+prop_exp e                   = eqCase e                       expT   (parseable (e :: ExpToken))
+prop_pair p@(Pair (IdA s) e) = eqCase (s,e)                   pairT  (parseable p)
+                                                                      
+-- Atomic expressions                                                 
+prop_var    (IdA s)          = eqCase (VarT s)                varT   (parseable (VarT s))
+prop_string (StrTA s)        = eqCase (StrT s)                strT   (parseable (StrT s))
+                                                                      
+prop_number_int i            = eqCase (NumT (fromIntegral i)) numT   [show (i :: Integer)]
+prop_number_flt f            = eqCase (NumT f)                numT   [show (f :: Double)]
+prop_number_exp f            = eqCase (NumT f)                numT   [showEFloat Nothing f ""]
+                                                                     
+prop_bool b                  = eqCase (BoolT b)               boolT  (parseable (BoolT b))
+prop_null                    = eqCase NullT                   nullT  (parseable NullT)
 
--- Composite expressions
-prop_func (IdA s) es         = Right (FuncT s es)             == parse funcT  "" (s ++ "(" ++ parseables es ++ ")")
-prop_array es                = Right (ArrayT es)              == parse arrayT "" ("[" ++ parseables es ++ "]")
-prop_obj ps                  = Right (ObjT (map unPair ps))   == parse objT   "" ("{" ++ parseables ps ++ "}")
-                             
-prop_exp e                   = Right e                        == parse expT   "" (parseable (e :: ExpToken))
-prop_pair p@(Pair (IdA s) e) = Right (s,e)                    == parse pairT  "" (parseable p)
+eqCase x p ss = all ((Right x ==). parse p "") $ cases ss
+cases ss = [concat ss, unwords ss, " " ++ concat ss ++ " ", " " ++ unwords ss ++ " "]
 
--- Atomic expressions
-prop_var    (IdA s)          = Right (VarT s)                 == parse varT   "" s
-prop_string (StrTA s)        = Right (StrT s)                 == parse strT   "" (show s)
-                             
-prop_number_int i            = Right (NumT (fromIntegral i))  == parse numT   "" (show (i :: Integer))
-prop_number_flt f            = Right (NumT f)                 == parse numT   "" (show (f :: Double))
-prop_number_exp f            = Right (NumT f)                 == parse numT   "" (showEFloat Nothing f "")
-                             
-prop_bool b                  = Right (BoolT b)                == parse boolT  "" (map toLower $ show b)
-prop_null                    = Right NullT                    == parse nullT  "" "null"
-
-instance Eq ParseError where a == b = errorMessages a == errorMessages b
+instance Eq ParseError where (==) a b = errorMessages a == errorMessages b
 
 newtype StrTA = StrTA String      deriving Show
 newtype IdA   = IdA   String      deriving Show
 data    Pair  = Pair IdA ExpToken deriving Show
 
-instance Arbitrary StrTA where arbitrary = liftM StrTA $ listOf $ elements $ [' '..'~'] \\ "\"\\"
+instance Arbitrary StrTA where arbitrary = liftM StrTA $ mListOf $ elements $ [' '..'~'] \\ "\"\\"
                                shrink (StrTA s) = map StrTA $ filter validStr $ shrink s
 
-instance Arbitrary IdA   where arbitrary = liftM IdA   $ liftM2 (:) (elements alpha) $ listOf $ elements alphaNum
+instance Arbitrary IdA   where arbitrary = liftM IdA   $ liftM2 (:) (elements alpha) $ mListOf $ elements alphaNum
                                shrink (IdA s) = map IdA $ filter validId $ shrink s
 
 instance Arbitrary Pair  where arbitrary = liftM2 Pair arbitrary (arb 1)
@@ -63,12 +66,12 @@ arb :: Integer -> Gen ExpToken
 arb 0 = join $ elements [                                 arbVar, arbString, arbNum, arbBool, arbNull]
 arb d = join $ elements [arbFunc d, arbArray d, arbObj d, arbVar, arbString, arbNum, arbBool, arbNull]
 
-arbFunc  d = liftM2 FuncT (liftM unId arbitrary) $ listOf $ arb $ d-1
-arbArray d = liftM ArrayT $ listOf $ arb $ d-1
+arbFunc  d = liftM2 FuncT (liftM unId arbitrary) $ sListOf $ arb $ d-1
+arbArray d = liftM ArrayT $ sListOf $ arb $ d-1
 arbObj   d = do
-  es <- listOf (arb $ d-1)
-  vs <- listOf arbitrary
-  return $ ObjT .map unPair $ zipWith Pair vs es
+  ss <- sListOf arbitrary
+  es <- sListOf (arb $ d-1)
+  return $ ObjT .map unPair $ zipWith Pair ss es
 
 arbVar     = liftM (VarT . unId) arbitrary
 arbString  = liftM (StrT . unStr) arbitrary
@@ -86,24 +89,25 @@ shrinkTok (BoolT True)  = [BoolT False]
 shrinkTok (BoolT False) = [NullT]
 shrinkTok NullT         = []
 
-parseableTok (FuncT i es) = parseable (IdA i) ++ "(" ++ parseables es ++ ")"
-parseableTok (ArrayT es)  = "[" ++ parseables es ++ "]"
-parseableTok (ObjT ps)    = "{" ++ parseables (map toPair ps) ++ "}"
+parseableTok (FuncT i es) = parseable (IdA i) ++ ["("] ++ parseables es ++ [")"]
+parseableTok (ArrayT es)  = ["["] ++ parseables es ++ ["]"]
+parseableTok (ObjT ps)    = ["{"] ++ parseables (map toPair ps) ++ ["}"]
 parseableTok (VarT v)     = parseable (IdA v)
-parseableTok (StrT s)     = show s
-parseableTok (NumT x)     = show x
-parseableTok (BoolT b)    = map toLower $ show b
-parseableTok NullT        = "null"
+parseableTok (StrT s)     = [show s]
+parseableTok (NumT x)     = [show x]
+parseableTok (BoolT b)    = [map toLower $ show b]
+parseableTok NullT        = ["null"]
 
-class Parseable a where parseable :: a -> String
-instance Parseable IdA where parseable (IdA s) = s
-instance Parseable Pair where parseable (Pair (IdA s) tok) = parseable (IdA s) ++ ":" ++ parseable tok
-instance Parseable FormToken where parseable (FormT s e) = s ++ "=" ++ parseable e
+class Parseable a where parseable :: a -> [String]
+instance Parseable IdA where parseable (IdA s) = [s]
+instance Parseable Pair where parseable (Pair (IdA s) tok) = parseable (IdA s) ++ [":"] ++ parseable tok
+instance Parseable ProgToken where parseable (ProgT fs)    = parseables' "\n" fs
+instance Parseable FormToken where parseable (FormT s e)   = parseable (IdA s) ++ ["="] ++ parseable e
 instance Parseable ExpToken where parseable = parseableTok
 
-parseables :: Parseable a => [a] -> String
-parseables  = parseables' "," 
-parseables' sep xs = intercalate sep $ map parseable xs 
+parseables :: Parseable a => [a] -> [String]
+parseables  = parseables' ","
+parseables' sep xs = intercalate [sep] $ map parseable xs 
 
 alpha = ['a'..'z']++['A'..'Z']
 alphaNum = alpha ++ ['0'..'9']
@@ -117,6 +121,8 @@ unStr (StrTA s) = s
 validId s = not (null s) && head s `elem` alpha && null (s \\ alphaNum)
 validStr s =   null $ s \\ ([' '..'~'] \\ "\"\\")
 
+mListOf = liftM (take 10) . listOf
+sListOf = liftM (take 5) . listOf
 
 
 
