@@ -2,9 +2,8 @@
 module Main where
 import Test.Framework
 
---import {-@ HTF_TESTS @-} Path.To.Module
-import {-@ HTF_TESTS @-} TestExample
 import {-@ HTF_TESTS @-} TestEqParser
+import {-@ HTF_TESTS @-} Parser.ParserTest
 
 main :: IO ()
 main = htfMain htf_importedTests
