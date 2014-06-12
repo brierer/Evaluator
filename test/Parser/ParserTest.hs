@@ -15,30 +15,34 @@ import Parser.Parser
 {-# ANN module "HLint: ignore Use camelCase" #-}
 {-# ANN module "HLint: ignore Redundant do" #-}
 
+-- Program
+prop_prog fs                 = Right (ProgT fs)               == parse progT  "" (parseables' "\n" fs)
+prop_form (IdA s) e          = Right (FormT s e)              == parse formT  "" (s ++ "=" ++ parseable e)
+
 -- Composite expressions
 prop_func (IdA s) es         = Right (FuncT s es)             == parse funcT  "" (s ++ "(" ++ parseables es ++ ")")
 prop_array es                = Right (ArrayT es)              == parse arrayT "" ("[" ++ parseables es ++ "]")
 prop_obj ps                  = Right (ObjT (map unPair ps))   == parse objT   "" ("{" ++ parseables ps ++ "}")
-
-prop_exp e                   = Right e                        == parse expT   "" (parseable (e :: Token))
+                             
+prop_exp e                   = Right e                        == parse expT   "" (parseable (e :: ExpToken))
 prop_pair p@(Pair (IdA s) e) = Right (s,e)                    == parse pairT  "" (parseable p)
 
 -- Atomic expressions
 prop_var    (IdA s)          = Right (VarT s)                 == parse varT   "" s
 prop_string (StrTA s)        = Right (StrT s)                 == parse strT   "" (show s)
-
+                             
 prop_number_int i            = Right (NumT (fromIntegral i))  == parse numT   "" (show (i :: Integer))
 prop_number_flt f            = Right (NumT f)                 == parse numT   "" (show (f :: Double))
 prop_number_exp f            = Right (NumT f)                 == parse numT   "" (showEFloat Nothing f "")
-
+                             
 prop_bool b                  = Right (BoolT b)                == parse boolT  "" (map toLower $ show b)
 prop_null                    = Right NullT                    == parse nullT  "" "null"
 
 instance Eq ParseError where a == b = errorMessages a == errorMessages b
 
-newtype StrTA = StrTA String   deriving Show
-newtype IdA   = IdA   String   deriving Show
-data    Pair  = Pair IdA Token deriving Show
+newtype StrTA = StrTA String      deriving Show
+newtype IdA   = IdA   String      deriving Show
+data    Pair  = Pair IdA ExpToken deriving Show
 
 instance Arbitrary StrTA where arbitrary = liftM StrTA $ listOf $ elements $ [' '..'~'] \\ "\"\\"
                                shrink (StrTA s) = map StrTA $ filter validStr $ shrink s
@@ -49,20 +53,22 @@ instance Arbitrary IdA   where arbitrary = liftM IdA   $ liftM2 (:) (elements al
 instance Arbitrary Pair  where arbitrary = liftM2 Pair arbitrary (arb 1)
                                shrink (Pair idA tok) = [Pair idA' tok' | idA' <- shrink idA, tok' <- shrink tok]
 
-instance Arbitrary Token where arbitrary = arb 1
-                               shrink = shrinkTok
+instance Arbitrary FormToken where arbitrary = liftM2 FormT (liftM unId arbitrary) (arb 1)
+                                   shrink (FormT idA e) = [FormT (unId idA') e' | idA' <- shrink (IdA idA), e' <- shrink e]
 
-arb :: Integer -> Gen Token
+instance Arbitrary ExpToken where arbitrary = arb 1
+                                  shrink = shrinkTok
+
+arb :: Integer -> Gen ExpToken
 arb 0 = join $ elements [                                 arbVar, arbString, arbNum, arbBool, arbNull]
 arb d = join $ elements [arbFunc d, arbArray d, arbObj d, arbVar, arbString, arbNum, arbBool, arbNull]
 
 arbFunc  d = liftM2 FuncT (liftM unId arbitrary) $ listOf $ arb $ d-1
 arbArray d = liftM ArrayT $ listOf $ arb $ d-1
 arbObj   d = do
-  es <- listOf $ arb $ d-1
+  es <- listOf (arb $ d-1)
   vs <- listOf arbitrary
-  let pairs = zipWith Pair vs es
-  return $ ObjT .map unPair $ pairs
+  return $ ObjT .map unPair $ zipWith Pair vs es
 
 arbVar     = liftM (VarT . unId) arbitrary
 arbString  = liftM (StrT . unStr) arbitrary
@@ -92,9 +98,12 @@ parseableTok NullT        = "null"
 class Parseable a where parseable :: a -> String
 instance Parseable IdA where parseable (IdA s) = s
 instance Parseable Pair where parseable (Pair (IdA s) tok) = parseable (IdA s) ++ ":" ++ parseable tok
-instance Parseable Token where parseable = parseableTok
+instance Parseable FormToken where parseable (FormT s e) = s ++ "=" ++ parseable e
+instance Parseable ExpToken where parseable = parseableTok
 
-parseables xs = intercalate "," $ map parseable xs
+parseables :: Parseable a => [a] -> String
+parseables  = parseables' "," 
+parseables' sep xs = intercalate sep $ map parseable xs 
 
 alpha = ['a'..'z']++['A'..'Z']
 alphaNum = alpha ++ ['0'..'9']

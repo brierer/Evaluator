@@ -4,23 +4,36 @@ import Text.ParserCombinators.Parsec
 import Control.Monad
 import Control.Applicative ((<$))
 
-data Token = FuncT IdS [Token]
-           | ArrayT [Token]
-           | ObjT [(IdS,Token)]
-           | VarT IdS
-           | StrT String
-           | NumT Double
-           | BoolT Bool
-           | NullT
-             deriving (Eq,Show)
+data ProgToken = ProgT [FormToken] deriving (Eq,Show)
+data FormToken = FormT IdS ExpToken    deriving (Eq,Show)
+
+data ExpToken = FuncT IdS [ExpToken]
+              | ArrayT [ExpToken]
+              | ObjT [(IdS,ExpToken)]
+              | VarT IdS
+              | StrT String
+              | NumT Double
+              | BoolT Bool
+              | NullT
+                deriving (Eq,Show)
 
 type IntegerS = String
 type IdS      = String
 
+{-| Formula tokens -}
+progT :: Parser ProgToken
+formT :: Parser FormToken
+
+-- progT -> (formT '\n')*
+progT = liftM ProgT $ formT `sepBy` many (char '\n')
+
+-- formT -> id '=' expT
+formT = liftM2 FormT idS (char '=' >> expT)
+
 {-| Composite expressions -}
-funcT  :: Parser Token
-arrayT :: Parser Token
-objT   :: Parser Token
+funcT  :: Parser ExpToken
+arrayT :: Parser ExpToken
+objT   :: Parser ExpToken
 
 -- funcT -> id '(' expT* ')'
 funcT  = liftM2 FuncT idS $ between (char '(') (char ')') $ commaSep expT
@@ -32,8 +45,8 @@ arrayT = liftM ArrayT $ between (char '[') (char ']') $ commaSep expT
 objT   = liftM ObjT   $ between (char '{') (char '}') $ commaSep pairT
 
 {-| Sequence elements -}
-expT   :: Parser Token
-pairT  :: Parser (IdS,Token)
+expT   :: Parser ExpToken
+pairT  :: Parser (IdS,ExpToken)
 
 -- expT -> nullT  |  boolT  |  numT  |  strT   |  funcT  |  arrayT  |  objT  |  varT
 expT =     try nullT <|> try boolT <|> try numT <|> try strT  <|> try funcT <|> try arrayT <|> try objT <|> try varT
@@ -42,11 +55,11 @@ expT =     try nullT <|> try boolT <|> try numT <|> try strT  <|> try funcT <|> 
 pairT = let f x _ = (,) x in liftM3 f idS (char ':') expT
 
 {-| Atomic expressions -}
-varT  :: Parser Token
-strT  :: Parser Token
-numT  :: Parser Token
-boolT :: Parser Token
-nullT :: Parser Token
+varT  :: Parser ExpToken
+strT  :: Parser ExpToken
+numT  :: Parser ExpToken
+boolT :: Parser ExpToken
+nullT :: Parser ExpToken
 
 -- varT -> id
 varT = do
@@ -83,7 +96,7 @@ idS = let alpha = ['a'..'z'] ++ ['A'..'Z']
 
 {-| Misc helpers -}
 kw :: String -> Parser ()
-kw s = string s >> notFollowedBy (noneOf ")}],")
+kw s = string s >> notFollowedBy (noneOf ")}], \n")
 
 commaSep :: Parser a -> Parser [a]
 commaSep p  = p `sepBy` char ','
