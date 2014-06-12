@@ -24,7 +24,9 @@ executable Evaluator
                    QuickCheck >=2.6 && <2.7,
                    QuickCheck >=2.6 && <2.7
   ghc-options:     -Wall
-  other-modules:   Parser.Parser
+  other-modules:   
+                   Data.Token,
+                   Parser.Monolithic
 
 test-suite Evaluator-tests
   type: exitcode-stdio-1.0
@@ -39,6 +41,6 @@ test-suite Evaluator-tests
                  src,
                  test
   other-modules: 
-                 TestExample,
-                 Parser.ParserTest,
-                 Parser.Parser
+                 Data.Token,
+                 Parser.Monolithic,
+                 Parser.MonolithicTest
