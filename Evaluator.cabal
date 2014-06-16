@@ -6,7 +6,7 @@ author:         antoine
 
 executable Evaluator
   hs-source-dirs:  src
-  main-is:         mainEval.hs
+  main-is:         Main.hs
   build-depends:   
                    base >= 4,
                    mtl >=2.1.2 && <2.2,
@@ -26,7 +26,8 @@ executable Evaluator
   ghc-options:     -Wall
   other-modules:   
                    Data.Token,
-                   Parser.Monolithic
+                   Parser.Monolithic,
+                   Eval.MultiPass
 
 test-suite Evaluator-tests
   type: exitcode-stdio-1.0
@@ -43,4 +44,7 @@ test-suite Evaluator-tests
   other-modules: 
                  Data.Token,
                  Parser.Monolithic,
-                 Parser.MonolithicTest
+                 Parser.MonolithicTest,
+                 Eval.MultiPass,
+                 Eval.MultiPassTest,
+                 TestUtils
