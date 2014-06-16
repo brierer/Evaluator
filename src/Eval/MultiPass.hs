@@ -39,13 +39,13 @@ derefVar (State pending finished) (n,v) = do
 deref :: Table -> Table -> ExpToken -> Eval ExpToken
 deref ps fs (FuncT n es) = liftM (FuncT n) $ mapM (deref ps fs) es
 deref ps fs (ArrayT es)  = liftM ArrayT    $ mapM (deref ps fs) es             
-deref ps fs (ObjT ts)    = liftM ObjT      $ mapM (\(x,y) -> liftM2 (,) (return x) $ deref ps fs y) ts
+deref ps fs (ObjT ts)    = liftM ObjT      $ mapM (\(PairT x y) -> liftM2 PairT (return x) $ deref ps fs y) ts
 deref ps fs (VarT n)     = case M.lookup n fs of Just x -> return x; Nothing -> case M.lookup n ps of Just _ -> return $ VarT n; Nothing -> Left $ UndefinedVariable n
 deref _  _  e            = return e
 
 hasAnyVar :: ExpToken -> Bool
 hasAnyVar (FuncT _ es) = any hasAnyVar es
 hasAnyVar (ArrayT es)  = any hasAnyVar es             
-hasAnyVar (ObjT ps)    = any (hasAnyVar.snd) ps
+hasAnyVar (ObjT ps)    = any (\(PairT _ e) -> hasAnyVar e) ps
 hasAnyVar (VarT _)     = True
 hasAnyVar _            = False

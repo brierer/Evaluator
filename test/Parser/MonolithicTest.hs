@@ -18,10 +18,10 @@ prop_form (IdA s) e          = parseCase (FormT s e)             formT  (parseab
 -- Composite expressions                                              
 prop_func (IdA s) es         = parseCase (FuncT s es)            funcT  (parseable (FuncT s es))
 prop_array es                = parseCase (ArrayT es)             arrayT (parseable (ArrayT es))
-prop_obj ps                  = parseCase (ObjT (map unPair ps))  objT   (parseable (ObjT (map unPair ps)))
+prop_obj ps                  = parseCase (ObjT ps)               objT   (parseable (ObjT ps))
                                                                       
 prop_exp e                   = parseCase e                       expT   (parseable (e :: ExpToken))
-prop_pair p@(Pair (IdA s) e) = parseCase (s,e)                   pairT  (parseable p)
+prop_pair p                  = parseCase p                       pairT  (parseable p)
                                                                       
 -- Atomic expressions                                                 
 prop_var    (IdA s)          = parseCase (VarT s)                varT   (parseable (VarT s))

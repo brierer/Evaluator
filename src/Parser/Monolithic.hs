@@ -32,13 +32,13 @@ objT   = ws $ liftM ObjT   $ between (wChar '{') (wChar '}') $ commaSep pairT
 
 {-| Sequence elements -}
 expT   :: Parser ExpToken
-pairT  :: Parser (IdS,ExpToken)
+pairT  :: Parser PairToken
 
 -- expT ->      nullT  |      boolT  |      numT  |      strT   |      funcT  |      arrayT  |      objT  |      varT
 expT = ws $ try nullT <|> try boolT <|> try numT <|> try strT  <|> try funcT <|> try arrayT <|> try objT <|> try varT
 
 -- pairT -> idS ':' expT
-pairT = ws $ let f x _ = (,) x in liftM3 f idS (wChar ':') expT
+pairT = ws $ let f x _ = PairT x in liftM3 f idS (wChar ':') expT
 
 {-| Atomic expressions -}
 varT  :: Parser ExpToken
@@ -93,4 +93,10 @@ wChar = ws . char
 ws :: Parser a -> Parser a
 ws = between (many space) (many space)
 
-
+--{-| Unparse the derivation tree, exactly as it was parsed -}
+--class Unparse a where unparse :: a -> String
+--instance Unparse ProgToken where unparse = error "Monolithic::unparse [Not Implemented for ProgToken]"
+--instance Unparse FormToken where unparse = error "Monolithic::unparse [Not Implemented for FormToken]"
+--instance Unparse ExpToken where unparse = error "Monolithic::unparse [Not Implemented for ExpToken]"
+--instance Unparse Pair where unparse = error "Monolithic::unparse [Not Implemented for ExpToken]"
+unparse = undefined
