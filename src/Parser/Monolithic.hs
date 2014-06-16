@@ -3,6 +3,8 @@ module Parser.Monolithic where
 import Text.ParserCombinators.Parsec
 import Control.Monad
 import Control.Applicative ((<$))
+import Data.Char
+import Data.List
 
 import Data.Token
 
@@ -57,10 +59,12 @@ varT = ws $ do
 strT = ws $ liftM StrT $ between (char '"') (char '"') (many $ noneOf "\"")
 
 -- numT -> integerS ('.' $digit+)? ([eE] integerS)?
-numT = ws $ let (<:>) x y = option "" $ liftM2 (:) x y
-                optDec = wChar '.'   <:> many1 digit
-                optExp = oneOf "eE" <:> integerS
-            in liftM (NumT .read.concat).sequence $ integerS:[optDec,optExp]
+numT = ws $ let (<:>) x y = option "" $ liftM2 (:) x y in do
+  intPart <- integerS
+  optDec <- wChar '.'   <:> many1 digit
+  optExp <- oneOf "eE" <:> integerS
+  let o = concat [intPart,optDec,optExp]
+  return $ NumT o $ read o
 
 -- boolT -> 'true' | 'false'
 boolT = ws $ liftM BoolT $ True <$ kw "true" <|> False <$ kw "false"
@@ -93,10 +97,44 @@ wChar = ws . char
 ws :: Parser a -> Parser a
 ws = between (many space) (many space)
 
---{-| Unparse the derivation tree, exactly as it was parsed -}
---class Unparse a where unparse :: a -> String
---instance Unparse ProgToken where unparse = error "Monolithic::unparse [Not Implemented for ProgToken]"
---instance Unparse FormToken where unparse = error "Monolithic::unparse [Not Implemented for FormToken]"
---instance Unparse ExpToken where unparse = error "Monolithic::unparse [Not Implemented for ExpToken]"
---instance Unparse Pair where unparse = error "Monolithic::unparse [Not Implemented for ExpToken]"
-unparse = undefined
+{-| Unparse the derivation tree, exactly as it was parsed -}
+class Unparse a where unparse :: a -> String
+instance Unparse ProgToken where unparse (ProgT fs)  = unparses' "\n" fs
+instance Unparse FormToken where unparse (FormT s e) = s ++ "=" ++ unparse e       
+instance Unparse PairToken where unparse (PairT s e) = s ++ ":" ++ unparse e       
+instance Unparse ExpToken  where unparse             = unparseExp                                    
+
+unparses :: Unparse a => [a] -> String
+unparses  = unparses' ","
+
+unparses' :: Unparse a => String -> [a] -> String
+unparses' sep = intercalate sep . map unparse
+
+unparseExp :: ExpToken -> String
+unparseExp (FuncT i es) = i ++ "(" ++ unparses es ++ ")"
+unparseExp (ArrayT es)  = "[" ++ unparses es ++ "]"
+unparseExp (ObjT ps)    = "{" ++ unparses ps ++ "}"
+unparseExp (VarT v)     = v
+unparseExp (StrT s)     = show s
+unparseExp (NumT o _)   = o
+unparseExp (BoolT b)    = map toLower $ show b
+unparseExp NullT        = "null"
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+

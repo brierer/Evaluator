@@ -14,6 +14,7 @@ import Text.ParserCombinators.Parsec hiding (alphaNum)
 import Text.ParserCombinators.Parsec.Error
 
 import Data.Token
+import Parser.Monolithic
 
 {-# ANN module "HLint: ignore Use camelCase" #-}
 {-# ANN module "HLint: ignore Redundant do" #-}
@@ -39,13 +40,12 @@ instance Arbitrary StrTA where arbitrary = liftM StrTA $ mListOf $ elements $ ['
 instance Arbitrary IdA   where arbitrary = liftM IdA   $ liftM2 (:) (elements alpha) $ mListOf $ elements alphaNum
                                shrink (IdA s) = map IdA $ filter validId $ shrink s
 
-
 instance Arbitrary ProgToken where arbitrary = liftM ProgT (sListOf arbitrary)
                                    shrink (ProgT fs) = map ProgT $ shrink fs
 
 instance Arbitrary FormToken where arbitrary = liftM2 FormT (liftM unId arbitrary) (arb 1)
                                    shrink (FormT idA e) = [FormT idA' e' | IdA idA' <- shrink (IdA idA), e' <- shrink e]
-                                   
+
 instance Arbitrary PairToken where arbitrary = liftM2 PairT (liftM unId arbitrary) (arb 1)
                                    shrink (PairT idA e) = [PairT idA' e' | IdA idA' <- shrink (IdA idA), e' <- shrink e]
 
@@ -67,7 +67,7 @@ instance Arbitrary ValidProg where
   shrink (ValidProg prog) = concatMap (map fromForms . replaceAllVariables id . forms) $ shrink prog
 
 instance Arbitrary UndefProg where
-  arbitrary = mUndefProg arbitrary elements     
+  arbitrary = mUndefProg arbitrary elements
   shrink (UndefProg p _) = mUndefProg (shrink p) id
 
 instance Arbitrary CycleProg where
@@ -79,11 +79,11 @@ instance Parseable IdA       where parseable (IdA s)     = [s]
 instance Parseable ProgToken where parseable (ProgT fs)  = parseables' "\n" fs
 instance Parseable FormToken where parseable (FormT s e) = parseable (IdA s) ++ ["="] ++ parseable e
 instance Parseable PairToken where parseable (PairT s e) = parseable (IdA s) ++ [":"] ++ parseable e
-instance Parseable ExpToken  where parseable             = parseableTok
+instance Parseable ExpToken  where parseable             = parseableExp
 
 parseables :: Parseable a => [a] -> [String]
 parseables  = parseables' ","
-parseables' sep xs = intercalate [sep] $ map parseable xs 
+parseables' sep xs = intercalate [sep] $ map parseable xs
 
 arb :: Integer -> Gen ExpToken
 arb 0 = join $ elements [                                 arbVar, arbString, arbNum, arbBool, arbNull]
@@ -98,32 +98,32 @@ arbObj   d = do
 
 arbVar     = liftM (VarT . unId) arbitrary
 arbString  = liftM (StrT . unStr) arbitrary
-arbNum     = liftM NumT arbitrary
+arbNum     = do v <- arbitrary; return $ NumT (show v) v
 arbBool    = liftM BoolT $ elements [True, False]
 arbNull    = return NullT
 
 shrinkTok (FuncT s es)  = [FuncT s' es' | (IdA s') <- shrink (IdA s), es' <- shrink es]
-shrinkTok (ArrayT es)   = map ArrayT $ shrink es 
+shrinkTok (ArrayT es)   = map ArrayT $ shrink es
 shrinkTok (ObjT ps)     = map ObjT   $ shrink ps
 shrinkTok (VarT v)      = map (VarT  .unId) $ shrink $ IdA v
 shrinkTok (StrT s)      = map StrT $ shrink s
-shrinkTok (NumT x)      = map NumT $ shrink x
+shrinkTok (NumT t x)    = map (NumT t) $ shrink x
 shrinkTok (BoolT b)     = map BoolT $ shrink b
 shrinkTok NullT         = []
 
-parseableTok (FuncT i es) = parseable (IdA i) ++ ["("] ++ parseables es ++ [")"]
-parseableTok (ArrayT es)  = ["["] ++ parseables es ++ ["]"]
-parseableTok (ObjT ps)    = ["{"] ++ parseables ps ++ ["}"]
-parseableTok (VarT v)     = parseable (IdA v)
-parseableTok (StrT s)     = [show s]
-parseableTok (NumT x)     = [show x]
-parseableTok (BoolT b)    = [map toLower $ show b]
-parseableTok NullT        = ["null"]
+parseableExp (FuncT i es) = parseable (IdA i) ++ ["("] ++ parseables es ++ [")"]
+parseableExp (ArrayT es)  = ["["] ++ parseables es ++ ["]"]
+parseableExp (ObjT ps)    = ["{"] ++ parseables ps ++ ["}"]
+parseableExp (VarT v)     = parseable (IdA v)
+parseableExp (StrT s)     = [show s]
+parseableExp (NumT _ x)   = [show x]
+parseableExp (BoolT b)    = [map toLower $ show b]
+parseableExp NullT        = ["null"]
 
 class HasProg a where
   forms :: a -> [FormToken]
   fromForms :: [FormToken] -> a
-  
+
   toToken :: a -> ProgToken
   toToken = fromForms.forms
 
@@ -134,19 +134,19 @@ instance HasProg ProgToken where
 instance HasProg UniqueDefs where
   forms (UniqueDefs prog) = forms prog
   fromForms = UniqueDefs .fromForms
-  
+
 instance HasProg NonEmptyUniqueDefs where
   forms (NonEmptyUniqueDefs prog) = forms prog
   fromForms = NonEmptyUniqueDefs .fromForms
-  
+
 instance HasProg ValidProg where
   forms (ValidProg prog) = forms prog
   fromForms = ValidProg .fromForms
 
 {-| Functions -}
 parseCase x p ss = all (pass x p) $ cases ss
-cases ss = [concat ss, unwords ss, " " ++ concat ss ++ " ", " " ++ unwords ss ++ " "]
-pass x p s = Right x == parse p "" s -- && s == unparse x
+cases ss = [concat ss]--, unwords ss, " " ++ concat ss ++ " ", " " ++ unwords ss ++ " "]
+pass x p s = Right x == parse p "" s && s == unparse x
 
 alpha = ['a'..'z']++['A'..'Z']
 alphaNum = alpha ++ ['0'..'9']
@@ -176,7 +176,7 @@ derefAll (FormT n v:fs) = let moo1 = FormT n (derefOne fs v):derefAll fs
 
 hasVarF (FormT _ e) = hasVar e
 hasVar (FuncT _ es) = any hasVar es
-hasVar (ArrayT es)  = any hasVar es             
+hasVar (ArrayT es)  = any hasVar es
 hasVar (ObjT ps)    = any hasVarP ps
 hasVar (VarT _)     = True
 hasVar _            = False

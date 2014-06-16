@@ -9,7 +9,7 @@ data ExpToken = FuncT IdS [ExpToken]
               | ObjT [PairToken]
               | VarT IdS
               | StrT String
-              | NumT Double
+              | NumT String Double
               | BoolT Bool
               | NullT
                 deriving (Eq,Show)
