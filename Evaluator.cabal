@@ -30,14 +30,13 @@ executable Evaluator
                    Eval.MultiPass
 
 test-suite Evaluator-tests
-  type: exitcode-stdio-1.0
-  main-is: MainTest.hs
-  ghc-options: -Wall -rtsopts -fno-warn-missing-signatures
+  type:           exitcode-stdio-1.0
+  main-is:        MainTest.hs
+  ghc-options:    -Wall -rtsopts -fno-warn-missing-signatures
   build-depends:
-                   base >= 4, HTF > 0.9,
-                   pretty >=1.1.1 && <1.2,
-                   QuickCheck >=2.6 && <2.7,
-                   QuickCheck >=2.6 && <2.7
+                  base >= 4, HTF > 0.9,
+                  pretty >=1.1.1 && <1.2,
+                  QuickCheck >=2.6 && <2.7
   hs-source-dirs:
                  src,
                  test
@@ -47,4 +46,5 @@ test-suite Evaluator-tests
                  Parser.MonolithicTest,
                  Eval.MultiPass,
                  Eval.MultiPassTest,
-                 TestUtils
+                 Parser.ParserTestUtils,
+                 Eval.EvalTestUtils
