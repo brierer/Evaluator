@@ -12,7 +12,7 @@ import Text.ParserCombinators.Parsec   (parse)
 
 testCase p = (\(Right x) -> x) . parse p "" . unparse
 
-data ProgTA = ProgTA ProgToken deriving (Show)
+data ProgTA = ProgTA ProgToken deriving (Eq,Show)
 instance Arbitrary ProgTA where
   arbitrary                  = sized1 sizedProgTA
   shrink (ProgTA (ProgT fs)) = mProgTA (shrink $ map toFormTA fs)

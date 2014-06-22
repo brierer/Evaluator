@@ -8,6 +8,9 @@ import Control.Monad           (foldM,liftM,liftM2)
 data EvalError = MultipleDefinitions String
                | UndefinedVariable String
                | CycleInVariables [String]
+               | UndefinedFunction String String
+               | NonTopLevelShow String
+               | NoShow
                  deriving (Eq,Show)
 
 type State = (Table,Table)
@@ -45,3 +48,6 @@ hasAnyVar (ArrayT _ es)  = any hasAnyVar es
 hasAnyVar (ObjT _ ps)    = any (\(PairT _ e) -> hasAnyVar e) ps
 hasAnyVar (VarT _ _)     = True
 hasAnyVar _            = False
+
+validateFunctions :: [String] -> Table -> Eval ()
+validateFunctions = error "MultiPass::validateFunctions [Not Implemented]"

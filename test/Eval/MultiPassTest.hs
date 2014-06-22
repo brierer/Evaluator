@@ -1,14 +1,19 @@
 {-# OPTIONS_GHC -F -pgmF htfpp #-}
 module Eval.MultiPassTest where
 
-import Eval.EvalTestUtils      (HasProg,MultiDefs(..),UniqueDefs(..),UndefVars(..),CycleVars(..),ValidVars(..),initTable',derefValidProg',nonEmpty,fromProgForms,toToken)
-import Eval.MultiPass          (EvalError(..),initTable,derefVars)
+import Eval.EvalTestUtils      (HasProg,UniqueDefs(..),MultiDefs(..),ValidVars(..),UndefVars(..),CycleVars(..),ValidFuncs(..),UndefFuncs(..),NonTopShowFuncs(..),NoShowFuncs(..),
+                                initTable',derefValidProg',nonEmpty,fromProgForms,toToken)
+import Eval.MultiPass          (EvalError(..),initTable,derefVars,validateFunctions)
 import Test.Framework          (TestSuite,makeTestSuite,makeQuickCheckTest,makeLoc,qcAssertion,(==>))
 
-prop_multiDefs (MultiDefs prog x)  = nonEmpty prog ==> Left (MultipleDefinitions x) == initTable (toToken prog)
-prop_validDefs (UniqueDefs prog)   =                     Right (fromProgForms prog) == initTable (toToken prog)
+prop_MultiDefs (MultiDefs  prog x)         = nonEmpty prog ==> Left (MultipleDefinitions x)   == initTable (toToken prog)
+prop_ValidDefs (UniqueDefs prog)           =                     Right (fromProgForms prog)   == initTable (toToken prog)
+                                                                                             
+prop_UndefVars (UndefVars prog x)          = nonEmpty prog ==> Left (UndefinedVariable x)     == derefVars (initTable' prog)
+prop_CycleVars (CycleVars prog xs)         = nonEmpty prog ==> Left (CycleInVariables xs)     == derefVars (initTable' prog)
+prop_ValidVars (ValidVars prog)            =                   Right (derefValidProg' prog)   == derefVars (initTable' prog)
 
-prop_undefVars (UndefVars prog x)  = nonEmpty prog ==> Left (UndefinedVariable x)   == derefVars (initTable' prog)
-prop_cycleVars (CycleVars prog xs) = nonEmpty prog ==> Left (CycleInVariables xs)   == derefVars (initTable' prog)
-prop_validVars (ValidVars prog)    =                   Right (derefValidProg' prog) == derefVars (initTable' prog)
-
+prop_UndefFuncs (UndefFuncs      (ValidFuncs prog ns) fn vn) = nonEmpty prog ==> Left (UndefinedFunction fn vn) == validateFunctions ns (initTable' prog)
+prop_NonTopShow (NonTopShowFuncs (ValidFuncs prog ns) vn)    = nonEmpty prog ==> Left (NonTopLevelShow vn)      == validateFunctions ns (initTable' prog) 
+prop_NoShow     (NoShowFuncs     (ValidFuncs prog ns))       = nonEmpty prog ==> Left NoShow                    == validateFunctions ns (initTable' prog)
+prop_ValidFuncs (ValidFuncs      prog ns)                    =                   Right ()                       == validateFunctions ns (initTable' prog)
