@@ -38,16 +38,55 @@ derefVar (pending,finished) (n,v) = do
 deref :: Table -> Table -> ExpToken -> Eval ExpToken
 deref ps fs (FuncT w n es) = liftM (FuncT w n) $ mapM (deref ps fs) es
 deref ps fs (ArrayT w es)  = liftM (ArrayT w)  $ mapM (deref ps fs) es             
-deref ps fs (ObjT w ts)    = liftM (ObjT w)    $ mapM (\(PairT x y) -> liftM2 PairT (return x) $ deref ps fs y) ts
+deref ps fs (ObjT w ts)    = liftM (ObjT w)    $ mapM (mapMPair $ deref ps fs) ts
 deref ps fs (VarT w n)     = case M.lookup n fs of Just x -> return x; Nothing -> case M.lookup n ps of Just _ -> return $ VarT w n; Nothing -> Left $ UndefinedVariable n
 deref _  _  e            = return e
 
 hasAnyVar :: ExpToken -> Bool
 hasAnyVar (FuncT _ _ es) = any hasAnyVar es
 hasAnyVar (ArrayT _ es)  = any hasAnyVar es             
-hasAnyVar (ObjT _ ps)    = any (\(PairT _ e) -> hasAnyVar e) ps
+hasAnyVar (ObjT _ ps)    = any (hasAnyVar.pairVal) ps
 hasAnyVar (VarT _ _)     = True
 hasAnyVar _            = False
 
 validateFunctions :: [String] -> Table -> Eval ()
-validateFunctions = error "MultiPass::validateFunctions [Not Implemented]"
+validateFunctions fns t = let table = M.toList t in do
+  validateNames fns table
+  validateNonTopShows table
+  validateTopShow table
+
+validateNames :: [String] -> [(String,ExpToken)] -> Eval ()
+validateNames fns = mapM_ (uncurry f)   where
+  f v (FuncT _ fn es) | isValidShow v fn fns = mapM_ (f v) es | otherwise = Left $ UndefinedFunction v fn
+  f v (ArrayT _ es)                          = mapM_ (f v) es
+  f v (ObjT _ ps)                            = mapM_ (f v.pairVal) ps
+  f _ _                                      = return ()
+
+isValidShow v fn fns = (v == "show" && fn == "show" ) || fn `elem` fns
+
+validateNonTopShows :: [(String,ExpToken)] -> Eval ()
+validateNonTopShows = mapM_ (uncurry top) where
+  top v (FuncT _ _ es) = mapM_ (f v) es
+  top v e              = f v e
+  f v (FuncT _ fn es) | fn /= "show" = mapM_ (f v) es | otherwise = Left $ NonTopLevelShow v
+  f v (ArrayT _ es)                  = mapM_ (f v) es
+  f v (ObjT _ ps)                    = mapM_ (f v.pairVal) ps
+  f _ _                              = return ()
+
+validateTopShow :: [(String,ExpToken)] -> Eval ()
+validateTopShow []                            = Left NoShow
+validateTopShow (("show",FuncT _ "show" _):_) = return ()
+validateTopShow (_:fs)                        = validateTopShow fs
+
+formVal :: FormToken -> ExpToken
+formVal (FormT _ x) = x
+
+pairVal :: PairToken -> ExpToken
+pairVal (PairT _ x) = x
+
+mapPair :: (ExpToken -> ExpToken) -> PairToken -> PairToken
+mapPair f (PairT x y) = PairT x (f y)
+
+mapMPair :: Monad m => (ExpToken -> m ExpToken) -> PairToken -> m PairToken
+mapMPair f (PairT x y) = liftM2 PairT (return x) (f y)
+
