@@ -107,7 +107,7 @@ mCycleProg pa f = let empty = CycleVars (fromForms []) [] in do
     return $ CycleVars (fromForms fs') (sort ns)
 makeCycle f (FormT n e) m = liftM (FormT n) $ replaceVars [m] f e
 
-data ValidFuncs = ValidFuncs UniqueDefs [String] deriving (Eq,Show)
+data ValidFuncs = ValidFuncs ValidVars [String] deriving (Eq,Show)
 instance HasProg ValidFuncs where
   forms (ValidFuncs prog _) = forms prog
   fromForms = ValidFuncs <$> fromForms <*> funcNamesF
@@ -256,7 +256,7 @@ mValidProg  :: Monad m => m UniqueDefs -> ([String] -> m String) -> m ValidVars
 mUndefProg  :: Monad m => m ValidVars  -> ([String] -> m String) -> m UndefVars
 mCycleProg  :: Monad m => m ValidVars  -> ([String] -> m String) -> m CycleVars
 
-mValidFuncs  :: Monad m => m UniqueDefs -> m ValidFuncs
+mValidFuncs  :: Monad m => m ValidVars -> m ValidFuncs
 mUndefFuncs  :: Monad m => m ValidFuncs -> ([String] -> m String) -> ([FormToken] -> m FormToken) -> m UndefFuncs
 mNoShowFuncs :: Monad m => m ValidFuncs -> m NoShowFuncs 
 
