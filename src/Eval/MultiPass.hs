@@ -63,7 +63,7 @@ validateNames fns = mapM_ (uncurry f)   where
   f _ _                                      = return ()
 
 isValidShow :: String -> String -> [String] -> Bool
-isValidShow v fn fns = (v == "show" && fn == "show" ) || fn `elem` fns
+isValidShow v fn fns = (v == "show" && fn == "show" ) || fn == "show" || fn `elem` fns
 
 validateNonTopShows :: [(String,ExpToken)] -> Eval ()
 validateNonTopShows = mapM_ (uncurry top) where

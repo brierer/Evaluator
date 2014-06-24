@@ -5,13 +5,13 @@ import qualified Data.Map as M                        (fromList)
 import qualified Data.Set as S                        (empty,toList,insert)
 
 import Data.Function                                  (on)
-import Data.List                                      (nubBy,sort,nub,inits)
+import Data.List                                      (nubBy,sort,nub)
 import Data.Maybe                                     (fromMaybe)
 import Data.Token                                     (ProgToken(..),FormToken(..),PairToken(..),ExpToken(..))
 import Control.Applicative                            ((<$>),(<*>))
 import Control.Monad                                  (liftM,zipWithM)
 import Eval.MultiPass                                 (Table,initTable,formVal,pairVal,mapPair,mapMPair)
-import Parser.ParserTestUtils                         (ProgTA(..),sList)
+import Parser.ParserTestUtils                         (ProgTA(..))
 import Test.Framework                                 (Arbitrary,arbitrary,shrink,elements)
 import Text.ParserCombinators.Parsec.Error            (ParseError,errorMessages)
 
@@ -147,7 +147,7 @@ mUndefFuncs pa f1 f2 = let empty = UndefFuncs (fromForms []) "" "" in do
   nullGuard fns empty $ do
     fn <- f1 fns
     let fs = forms prog
-    fn' <- liftM (++"_") $ f1 fns
+        fn' = fn ++ "_"
     f <- liftM (replaceFunc fn fn') $ f2 $ filter (usesFunc fn) fs
     let fs' = map (\f' -> if formName f == formName f' then f else f') fs
     return $ UndefFuncs (ValidFuncs (fromForms fs') fns) (formName f) fn'
@@ -160,7 +160,7 @@ removeUnderscores = fromForms.map f.forms where
   g e              = e
 
 replaceFunc :: String -> String -> FormToken -> FormToken
-replaceFunc fn n' (FormT n e) = FormT n $ replaceFuncE fn n' e
+replaceFunc fn n' (FormT n e)              = FormT n $ replaceFuncE fn n' e
 
 replaceFuncE :: String -> String -> ExpToken -> ExpToken
 replaceFuncE fn n' (FuncT w n es) = FuncT w (if fn == n then n' else n) $ map (replaceFuncE fn n') es
@@ -168,7 +168,7 @@ replaceFuncE fn n' (ArrayT w es)  = ArrayT w $ map (replaceFuncE fn n') es
 replaceFuncE fn n' (ObjT w ps)    = ObjT w   $ map (mapPair $ replaceFuncE fn n') ps
 replaceFuncE _  _  e              = e
 
-usesFunc:: String -> FormToken -> Bool
+usesFunc :: String -> FormToken -> Bool
 usesFunc fn (FormT _ e) = usesFuncE fn e
 
 usesFuncE :: String -> ExpToken -> Bool
@@ -179,6 +179,32 @@ usesFuncE _  _              = False
 
 data NonTopShowFuncs = NonTopShowFuncs ValidFuncs String deriving (Eq,Show)
 instance Arbitrary NonTopShowFuncs where
+  arbitrary                         =          mNonTopShowFuncs arbitrary                   elements    elements
+  shrink p@(NonTopShowFuncs prog _) = diff p $ mNonTopShowFuncs (shrink $ removeShows prog) tail        tail
+mNonTopShowFuncs pa f1 f2 = let empty = NonTopShowFuncs (fromForms []) "" in do
+  ValidFuncs prog fns <- pa
+  nullGuard fns empty $ do
+    fn <- f1 fns
+    let fs = forms prog
+    f <- liftM (replaceNonTopFunc fn "show") $ f2 $ filter (usesFuncNonTop fn) fs
+    let fs' = map (\f' -> if formName f == formName f' then f else f') fs
+    return $ NonTopShowFuncs (ValidFuncs (fromForms fs') fns) (formName f)
+
+removeShows = fromForms.map f.forms where
+  f (FormT n (FuncT w m es)) = FormT n $ FuncT w m $ map g es
+  f (FormT n e)              = FormT n $ g e
+  g (FuncT w n es) = FuncT w (if n == "show" then "notShow" else n) $ map g es
+  g (ArrayT w es)  = ArrayT w $ map g es
+  g (ObjT w ps)    = ObjT w $ map (mapPair g) ps
+  g e              = e
+  
+replaceNonTopFunc :: String -> String -> FormToken -> FormToken
+replaceNonTopFunc fn n' (FormT n (FuncT w m es)) = FormT n $ FuncT w m $ map (replaceFuncE fn n') es
+replaceNonTopFunc fn n' (FormT n e)              = FormT n $ replaceFuncE fn n' e
+
+usesFuncNonTop :: String -> FormToken -> Bool
+usesFuncNonTop fn (FormT _ (FuncT _ _ es)) = any (usesFuncE fn) es
+usesFuncNonTop fn (FormT _ e)              = usesFuncE fn e
 
 data NoShowFuncs = NoShowFuncs ValidFuncs deriving (Eq,Show)
 instance HasProg NoShowFuncs where
