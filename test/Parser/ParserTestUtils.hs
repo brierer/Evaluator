@@ -2,7 +2,7 @@
 module Parser.ParserTestUtils where
 
 import Data.List                       ((\\))
-import Data.Token                      (ProgToken(..),FormToken(..),PairToken(..),ExpToken(..))
+import Data.Token                      (ProgToken(..),FormToken(..),PairToken(..),IdToken(..),ExpToken(..))
 import Control.Applicative             ((<$>),(<*>))
 import Control.Monad                   (liftM,liftM2,liftM3,join,replicateM)
 import Numeric                         (showEFloat)
@@ -24,20 +24,31 @@ unProgTA (ProgTA p) = p
 data FormTA = FormTA FormToken deriving (Show)
 instance Arbitrary FormTA where
   arbitrary                   = sized1 sizedFormTA
-  shrink (FormTA (FormT i e)) = mFormTA (shrink $ toIdA i) (shrink $ toExpTA e)
+  shrink (FormTA (FormT i e)) = mFormTA (shrink $ toIdTA i) (shrink $ toExpTA e)
 sizedFormTA n                 = mFormTA arbitrary          (sizedExpTA n)
-mFormTA = liftM2 $ \i e -> FormTA $ FormT (unIdA i) $ unExpTA e
+mFormTA = liftM2 $ \i e -> FormTA $ FormT (unIdTA i) $ unExpTA e
 toFormTA = FormTA
 unFormTA (FormTA f) = f
 
 data PairTA = PairTA PairToken deriving (Show)
 instance Arbitrary PairTA where
   arbitrary                   = sized1 sizedPairTA
-  shrink (PairTA (PairT i v)) = mPairTA (shrink $ toIdA i) (shrink $ toExpTA v)
+  shrink (PairTA (PairT i v)) = mPairTA (shrink $ toIdTA i) (shrink $ toExpTA v)
 sizedPairTA n                 = mPairTA  arbitrary         (sizedExpTA n)
-mPairTA = liftM2 $ \ i e -> PairTA $ PairT (unIdA i) $ unExpTA e
+mPairTA = liftM2 $ \ i e -> PairTA $ PairT (unIdTA i) $ unExpTA e
 toPairTA = PairTA
 unPairTA (PairTA p) = p
+
+data IdTA = IdTA IdToken deriving (Show)
+instance Arbitrary IdTA where
+  arbitrary               = mIdTA arbitrary         ((:) <$> elements alpha <*> sListOf (elements alphaDigit))
+  shrink (IdTA (IdT w s)) = mIdTA (shrink (toW2 w)) (sList $ filter validId $ shrink s)
+mIdTA wa ia = do w <- wa; i <- ia; return $ IdTA $ IdT (unW2 w) i 
+validId s =  all (`elem` alphaDigit) s && not (null s) && head s `elem` alpha
+alpha = ['a'..'z']++['A'..'Z']
+alphaDigit = alpha ++ ['0'..'9']
+toIdTA = IdTA
+unIdTA (IdTA s) = s
 
 data ExpTA = ExpTA ExpToken deriving (Show)
 instance Arbitrary ExpTA where
@@ -71,9 +82,9 @@ shrinkExp x@(NullT{})  = liftM unNullTA  $ shrink $ toNullTA x
 data FuncTA = FuncTA ExpToken deriving (Show)
 instance Arbitrary FuncTA where
   arbitrary                      = sized1 sizedFuncTA
-  shrink (FuncTA (FuncT w i es)) = mFuncTA (shrink $ toW w) (shrink $ toIdA i) (shrink $ map toExpTA es)
+  shrink (FuncTA (FuncT w i es)) = mFuncTA (shrink $ toW w) (shrink $ toIdTA i) (shrink $ map toExpTA es)
 sizedFuncTA n                    = mFuncTA arbitrary         arbitrary         (sizedListOf $ sizedExpTA n)
-mFuncTA = liftM3 $ \w i es -> FuncTA $ FuncT (unW w) (unIdA i) $ map unExpTA es
+mFuncTA = liftM3 $ \w i es -> FuncTA $ FuncT (unW w) (unIdTA i) $ map unExpTA es
 toFuncTA = FuncTA
 unFuncTA (FuncTA f) = f
 
@@ -97,9 +108,9 @@ unObjTA (ObjTA o) = o
 
 data VarTA = VarTA ExpToken deriving (Show)
 instance Arbitrary VarTA where
-  arbitrary                 = mVarTA arbitrary         arbitrary
-  shrink (VarTA (VarT w i)) = mVarTA (shrink $ toW2 w) (shrink $ toIdA i)
-mVarTA = liftM2 $ \w i -> VarTA $ VarT (unW2 w) $ unIdA i
+  arbitrary               = mVarTA arbitrary
+  shrink (VarTA (VarT i)) = mVarTA (shrink $ toIdTA i)
+mVarTA = liftM $ \i -> VarTA $ VarT $ unIdTA i
 toVarTA = VarTA
 unVarTA (VarTA v) = v
 
@@ -152,17 +163,6 @@ mNullTA = liftM (NullTA .NullT .unW2)
 toNullTA = NullTA
 unNullTA (NullTA n) = n
 
-data IdA = IdA String deriving (Show)
-instance Arbitrary IdA where
-  arbitrary      = mIdA $ (:) <$> elements alpha <*> sListOf (elements alphaDigit)
-  shrink (IdA s) = mIdA $ sList $ filter validId $ shrink s
-validId s =  all (`elem` alphaDigit) s && not (null s) && head s `elem` alpha
-alpha = ['a'..'z']++['A'..'Z']
-alphaDigit = alpha ++ ['0'..'9']
-mIdA = liftM IdA
-toIdA = IdA
-unIdA (IdA s) = s
-
 data W = W String deriving (Show)
 instance Arbitrary W where
   arbitrary    = mW $ sListOf $ elements " \t\n\v"
@@ -183,16 +183,16 @@ sList = take 10
 
 {-| Monomorphism restriction -}
 mProgTA  :: Monad m => m [FormTA] -> m ProgTA
-mFormTA  :: Monad m => m IdA      -> m ExpTA    -> m FormTA
-mPairTA  :: Monad m => m IdA      -> m ExpTA    -> m PairTA
+mFormTA  :: Monad m => m IdTA     -> m ExpTA    -> m FormTA
+mPairTA  :: Monad m => m IdTA     -> m ExpTA    -> m PairTA
+mIdTA    :: Monad m => m (W,W)    -> m String   -> m IdTA
 mExpTA   :: Monad m => m ExpToken -> m ExpTA
-mFuncTA  :: Monad m => m  W       -> m IdA      -> m [ExpTA] -> m FuncTA
+mFuncTA  :: Monad m => m  W       -> m IdTA     -> m [ExpTA] -> m FuncTA
 mArrayTA :: Monad m => m (W,W)    -> m [ExpTA]  -> m ArrayTA
 mObjTA   :: Monad m => m (W,W)    -> m [PairTA] -> m ObjTA
-mVarTA   :: Monad m => m (W,W)    -> m IdA      -> m VarTA
+mVarTA   :: Monad m =>               m IdTA     -> m VarTA
 mStrTA   :: Monad m => m (W,W)    -> m String   -> m StrTA
 mBoolTA  :: Monad m => m (W,W)    -> m Bool     -> m BoolTA
 mNullTA  :: Monad m => m (W,W)    -> m NullTA
-mIdA     :: Monad m => m String   -> m IdA
 mW       :: Monad m => m String   -> m W
 

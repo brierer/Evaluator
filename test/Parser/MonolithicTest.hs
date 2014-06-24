@@ -1,9 +1,9 @@
 {-# OPTIONS_GHC -F -pgmF htfpp #-}
 module Parser.MonolithicTest where
 
-import Parser.Monolithic      (progT,formT,pairT,expT,funcT,arrayT,objT,varT,strT,numT,boolT,nullT)
-import Parser.ParserTestUtils ( ProgTA(..),FormTA(..),PairTA(..),ExpTA(..),FuncTA(..),ArrayTA(..),ObjTA(..)
-                              , VarTA(..),StrTA(..),NumTA(..),BoolTA(..),NullTA(..),NumType(..),testCase)
+import Parser.Monolithic      (progT,formT,pairT,idT,expT,funcT,arrayT,objT,varT,strT,numT,boolT,nullT)
+import Parser.ParserTestUtils ( ProgTA(..),FormTA(..),PairTA(..),IdTA(..),ExpTA(..),FuncTA(..),ArrayTA(..)
+                              , ObjTA(..),VarTA(..),StrTA(..),NumTA(..),BoolTA(..),NullTA(..),NumType(..),testCase)
 import Test.Framework         (TestSuite,makeTestSuite,makeQuickCheckTest,makeLoc,qcAssertion,(==>))
 
 {-# ANN module "HLint: ignore Use camelCase" #-}
@@ -12,6 +12,7 @@ import Test.Framework         (TestSuite,makeTestSuite,makeQuickCheckTest,makeLo
 prop_Prog (ProgTA prog)    = prog == testCase progT prog
 prop_Form (FormTA form)    = form == testCase formT form
 prop_Pair (PairTA pair)    = pair == testCase pairT pair
+prop_Id   (IdTA i)         = i    == testCase idT i
 prop_Exp  (ExpTA e)        = e    == testCase expT e
 
 -- Composite expressions

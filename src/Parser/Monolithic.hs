@@ -2,7 +2,7 @@ module Parser.Monolithic where
 
 import Data.Char                     (toLower)
 import Data.List                     (intercalate)
-import Data.Token                    (ProgToken(..),FormToken(..),PairToken(..),ExpToken(..),IntegerS,IdS)
+import Data.Token                    (ProgToken(..),FormToken(..),PairToken(..),IdToken(..),ExpToken(..),IntegerS)
 import Control.Monad                 (liftM,liftM2)
 import Control.Applicative           ((<$), (<$>), (<*>))
 import Text.ParserCombinators.Parsec (Parser,many,space,sepBy,char,try,notFollowedBy,oneOf,between,noneOf,option,many1,string,digit,(<|>))
@@ -25,18 +25,18 @@ formT :: Parser FormToken
 -- progT -> EMPTY | formT (';' formT)*
 progT = liftM ProgT $ formT `sepBy` char ';'
 
--- formT -> id '=' expT
-formT = do (i,_,e) <- seq3 (idS, char '=', expT); return $ FormT i e
+-- formT -> idT '=' expT
+formT = do (i,_,e) <- seq3 (idT, char '=', expT); return $ FormT i e
 
 {-| Composite expressions -}
-funcT :: Parser ExpToken
+funcT  :: Parser ExpToken
 arrayT :: Parser ExpToken
-objT :: Parser ExpToken
+objT   :: Parser ExpToken
 
 -- COMM_SEP x = EMPTY | x (',' x)*
 
--- funcT -> id '(' COMM_SEP expT ')'
-funcT  = do ( i,_,es,_,wa) <- seq5 (idS, char '(', commaSep expT,  char ')', ws); return $ FuncT wa i es
+-- funcT -> idT '(' COMM_SEP expT ')'
+funcT  = do ( i,_,es,_,wa) <- seq5 (idT, char '(', commaSep expT,  char ')', ws); return $ FuncT wa i es
 
 -- arrayT -> '[' COMM_SEP expT ']'
 arrayT = do (wb,_,es,_,wa) <- seq5 (ws,  char '[', commaSep expT,  char ']', ws); return $ ArrayT (wb,wa) es
@@ -44,25 +44,32 @@ arrayT = do (wb,_,es,_,wa) <- seq5 (ws,  char '[', commaSep expT,  char ']', ws)
 -- objT -> '{' COMM_SEP pairT '}'
 objT   = do (wb,_,ps,_,wa) <- seq5 (ws,  char '{', commaSep pairT, char '}', ws); return $ ObjT (wb,wa) ps
 
+{-| Id element -}
+idT :: Parser IdToken
+
+-- idT -> alpha [alpha | digit]*
+idT = let alpha = ['a'..'z'] ++ ['A'..'Z']
+      in do (wb,i,wa) <- seq3 (ws,liftM2 (:) (oneOf alpha) $ many (oneOf alpha <|> oneOf ['0'..'9']),ws); return $ IdT (wb,wa) i
+      
 {-| Sequence elements -}
-expT :: Parser ExpToken
+expT  :: Parser ExpToken
 pairT :: Parser PairToken
 
 -- expT -> nullT  |      boolT  |      numT  |      strT   |      funcT  |      arrayT  |      objT  |      varT
 expT = try nullT <|> try boolT <|> try numT <|> try strT  <|> try funcT <|> try arrayT <|> try objT <|> try varT
 
--- pairT -> idS ':' expT
-pairT = do (i,_,e) <- seq3 (idS, char ':', expT); return $ PairT i e
+-- pairT -> idT ':' expT
+pairT = do (i,_,e) <- seq3 (idT, char ':', expT); return $ PairT i e
 
 {-| Atomic expressions -}
-varT :: Parser ExpToken
-strT :: Parser ExpToken
-numT :: Parser ExpToken
+varT  :: Parser ExpToken
+strT  :: Parser ExpToken
+numT  :: Parser ExpToken
 boolT :: Parser ExpToken
 nullT :: Parser ExpToken
 
--- varT -> id
-varT = do (wb,i,wa) <- seq3 (ws,idS,ws); notFollowedBy (oneOf "(:"); return $ VarT (wb,wa) i
+-- varT -> idT -- Not func or pair id
+varT = do i <- idT; notFollowedBy (oneOf "(:"); return $ VarT i
 
 -- strT -> '"' ($printable - ['"'])* '"'
 strT = do (wb,v,wa) <- seq3 (ws, between (char '"') (char '"') $ many $ noneOf "\"", ws); return $ StrT (wb,wa) v
@@ -80,14 +87,9 @@ nullT = do (wb,_,wa) <- seq3 (ws, kw "null", ws); return $ NullT (wb,wa)
 
 {-| Subatomic helpers -}
 integerS :: Parser IntegerS
-idS      :: Parser IdS
 
 -- integerS -> '-'? $digit+
 integerS = liftM2 (++) (option "" $ string "-") $ many1 digit
-
--- idS -> alpha [alpha | digit]*
-idS = let alpha = ['a'..'z'] ++ ['A'..'Z']
-      in liftM2 (:) (oneOf alpha) $ many (oneOf alpha <|> oneOf ['0'..'9'])
 
 {-| Misc helpers -}
 kw :: String -> Parser ()
@@ -98,10 +100,11 @@ commaSep p = p `sepBy` char ','
 
 {-| Unparse the derivation tree, exactly as it was parsed -}
 class Unparse a where unparse :: a -> String
-instance Unparse ProgToken where unparse (ProgT fs)  = unparses' ";" fs
-instance Unparse FormToken where unparse (FormT s e) = s ++ "=" ++ unparse e
-instance Unparse PairToken where unparse (PairT s e) = s ++ ":" ++ unparse e
-instance Unparse ExpToken  where unparse             = unparseExp
+instance Unparse ProgToken where unparse (ProgT fs)      = unparses' ";" fs
+instance Unparse FormToken where unparse (FormT s e)     = unparse s ++ "=" ++ unparse e
+instance Unparse PairToken where unparse (PairT s e)     = unparse s ++ ":" ++ unparse e
+instance Unparse ExpToken  where unparse                 = unparseExp
+instance Unparse IdToken   where unparse (IdT (wb,wa) s) = wb ++ s ++ wa 
 
 unparses :: Unparse a => [a] -> String
 unparses  = unparses' ","
@@ -110,10 +113,10 @@ unparses' :: Unparse a => String -> [a] -> String
 unparses' sep = intercalate sep . map unparse
 
 unparseExp :: ExpToken -> String
-unparseExp (FuncT  wa i es)     =  i ++ "(" ++ unparses es ++ ")" ++ wa
+unparseExp (FuncT  wa i es)     = unparse i ++ "(" ++ unparses es ++ ")" ++ wa
 unparseExp (ArrayT (wb,wa) es)  = wb ++ "[" ++ unparses es ++ "]" ++ wa
 unparseExp (ObjT   (wb,wa) ps)  = wb ++ "{" ++ unparses ps ++ "}" ++ wa
-unparseExp (VarT   (wb,wa) v)   = wb ++ v                         ++ wa
+unparseExp (VarT           v)   = unparse v
 unparseExp (StrT   (wb,wa) s)   = wb ++ show s                    ++ wa
 unparseExp (NumT   (wb,wa) o _) = wb ++ o                         ++ wa
 unparseExp (BoolT  (wb,wa) b)   = wb ++ map toLower (show b)      ++ wa
