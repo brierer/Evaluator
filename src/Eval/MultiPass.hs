@@ -11,6 +11,7 @@ data EvalError = MultipleDefinitions String
                | UndefinedFunction String String
                | NonTopLevelShow String
                | NoShow
+               | System String
                  deriving (Eq,Show)
 
 type State = (Table,Table)

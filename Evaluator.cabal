@@ -27,7 +27,8 @@ executable Evaluator
   other-modules:   
                    Data.Token,
                    Parser.Monolithic,
-                   Eval.MultiPass
+                   Eval.MultiPass,
+                   Eval.Function
 
 test-suite Evaluator-tests
   type:           exitcode-stdio-1.0
@@ -47,4 +48,7 @@ test-suite Evaluator-tests
                  Eval.MultiPass,
                  Eval.MultiPassTest,
                  Parser.ParserTestUtils,
-                 Eval.EvalTestUtils
+                 Eval.EvalTestUtils,
+                 Eval.FunctionEvalTestUtils,
+                 Eval.FunctionEvalTest,
+                 Eval.Function
