@@ -62,6 +62,7 @@ validateNames fns = mapM_ (uncurry f)   where
   f v (ObjT _ ps)                            = mapM_ (f v.pairVal) ps
   f _ _                                      = return ()
 
+isValidShow :: String -> String -> [String] -> Bool
 isValidShow v fn fns = (v == "show" && fn == "show" ) || fn `elem` fns
 
 validateNonTopShows :: [(String,ExpToken)] -> Eval ()

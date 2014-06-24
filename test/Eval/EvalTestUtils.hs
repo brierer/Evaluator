@@ -3,15 +3,15 @@ module Eval.EvalTestUtils where
 
 import qualified Data.Map as M                        (fromList)
 import qualified Data.Set as S                        (empty,toList,insert)
---
+
 import Data.Function                                  (on)
-import Data.List                                      (nubBy,sort,nub)
+import Data.List                                      (nubBy,sort,nub,inits)
 import Data.Maybe                                     (fromMaybe)
 import Data.Token                                     (ProgToken(..),FormToken(..),PairToken(..),ExpToken(..))
 import Control.Applicative                            ((<$>),(<*>))
 import Control.Monad                                  (liftM,zipWithM)
 import Eval.MultiPass                                 (Table,initTable,formVal,pairVal,mapPair,mapMPair)
-import Parser.ParserTestUtils                         (ProgTA(..))
+import Parser.ParserTestUtils                         (ProgTA(..),sList)
 import Test.Framework                                 (Arbitrary,arbitrary,shrink,elements)
 import Text.ParserCombinators.Parsec.Error            (ParseError,errorMessages)
 
@@ -140,6 +140,42 @@ removeTopShow (f:fs)                               = f:removeTopShow fs
 
 data UndefFuncs = UndefFuncs ValidFuncs String String deriving (Eq,Show)
 instance Arbitrary UndefFuncs where
+  arbitrary                      =          mUndefFuncs arbitrary                         elements    elements
+  shrink p@(UndefFuncs prog _ _) = diff p $ mUndefFuncs (shrink $ removeUnderscores prog) tail        tail
+mUndefFuncs pa f1 f2 = let empty = UndefFuncs (fromForms []) "" "" in do
+  ValidFuncs prog fns <- pa
+  nullGuard fns empty $ do
+    fn <- f1 fns
+    let fs = forms prog
+    fn' <- liftM (++"_") $ f1 fns
+    f <- liftM (replaceFunc fn fn') $ f2 $ filter (usesFunc fn) fs
+    let fs' = map (\f' -> if formName f == formName f' then f else f') fs
+    return $ UndefFuncs (ValidFuncs (fromForms fs') fns) (formName f) fn'
+
+removeUnderscores = fromForms.map f.forms where
+  f (FormT n e) = FormT n $ g e
+  g (FuncT w n es) = FuncT w (filter (/='_') n) $ map g es
+  g (ArrayT w es)  = ArrayT w $ map g es
+  g (ObjT w ps)    = ObjT w $ map (mapPair g) ps
+  g e              = e
+
+replaceFunc :: String -> String -> FormToken -> FormToken
+replaceFunc fn n' (FormT n e) = FormT n $ replaceFuncE fn n' e
+
+replaceFuncE :: String -> String -> ExpToken -> ExpToken
+replaceFuncE fn n' (FuncT w n es) = FuncT w (if fn == n then n' else n) $ map (replaceFuncE fn n') es
+replaceFuncE fn n' (ArrayT w es)  = ArrayT w $ map (replaceFuncE fn n') es
+replaceFuncE fn n' (ObjT w ps)    = ObjT w   $ map (mapPair $ replaceFuncE fn n') ps
+replaceFuncE _  _  e              = e
+
+usesFunc:: String -> FormToken -> Bool
+usesFunc fn (FormT _ e) = usesFuncE fn e
+
+usesFuncE :: String -> ExpToken -> Bool
+usesFuncE fn (FuncT _ n es) = fn == n || any (usesFuncE fn) es
+usesFuncE fn (ArrayT _ es)  =            any (usesFuncE fn) es
+usesFuncE fn (ObjT _ ps)    =            any (usesFuncE fn.pairVal) ps
+usesFuncE _  _              = False
 
 data NonTopShowFuncs = NonTopShowFuncs ValidFuncs String deriving (Eq,Show)
 instance Arbitrary NonTopShowFuncs where
@@ -188,13 +224,14 @@ nonEmpty = not.null.forms
 diff x = filter (/= x)
 
 {-| Monomorphism restriction -}
-mMultiDefs  :: Monad m => m UniqueDefs -> m MultiDefs
 mUniqueDefs :: Monad m => m ProgTA     -> m UniqueDefs
+mMultiDefs  :: Monad m => m UniqueDefs -> m MultiDefs
+mValidProg  :: Monad m => m UniqueDefs -> ([String] -> m String) -> m ValidVars
 mUndefProg  :: Monad m => m ValidVars  -> ([String] -> m String) -> m UndefVars
 mCycleProg  :: Monad m => m ValidVars  -> ([String] -> m String) -> m CycleVars
-mValidProg  :: Monad m => m UniqueDefs -> ([String] -> m String) -> m ValidVars
 
 mValidFuncs  :: Monad m => m UniqueDefs -> m ValidFuncs
+mUndefFuncs  :: Monad m => m ValidFuncs -> ([String] -> m String) -> ([FormToken] -> m FormToken) -> m UndefFuncs
 mNoShowFuncs :: Monad m => m ValidFuncs -> m NoShowFuncs 
 
 derefValidProg  :: HasProg a => a -> a
@@ -202,4 +239,23 @@ derefValidProg' :: HasProg a => a -> Table
 fromProgForms   :: HasProg a => a -> Table
 initTable'      :: HasProg a => a -> Table
 nonEmpty        :: HasProg a => a -> Bool
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
