@@ -11,7 +11,7 @@ import Data.Token                                     (ProgToken(..),FormToken(.
 import Control.Applicative                            ((<$>),(<*>))
 import Control.Monad                                  (liftM,zipWithM)
 import Eval.MultiPass                                 (Table,initTable,formVal,pairVal,mapPair,mapMPair)
-import Parser.ParserTestUtils                         (ProgTA(..),p0)
+import Parser.ParserTestUtils                         (ProgTA(..))
 import Test.Framework                                 (Arbitrary,arbitrary,shrink,elements)
 import Text.ParserCombinators.Parsec.Error            (ParseError,errorMessages)
 
@@ -249,6 +249,7 @@ nonEmpty = not.null.forms
 
 diff x = filter (/= x)
 w2 = ("","")
+p0 = (0,0)
 
 {-| Monomorphism restriction -}
 mUniqueDefs :: Monad m => m ProgTA     -> m UniqueDefs
