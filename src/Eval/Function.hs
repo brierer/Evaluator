@@ -2,56 +2,108 @@ module Eval.Function where
 
 import Data.Eval
 import Data.Token
+import Control.Monad (liftM,liftM2)
 
-funcs :: [(String,       ([TypeValidator],      Func))]
+import Prelude hiding (exp)
+
+funcs :: Marshallable a => 
+        [(String,       ([TypeValidator a],Func))]
 funcs =   -- 1 arg functions
-        [ ("show",       ([list showable], showF))
-        , ("multi",      ([list num],      multiF))
-        , ("mean",       ([list num],      meanF))
-        , ("descriptive",([list num],      descF))
+        [ ("show",       ([array], showF))
+        , ("multi",      ([array], multiF))
+        , ("mean",       ([array], meanF))
+        , ("descriptive",([array], descF))
           -- 2 arg functions
-        , ("table",      ([matrix,obj],    tableF))
-        , ("nTimes",     ([num,num],       nTimesF))
-        , ("take",       ([num,matrix],    takeF))
-        , ("sortTable",  ([num,matrix],    sortTableF))
+        , ("table",      ([matrix,obj], tableF))
+        , ("nTimes",     ([num,num],    nTimesF))
+        , ("take",       ([num,matrix], takeF))
+        , ("sortTable",  ([num,matrix], sortTableF))
           -- 3 arg functions
-        , ("plotLine",   ([array,array,obj],   plotLineF))
+        , ("plotLine",   ([array,array,obj],plotLineF))
         ]
 
-{-| Validation combinators -}
-list :: TypeValidator -> TypeValidator
-list _ _ = error "Eval.Function::list   [Not Implemented]"
+{-| Validation functions and combinators -}
+class Marshallable a where
+  exp      :: TypeValidator a
+  showable :: TypeValidator a
+  table    :: TypeValidator a
+  plot     :: TypeValidator a
+  matrix   :: TypeValidator a
+  array    :: TypeValidator a
+  obj      :: TypeValidator a
+  str      :: TypeValidator a
+  num      :: TypeValidator a
+  bool     :: TypeValidator a
+  null     :: TypeValidator a
+  
+  getP :: a -> Pos
+  getT :: a -> String
 
-or :: TypeValidator -> TypeValidator -> TypeValidator
-or _ _ _ = error "Eval.Function::or   [Not Implemented]"
+instance Marshallable ExpToken where
+  exp _      = error "Eval.Function::exp<ExpToken> [Not Implemented]"
+  showable _ = error "Eval.Function::showable<ExpToken> [Not Implemented]"
+  table _    = error "Eval.Function::table<ExpToken> [Not Implemented]"
+  plot _     = error "Eval.Function::plot<ExpToken> [Not Implemented]"
+  matrix _   = error "Eval.Function::matrix<ExpToken> [Not Implemented]"
+  array _    = error "Eval.Function::array<ExpToken> [Not Implemented]"
+  obj _      = error "Eval.Function::obj<ExpToken> [Not Implemented]"
 
-{-| Validation functions -}
-showable :: TypeValidator
-table    :: TypeValidator
-plot     :: TypeValidator
-matrix   :: TypeValidator
-array    :: TypeValidator
-obj      :: TypeValidator
-str      :: TypeValidator
-num      :: TypeValidator
-bool     :: TypeValidator
-null     :: TypeValidator
+--  array (ArrayT p _ es) = liftM (ArrayO p) $ mapM exp es;   array e = typeMismatch (head types) e
+--  obj  (ObjT p _ ps)    = liftM (ObjO p) $ mapM toTuple ps; obj e   = typeMismatch (types !! 1) e
+  str  (StrT p _ s)     = return $ StrO p s;                str e   = typeMismatch (types !! 2) e
+  num  (NumT p _ _ n)   = return $ NumO p n;                num e   = typeMismatch (types !! 3) e
+  bool (BoolT p _ b)    = return $ BoolO p b;               bool e  = typeMismatch (types !! 4) e
+  null (NullT p _)      = return $ NullO p;                 null e  = typeMismatch (types !! 5) e
+  
+  getP (ArrayT p _ _) = p
+  getP (ObjT p _ _)   = p
+  getP (StrT p _ _)   = p
+  getP (NumT p _ _ _) = p
+  getP (BoolT p _ _)  = p
+  getP (NullT p _)    = p
+  getP e              = error $ "Eval.Function::getP<ExpToken> [Failed pattern match ["++show e++"]]"
+  
+  getT (ArrayT{}) = head types
+  getT (ObjT{})   = types !! 1
+  getT (StrT{})   = types !! 2
+  getT (NumT{})   = types !! 3
+  getT (BoolT{})  = types !! 4
+  getT (NullT{})  = types !! 5
+  getT e          = error $ "Eval.Function::getT<ExpToken> [Failed pattern match ["++show e++"]]"
 
-showable _ = error "Eval.Function::showable [Not Implemented]"
-table _    = error "Eval.Function::table [Not Implemented]"
-plot _     = error "Eval.Function::plot [Not Implemented]"
-matrix _   = error "Eval.Function::matrix [Not Implemented]"
-array _    = error "Eval.Function::array [Not Implemented]"
-obj _      = error "Eval.Function::obj [Not Implemented]"
-str _      = error "Eval.Function::str [Not Implemented]"
-num _      = error "Eval.Function::num [Not Implemented]"
-bool _     = error "Eval.Function::bool [Not Implemented]"
+instance Marshallable ExpObj where
+  exp _      = error "Eval.Function::exp<Obj> [Not Implemented]"
+  showable _ = error "Eval.Function::showable<Obj> [Not Implemented]"
+  table _    = error "Eval.Function::table<Obj> [Not Implemented]"
+  plot _     = error "Eval.Function::plot<Obj> [Not Implemented]"
+  matrix _   = error "Eval.Function::matrix<Obj> [Not Implemented]"
 
-null (NullT _ _) = return NullObj
-null e           = typeMismatch e "Null"
+  array x@(ArrayO{}) = return x; array e = typeMismatch (head types) e
+  obj   x@(ObjO{})   = return x; obj e   = typeMismatch (types !! 1) e  
+  str   x@(StrO{})   = return x; str e   = typeMismatch (types !! 2) e
+  num   x@(NumO{})   = return x; num e   = typeMismatch (types !! 3) e
+  bool  x@(BoolO{})  = return x; bool e  = typeMismatch (types !! 4) e
+  null  x@(NullO{})  = return x; null e  = typeMismatch (types !! 5) e
+  
+  getP (ArrayO p _) = p
+  getP (ObjO p _)   = p
+  getP (StrO p _)   = p
+  getP (NumO p _)   = p
+  getP (BoolO p _)  = p
+  getP (NullO p)    = p
+--  getP e              = error $ "Eval.Function::getP<Obj> [Failed pattern match ["++show e++"]]"
+  
+  getT (ArrayO{}) = head types
+  getT (ObjO{})   = types !! 1
+  getT (StrO{})   = types !! 2
+  getT (NumO{})   = types !! 3
+  getT (BoolO{})  = types !! 4
+  getT (NullO{})  = types !! 5
+--  getT e          = error $ "Eval.Function::getT<Obj> [Failed pattern match ["++show e++"]]"
 
-typeMismatch :: ExpToken -> String -> Eval Obj
-typeMismatch e = Left . TypeMismatch (getP e) (getT e)
+
+typeMismatch :: Marshallable a => String -> a -> Eval ExpObj
+typeMismatch expected e = Left $ TypeMismatch (getP e) expected (getT e)
 
 {-| Funcs -}
 showF      :: Func
@@ -74,28 +126,11 @@ takeF _      = error "Eval.Function::takeF      [Not Implemented]"
 sortTableF _ = error "Eval.Function::sortTableF [Not Implemented]"
 plotLineF _  = error "Eval.Function::plotLineF [Not Implemented]"
 
-
-getP :: ExpToken -> Pos
-getP (ArrayT p _ _) = p
-getP (ObjT p _ _)   = p
-getP (StrT p _ _)   = p
-getP (NumT p _ _ _) = p
-getP (BoolT p _ _)  = p
-getP (NullT p _)    = p
-getP e              = error $ "Eval.Function::getP [Failed pattern match ["++show e++"]]"
-
-getT :: ExpToken -> String
-getT (ArrayT{}) = head types
-getT (ObjT{})   = types !! 1
-getT (StrT{})   = types !! 2
-getT (NumT{})   = types !! 3
-getT (BoolT{})  = types !! 4
-getT (NullT{})  = types !! 5
-getT e          = error $ "Eval.Function::getT [Failed pattern match ["++show e++"]]"
-
 types :: [String]
 types = ["Array","Object","String","Number","Boolean","Null"]
 
+toTuple :: PairToken -> Eval (String,ExpObj)
+toTuple (PairT _ (IdT _ _ x) y) = liftM2 (,) (return x) (exp y)
 
 {-|
 unlines $  [ "show = show([tservice,tsalaire,trente])" , "tservice = table([[service]],{col:[\"service\"]})" , "tsalaire = table([salaires],{col:[\"salaire\"]})" , "trente = table([rente],{col:[\"rente\"]})" , "rente = multi([0.02,moyensalaire,service])" , "moyensalaire = mean(salaires)" , "salaires = [55000,60000,45000]" , "service = 35" ]

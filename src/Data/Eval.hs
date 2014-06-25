@@ -18,13 +18,13 @@ type State = (Table,Table)
 type Table = M.Map String ExpToken
 type Eval = Either EvalError
 
-data Obj = ArrayObj [Obj]
-         | ObjObj [(String,Obj)]
-         | StrObj String
-         | NumObj Double
-         | BoolObj Bool
-         | NullObj
-           deriving (Eq,Show)
+data ExpObj = ArrayO Pos [ExpObj]
+            | ObjO   Pos [(String,ExpObj)]
+            | StrO   Pos String
+            | NumO   Pos Double
+            | BoolO  Pos Bool
+            | NullO  Pos
+              deriving (Eq,Show)
 
-type TypeValidator = ExpToken -> Eval Obj
-type Func = [Obj] -> Eval Obj
+type TypeValidator a = a -> Eval ExpObj
+type Func = [ExpObj] -> Eval ExpObj
