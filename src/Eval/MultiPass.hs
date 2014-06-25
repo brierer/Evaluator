@@ -17,7 +17,7 @@ derefVars = flip f M.empty where
  f pending finished = do
   (newPending, newFinished) <- foldM derefVar (pending,finished) $ M.toList pending
   if M.null newPending      then return newFinished       else 
-   if pending /= newPending then f newPending newFinished else Left $ CycleInVariables $ M.keys pending
+   if pending /= newPending then f newPending newFinished else Left $ CycleInDefinitions $ M.keys pending
 
 derefVar :: State -> (String,ExpToken) -> Eval State
 derefVar (pending,finished) (n,v) = do
