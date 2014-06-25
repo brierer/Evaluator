@@ -8,7 +8,7 @@ import Data.Eval                                      (Table)
 import Data.Function                                  (on)
 import Data.List                                      (nubBy,sort,nub)
 import Data.Maybe                                     (fromMaybe)
-import Data.Token                                     (ProgToken(..),FormToken(..),PairToken(..),IdToken(..),ExpToken(..))
+import Data.Token                                     (ProgToken(..),FormToken(..),PairToken(..),IdToken(..),ExpToken(..),Pos)
 import Control.Applicative                            ((<$>),(<*>))
 import Control.Monad                                  (liftM,zipWithM)
 import Eval.MultiPass                                 (initTable,formVal,pairVal,mapPair,mapMPair)
@@ -44,16 +44,17 @@ toUniqueDefs = UniqueDefs
 unUniqueDefs (UniqueDefs p) = p
 uniqueForms = nubBy ((==) `on` formName)
 
-data MultiDefs  = MultiDefs UniqueDefs String deriving (Eq,Show)
+data MultiDefs  = MultiDefs UniqueDefs Pos String deriving (Eq,Show)
 instance Arbitrary MultiDefs where
-  arbitrary                 = mMultiDefs arbitrary
-  shrink (MultiDefs prog _) = mMultiDefs (sShrink prog)
-mMultiDefs = liftM (uncurry (MultiDefs . fromForms) . mkMultiDefs . forms)
-mkMultiDefs xs = let fs = xs++xs in (fs,firstName fs)
-  where firstName = fromMaybe "" . firstDup . map formName
-        firstDup (y:ys) | y `elem` ys = Just y | otherwise = firstDup ys
-        firstDup [] = Nothing
-
+  arbitrary                   = mMultiDefs arbitrary
+  shrink (MultiDefs prog _ _) = mMultiDefs (sShrink prog)
+mMultiDefs pa = let empty = MultiDefs (fromForms []) p0 "" in do
+  fs <- liftM forms pa
+  nullGuard fs empty $ do
+    let (FormT _ (IdT p _ n) _) = head fs
+        fs' = FormT p0 (IdT p0 w2 n) (NullT p0 w2):tail fs 
+    return $ MultiDefs (fromForms $ fs'++fs++fs') p n 
+    
 data ValidVars = ValidVars UniqueDefs deriving (Eq,Show)
 instance HasProg ValidVars where
   forms (ValidVars prog) = forms prog

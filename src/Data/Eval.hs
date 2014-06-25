@@ -4,7 +4,7 @@ import qualified Data.Map as M (Map)
 
 import Data.Token              (ExpToken,Pos)
 
-data EvalError = MultipleDefinitions String
+data EvalError = MultipleDefinitions Pos String
                | UndefinedVariable String
                | CycleInDefinitions [String]
                | UndefinedFunction String String

@@ -8,9 +8,9 @@ import Data.Eval               (EvalError(..),Eval,State,Table,ExpObj,TypeValida
 
 initTable :: ProgToken -> Eval Table
 initTable (ProgT _ fs) = foldM f M.empty fs where 
-  f m (FormT _ (IdT _ _ name) value) = case M.lookup name m of
+  f m (FormT _ (IdT p _ name) value) = case M.lookup name m of
     Nothing -> Right $ M.insert name value m
-    Just _  -> Left $ MultipleDefinitions name
+    Just _  -> Left $ MultipleDefinitions p name
 
 derefVars :: Table -> Eval Table
 derefVars = flip f M.empty where

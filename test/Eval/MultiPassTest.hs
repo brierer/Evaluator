@@ -7,12 +7,12 @@ import Eval.EvalTestUtils      (HasProg,UniqueDefs(..),MultiDefs(..),ValidVars(.
 import Eval.MultiPass          (initTable,derefVars,validateFunctions)
 import Test.Framework          (TestSuite,makeTestSuite,makeQuickCheckTest,makeLoc,qcAssertion,(==>))
 
-prop_MultiDefs (MultiDefs  prog x)         = nonEmpty prog ==> Left (MultipleDefinitions x)   == initTable (toToken prog)
-prop_ValidDefs (UniqueDefs prog)           =                   Right (fromProgForms prog)   == initTable (toToken prog)
-                                                                                             
-prop_UndefVars (UndefVars prog x)          = nonEmpty prog ==> Left (UndefinedVariable x)     == derefVars (initTable' prog)
-prop_CycleVars (CycleVars prog xs)         = nonEmpty prog ==> Left (CycleInDefinitions xs)     == derefVars (initTable' prog)
-prop_ValidVars (ValidVars prog)            =                   Right (derefValidProg' prog)   == derefVars (initTable' prog)
+prop_MultiDefs (MultiDefs  prog p x)                          = nonEmpty prog ==> Left (MultipleDefinitions p x) == initTable (toToken prog)
+prop_ValidDefs (UniqueDefs prog)                              =                   Right (fromProgForms prog)     == initTable (toToken prog)
+                                                                                                              
+prop_UndefVars (UndefVars prog x)                             = nonEmpty prog ==> Left (UndefinedVariable x)     == derefVars (initTable' prog)
+prop_CycleVars (CycleVars prog xs)                            = nonEmpty prog ==> Left (CycleInDefinitions xs)   == derefVars (initTable' prog)
+prop_ValidVars (ValidVars prog)                               =                   Right (derefValidProg' prog)   == derefVars (initTable' prog)
 
 prop_UndefFuncs (UndefFuncs      (ValidFuncs prog ns) vn fn)  = nonEmpty prog ==> Left (UndefinedFunction vn fn) == validateFunctions ns (initTable' prog) 
 prop_NonTopShow (NonTopShowFuncs (ValidFuncs prog ns) vn)     = nonEmpty prog ==> Left (NonTopLevelShow vn)      == validateFunctions ns (initTable' prog) 
