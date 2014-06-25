@@ -11,32 +11,12 @@ import Prelude hiding (null)
 
 applyFunc' fs p n es = applyFunc fs (mkFunc p n es)
 mkFunc p n = FuncT p w1 (IdT p w2 n)
-isFunc (FuncT{}) = True
-isFunc _         = False
 
 w1 = ""
 w2 = ("","")
 p0 = (0 :: Int,0 :: Int)
 
-getP (ArrayT p _ _) = p
-getP (ObjT p _ _)   = p
-getP (StrT p _ _)   = p
-getP (NumT p _ _ _) = p
-getP (BoolT p _ _)  = p
-getP (NullT p _)    = p
-getP e              = error $ "FunctionEvalTest::getP [Failed pattern match ["++show e++"]]"
-
-getT (ArrayT{}) = head types
-getT (ObjT{})   = types !! 1
-getT (StrT{})   = types !! 2
-getT (NumT{})   = types !! 3
-getT (BoolT{})  = types !! 4
-getT (NullT{})  = types !! 5
-getT e          = error $ "FunctionEvalTest::getT [Failed pattern match ["++show e++"]]"
-
 funcNames = ["arrayTestF", "objTestF","strTestF","numTestF","boolTestF","nullTestF"]
-types     = ["Array","Object","String","Number","Boolean","Null"]
-
 mkFuncs = zipWith f funcNames where f name e = (name,([],testF e))
 
 data TestFuncs = TF [ExpToken] deriving (Show)
@@ -57,10 +37,14 @@ testF (NullT _ _)     [] = return NullObj
 testF (VarT{})        [] = return NullObj
 testF e               os = error $ "FunctionEvalTest::mooTestF [] Failed pattern match ["++show e++"] and ["++show os++"]]"
 
+isFunc (FuncT{}) = True
+isFunc _         = False
+
+isVar (VarT _ _) = True
+isVar _          = False
+
 isNull (NullT _ _) = True
 isNull _           = False
-
-
 
 
 

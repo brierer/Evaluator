@@ -1,6 +1,7 @@
 module Eval.Function where
 
 import Data.Eval
+import Data.Token
 
 funcs :: [(String,       ([TypeValidator],      Func))]
 funcs =   -- 1 arg functions
@@ -45,7 +46,12 @@ obj _      = error "Eval.Function::obj [Not Implemented]"
 str _      = error "Eval.Function::str [Not Implemented]"
 num _      = error "Eval.Function::num [Not Implemented]"
 bool _     = error "Eval.Function::bool [Not Implemented]"
-null _     = error "Eval.Function::null [Not Implemented]"
+
+null (NullT _ _) = return NullObj
+null e           = typeMismatch e "Null"
+
+typeMismatch :: ExpToken -> String -> Eval Obj
+typeMismatch e = Left . TypeMismatch (getP e) (getT e)
 
 {-| Funcs -}
 showF      :: Func
@@ -67,6 +73,29 @@ nTimesF _    = error "Eval.Function::ntimesF    [Not Implemented]"
 takeF _      = error "Eval.Function::takeF      [Not Implemented]"
 sortTableF _ = error "Eval.Function::sortTableF [Not Implemented]"
 plotLineF _  = error "Eval.Function::plotLineF [Not Implemented]"
+
+
+getP :: ExpToken -> Pos
+getP (ArrayT p _ _) = p
+getP (ObjT p _ _)   = p
+getP (StrT p _ _)   = p
+getP (NumT p _ _ _) = p
+getP (BoolT p _ _)  = p
+getP (NullT p _)    = p
+getP e              = error $ "Eval.Function::getP [Failed pattern match ["++show e++"]]"
+
+getT :: ExpToken -> String
+getT (ArrayT{}) = head types
+getT (ObjT{})   = types !! 1
+getT (StrT{})   = types !! 2
+getT (NumT{})   = types !! 3
+getT (BoolT{})  = types !! 4
+getT (NullT{})  = types !! 5
+getT e          = error $ "Eval.Function::getT [Failed pattern match ["++show e++"]]"
+
+types :: [String]
+types = ["Array","Object","String","Number","Boolean","Null"]
+
 
 {-|
 unlines $  [ "show = show([tservice,tsalaire,trente])" , "tservice = table([[service]],{col:[\"service\"]})" , "tsalaire = table([salaires],{col:[\"salaire\"]})" , "trente = table([rente],{col:[\"rente\"]})" , "rente = multi([0.02,moyensalaire,service])" , "moyensalaire = mean(salaires)" , "salaires = [55000,60000,45000]" , "service = 35" ]

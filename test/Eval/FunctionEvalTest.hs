@@ -28,6 +28,6 @@ prop_NbArgs3 (P p) esTA = length esTA > 3 ==> let es = map unExpTA esTA in
              && Left (InvalidNbOfArgs p name 3 (length es)) == applyFunc' funcs p name es)
     ["plotLine"]
 
-prop_ErrorMarshallNull (ExpTA e) = not (isNull e) ==> Left (TypeMismatch (getP e) (getT e) "Null") == null e
+prop_ErrorMarshallNull (ExpTA e) = not (isNull e || isVar e || isFunc e) ==> Left (TypeMismatch (getP e) (getT e) "Null") == null e
 prop_MarshallNullLit  (NullTA n) = Right NullObj == null n
 prop_MarshallNullFunc (TF es)    = Right NullObj == applyFunc' (mkFuncs es) p0 "nullTestF" []
