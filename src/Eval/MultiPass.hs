@@ -1,22 +1,10 @@
 module Eval.MultiPass where
 
-import qualified Data.Map as M (Map,empty,lookup,insert,null,toList,keys,delete)
---
-import Data.Token              (ProgToken(..),FormToken(..),PairToken(..),IdToken(..),ExpToken(..))
-import Control.Monad           (foldM,liftM,liftM3)
+import qualified Data.Map as M (empty,lookup,insert,null,toList,keys,delete)
 
-data EvalError = MultipleDefinitions String
-               | UndefinedVariable String
-               | CycleInVariables [String]
-               | UndefinedFunction String String
-               | NonTopLevelShow String
-               | NoShow
-               | System String
-                 deriving (Eq,Show)
-
-type State = (Table,Table)
-type Table = M.Map String ExpToken
-type Eval = Either EvalError
+import Control.Monad           (foldM,liftM,liftM3,when,zipWithM)
+import Data.Token              (ProgToken(..),FormToken(..),PairToken(..),IdToken(..),ExpToken(..),Pos)
+import Data.Eval               (EvalError(..),Eval,State,Table,Obj,TypeValidator,Func)
 
 initTable :: ProgToken -> Eval Table
 initTable (ProgT _ fs) = foldM f M.empty fs where 
@@ -79,6 +67,19 @@ validateTopShow :: [(String,ExpToken)] -> Eval ()
 validateTopShow []                                        = Left NoShow
 validateTopShow (("show",FuncT _ _ (IdT _ _ "show") _):_) = return ()
 validateTopShow (_:fs)                                    = validateTopShow fs
+
+applyFunc :: [(String,([TypeValidator],Func))] -> ExpToken -> Eval Obj
+applyFunc funcs (FuncT p _ (IdT _ _ i) es) = case lookup i funcs of 
+  Nothing -> error $ "Couldn't lookup func ["++i++"]"
+  Just (validators,func) -> do
+    validateArgsLength p i (length validators) (length es)
+    args <- zipWithM ($) validators es
+    func args
+    
+applyFunc _ e = error $ "MultiPass::applyFunc [Unexpected expression in pattern matching ["++show e++"]]"
+  
+validateArgsLength :: Pos -> String -> Int -> Int -> Eval ()
+validateArgsLength p i lv le = when (lv /= le) $ Left $ InvalidNbOfArgs p i lv le 
 
 formVal :: FormToken -> ExpToken
 formVal (FormT _ _ x) = x

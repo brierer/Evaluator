@@ -1,88 +1,75 @@
 module Eval.Function where
 
-import Eval.MultiPass (Eval,EvalError(System))
+import Data.Eval
 
-data Obj = Unimplemented
-           deriving (Show)
+funcs :: [(String,       ([TypeValidator],      Func))]
+funcs =   -- 1 arg functions
+        [ ("show",       ([list showable], showF))
+        , ("multi",      ([list num],      multiF))
+        , ("mean",       ([list num],      meanF))
+        , ("descriptive",([list num],      descF))
+          -- 2 arg functions
+        , ("table",      ([matrix,obj],    tableF))
+        , ("nTimes",     ([num,num],       nTimesF))
+        , ("take",       ([num,matrix],    takeF))
+        , ("sortTable",  ([num,matrix],    sortTableF))
+          -- 3 arg functions
+        , ("plotLine",   ([array,array,obj],   plotLineF))
+        ]
 
-type OneValidArg = Obj -> Eval ()
-type OneArg      = Obj -> Eval Obj
+{-| Validation combinators -}
+list :: TypeValidator -> TypeValidator
+list _ _ = error "Eval.Function::list   [Not Implemented]"
 
-type TwoValidArgs = Obj -> Obj -> Eval ()
-type TwoArgs      = Obj -> Obj -> Eval Obj
+or :: TypeValidator -> TypeValidator -> TypeValidator
+or _ _ _ = error "Eval.Function::or   [Not Implemented]"
 
-type ThreeValidArgs = Obj -> Obj -> Obj -> Eval ()
-type ThreeArgs      = Obj -> Obj -> Obj -> Eval Obj
+{-| Validation functions -}
+showable :: TypeValidator
+table    :: TypeValidator
+plot     :: TypeValidator
+matrix   :: TypeValidator
+array    :: TypeValidator
+obj      :: TypeValidator
+str      :: TypeValidator
+num      :: TypeValidator
+bool     :: TypeValidator
+null     :: TypeValidator
 
-oneArgFuncs :: [(String,       OneValidArg,   OneArg)]
-oneArgFuncs = [ ("show",       isShowableList,showF)
-              , ("multi",      isNumList,     multiF)
-              , ("mean",       isNumList,     meanF)
-              , ("descriptive",isNumList,     descF)
-              ]
-
-twoArgsFuncs :: [(String,     TwoValidArgs,  TwoArgs)]
-twoArgsFuncs = [ ("table",    isTableArgs,   tableF)
-               , ("nTimes",   isTwoNums,     nTimesF)
-               , ("take",     isNumAndTable, takeF)
-               , ("sortTable",isNumAndTable, sortTableF)
-               ]
-threeArgsFuncs :: [(String,     ThreeValidArgs, ThreeArgs)]
-threeArgsFuncs = [ ("plotLine", isPlotLineArgs, plotLineF)
-                 ]
-
-{-| Validation funcs -}
-isShowableList :: OneValidArg
-isNumList      :: OneValidArg
-
-isShowableList _ = Left $ System "Eval.Function::isShowableList [Not Implemented]"
-isNumList _      = Left $ System "Eval.Function::isNumList      [Not Implemented]"
-
-isTableArgs   :: TwoValidArgs
-isTwoNums     :: TwoValidArgs
-isNumAndTable :: TwoValidArgs
-
-isTableArgs _ _   = Left $ System "Eval.Function::isTableArgs   [Not Implemented]"
-isTwoNums _ _     = Left $ System "Eval.Function::isTwoNums     [Not Implemented]"
-isNumAndTable _ _ = Left $ System "Eval.Function::isNumAndTable [Not Implemented]"
-
-isPlotLineArgs :: ThreeValidArgs
-isPlotLineArgs _ _ _ = Left $ System "Eval.Function::isPlotLineArgs [Not Implemented]"
+showable _ = error "Eval.Function::showable [Not Implemented]"
+table _    = error "Eval.Function::table [Not Implemented]"
+plot _     = error "Eval.Function::plot [Not Implemented]"
+matrix _   = error "Eval.Function::matrix [Not Implemented]"
+array _    = error "Eval.Function::array [Not Implemented]"
+obj _      = error "Eval.Function::obj [Not Implemented]"
+str _      = error "Eval.Function::str [Not Implemented]"
+num _      = error "Eval.Function::num [Not Implemented]"
+bool _     = error "Eval.Function::bool [Not Implemented]"
+null _     = error "Eval.Function::null [Not Implemented]"
 
 {-| Funcs -}
-showF  :: OneArg
-multiF :: OneArg
-meanF  :: OneArg
-descF  :: OneArg
+showF      :: Func
+multiF     :: Func
+meanF      :: Func
+descF      :: Func
+tableF     :: Func
+nTimesF    :: Func
+takeF      :: Func
+sortTableF :: Func
+plotLineF  :: Func
 
-showF _  = Left $ System "Eval.Function::showF  [Not Implemented]"
-multiF _ = Left $ System "Eval.Function::multiF [Not Implemented]"
-meanF _  = Left $ System "Eval.Function::meanF  [Not Implemented]"
-descF _  = Left $ System "Eval.Function::descF  [Not Implemented]"
-
-tableF     :: TwoArgs
-nTimesF    :: TwoArgs
-takeF      :: TwoArgs
-sortTableF :: TwoArgs
-
-tableF _ _     = Left $ System "Eval.Function::tableF     [Not Implemented]"
-nTimesF _ _    = Left $ System "Eval.Function::ntimesF    [Not Implemented]"
-takeF _ _      = Left $ System "Eval.Function::takeF      [Not Implemented]"
-sortTableF _ _ = Left $ System "Eval.Function::sortTableF [Not Implemented]"
-
-plotLineF :: ThreeArgs
-plotLineF _ _ _ = Left $ System "Eval.Function::plotLineF [Not Implemented]"
+showF _      = error "Eval.Function::showF  [Not Implemented]"
+multiF _     = error "Eval.Function::multiF [Not Implemented]"
+meanF _      = error "Eval.Function::meanF  [Not Implemented]"
+descF _      = error "Eval.Function::descF  [Not Implemented]"
+tableF _     = error "Eval.Function::tableF     [Not Implemented]"
+nTimesF _    = error "Eval.Function::ntimesF    [Not Implemented]"
+takeF _      = error "Eval.Function::takeF      [Not Implemented]"
+sortTableF _ = error "Eval.Function::sortTableF [Not Implemented]"
+plotLineF _  = error "Eval.Function::plotLineF [Not Implemented]"
 
 {-|
-
-show = show([tservice,tsalaire,trente])
-tservice = table([[service]],{col:["service"]})
-tsalaire = table([salaires],{col:["salaire"]})
-trente = table([rente],{col:["rente"]})
-rente = multi([0.02,moyensalaire,service])
-moyensalaire = mean(salaires)
-salaires = [55000,60000,45000]
-service = 35
+unlines $  [ "show = show([tservice,tsalaire,trente])" , "tservice = table([[service]],{col:[\"service\"]})" , "tsalaire = table([salaires],{col:[\"salaire\"]})" , "trente = table([rente],{col:[\"rente\"]})" , "rente = multi([0.02,moyensalaire,service])" , "moyensalaire = mean(salaires)" , "salaires = [55000,60000,45000]" , "service = 35" ]
 
 
 show = show([tablegoal,table(get,{col:["Depense","Septembre","Octobre"]})])

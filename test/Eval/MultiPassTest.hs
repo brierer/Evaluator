@@ -1,9 +1,10 @@
 {-# OPTIONS_GHC -F -pgmF htfpp #-}
 module Eval.MultiPassTest where
 
+import Data.Eval               (EvalError(..))
 import Eval.EvalTestUtils      (HasProg,UniqueDefs(..),MultiDefs(..),ValidVars(..),UndefVars(..),CycleVars(..),ValidFuncs(..),UndefFuncs(..),NonTopShowFuncs(..),NoShowFuncs(..),
                                 initTable',derefValidProg',nonEmpty,fromProgForms,toToken)
-import Eval.MultiPass          (EvalError(..),initTable,derefVars,validateFunctions)
+import Eval.MultiPass          (initTable,derefVars,validateFunctions)
 import Test.Framework          (TestSuite,makeTestSuite,makeQuickCheckTest,makeLoc,qcAssertion,(==>))
 
 prop_MultiDefs (MultiDefs  prog x)         = nonEmpty prog ==> Left (MultipleDefinitions x)   == initTable (toToken prog)
