@@ -6,7 +6,7 @@ import Data.Token              (ExpToken,Pos)
 
 data EvalError = MultipleDefinitions Pos String
                | UndefinedVariable String
-               | CycleInDefinitions [(String,Pos)]
+               | CycleInDefinitions [(Pos,String)]
                | UndefinedFunction String String
                | NonTopLevelShow String
                | NoShow

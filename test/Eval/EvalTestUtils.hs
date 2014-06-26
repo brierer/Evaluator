@@ -97,7 +97,7 @@ getRefed = S.toList . f S.empty
         g acc (VarT _ (IdT _ _ n)) = S.insert n acc
         g acc _                    = acc
 
-data CycleVars = CycleVars ValidVars [(String,Pos)] deriving (Show)
+data CycleVars = CycleVars ValidVars [(Pos,String)] deriving (Show)
 instance Arbitrary CycleVars where
   arbitrary              = mCycleProg arbitrary   elements
   shrink (CycleVars p _) = mCycleProg (sShrink p) id
@@ -106,7 +106,7 @@ mCycleProg pa f = let empty = CycleVars (fromForms []) [] in do
   nullGuard fs empty $ do
     let ns = map formName fs
     fs' <- zipWithM (makeCycle f) fs $ tail $ cycle ns
-    return $ CycleVars (fromForms fs') (sort $ zip ns $ map formPos fs)
+    return $ CycleVars (fromForms fs') (flipZip $ sort $ zip ns $ map formPos fs) where flipZip = uncurry (flip zip).unzip
 makeCycle f (FormT _ n e) m = liftM (FormT p0 n) $ replaceVars [m] f e
 
 data ValidFuncs = ValidFuncs ValidVars [String] deriving (Eq,Show)
