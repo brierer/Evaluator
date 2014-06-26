@@ -1,10 +1,10 @@
 module Eval.Function where
 
-import Data.Eval
-import Data.Token
-import Control.Monad (liftM,liftM2)
-
 import Prelude hiding (exp)
+
+import Control.Monad  (liftM2)
+import Data.Eval      (ExpObj(..),EvalError(TypeMismatch),Eval,TypeValidator,Func)
+import Data.Token     (PairToken(..),IdToken(..),ExpToken(..),Pos)
 
 funcs :: Marshallable a => 
         [(String,       ([TypeValidator a],Func))]

@@ -1,10 +1,10 @@
 {-# OPTIONS_GHC -F -pgmF htfpp #-}
-module Parser.MonolithicTest where
+module Parser.MonolithicParserTest where
 
-import Parser.Monolithic      (progT,formT,pairT,idT,expT,funcT,arrayT,objT,varT,strT,numT,boolT,nullT)
-import Parser.ParserTestUtils ( ProgTA(..),FormTA(..),PairTA(..),IdTA(..),ExpTA(..),FuncTA(..),ArrayTA(..)
-                              , ObjTA(..),VarTA(..),StrTA(..),NumTA(..),BoolTA(..),NullTA(..),NumType(..),testCase)
-import Test.Framework         (TestSuite,makeTestSuite,makeQuickCheckTest,makeLoc,qcAssertion,(==>))
+import Parser.Monolithic                (progT,formT,pairT,idT,expT,funcT,arrayT,objT,varT,strT,numT,boolT,nullT)
+import Parser.MonolithicParserTestUtils ( ProgTA(..),FormTA(..),PairTA(..),IdTA(..),ExpTA(..),FuncTA(..),ArrayTA(..)
+                                        , ObjTA(..),VarTA(..),StrTA(..),NumTA(..),BoolTA(..),NullTA(..),NumType(..),testCase)
+import Test.Framework                   (TestSuite,makeTestSuite,makeQuickCheckTest,makeLoc,qcAssertion,(==>))
 
 {-# ANN module "HLint: ignore Use camelCase" #-}
 

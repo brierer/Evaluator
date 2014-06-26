@@ -1,5 +1,5 @@
 {-# OPTIONS_GHC -fno-warn-orphans  #-}
-module Eval.EvalTestUtils where
+module Eval.MultiPassEvalTestUtils where
 
 import qualified Data.Map as M                        (fromList)
 import qualified Data.Set as S                        (empty,toList,insert)
@@ -13,7 +13,7 @@ import Control.Applicative                            ((<$>),(<*>))
 import Control.Monad                                  (liftM,zipWithM)
 import Control.Monad.State                            (State,runState,get,put)
 import Eval.MultiPass                                 (initTable,formVal,pairVal,mapPair,mapMPair)
-import Parser.ParserTestUtils                         (ProgTA(..),sShrink)
+import Parser.MonolithicParserTestUtils               (ProgTA(..),sShrink)
 import Test.Framework                                 (Arbitrary,arbitrary,shrink,elements)
 import Text.ParserCombinators.Parsec.Error            (ParseError,errorMessages)
 

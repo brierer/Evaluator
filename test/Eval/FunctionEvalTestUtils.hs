@@ -1,16 +1,16 @@
 {-# OPTIONS_GHC -fno-warn-incomplete-patterns #-}
 module Eval.FunctionEvalTestUtils where
 
-import Test.Framework
-import Control.Monad
-import Data.Token
-import Data.Eval
-import Parser.ParserTestUtils
-import Control.Applicative
-import Eval.MultiPass
-import Control.Arrow
-import Eval.Function
-import Prelude hiding (null)
+import Prelude hiding                   (null)
+
+import Control.Arrow                    (second)
+import Control.Applicative              (Applicative)
+import Control.Monad                    (liftM,liftM2,join)
+import Data.Eval                        (ExpObj(..),Eval)
+import Data.Token                       (PairToken(..),IdToken(..),ExpToken(..))
+import Eval.MultiPass                   (applyFunc)
+import Parser.MonolithicParserTestUtils (P(..),sizedArrayTA,sizedObjTA,toArrayTA,toObjTA,toStrTA,toNumTA,toBoolTA,toNullTA,unArrayTA,unObjTA,unStrTA,unNumTA,unBoolTA,unNullTA,sized1,sShrink,unP,toP,liftMF2,sizedListOf)
+import Test.Framework                   (Arbitrary(..),elements)
 
 class Is a where
   isFunc  :: a -> Bool

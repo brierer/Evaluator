@@ -1,15 +1,13 @@
 {-# OPTIONS_GHC -F -pgmF htfpp -fno-warn-incomplete-patterns #-}
 module Eval.FunctionEvalTest where
 
-import Test.Framework hiding (forAll)
-import Data.List ((\\))
-import Data.Eval
-import Parser.ParserTestUtils
-import Eval.Function
-import Data.Token
-import Prelude hiding (null)
-import Eval.FunctionEvalTestUtils
-import Control.Monad
+import Test.Framework hiding            (forAll)
+import Prelude        hiding            (null)
+                                        
+import Data.Eval                        (EvalError(..))
+import Eval.Function                    (Marshallable(..),funcs,types)
+import Eval.FunctionEvalTestUtils       (Is(..),TestFuncs(..),ExpOA(..),ArrayOA(..),ObjOA(..),StrOA(..),NumOA(..),BoolOA(..),NullOA(..),testFunc,applyFunc',forAll,removeEntry,funcNames,testF)
+import Parser.MonolithicParserTestUtils (P(..),ExpTA(..),StrTA(..),NumTA(..),BoolTA(..),NullTA(..),unExpTA)
 
 prop_NbArgs1 (P p) esTA = length esTA > 1 ==> let es = map unExpTA esTA in
   all (\name -> Left (InvalidNbOfArgs p name 1 0)           == applyFunc' funcs p name []

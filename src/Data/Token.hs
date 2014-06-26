@@ -1,9 +1,9 @@
 module Data.Token where
 
-data ProgToken = ProgT Pos [FormToken]  deriving (Show)
+data ProgToken = ProgT Pos [FormToken]      deriving (Show)
 data FormToken = FormT Pos IdToken ExpToken deriving (Show)
 data PairToken = PairT Pos IdToken ExpToken deriving (Show)
-data IdToken   = IdT   Pos W2 String      deriving (Show)
+data IdToken   = IdT   Pos W2 String        deriving (Show)
 
 data ExpToken = FuncT  Pos W1 IdToken [ExpToken]
               | ArrayT Pos W2 [ExpToken]

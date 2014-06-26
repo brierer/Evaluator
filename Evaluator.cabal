@@ -45,12 +45,12 @@ test-suite Evaluator-tests
   other-modules: 
                  Data.Token,
                  Parser.Monolithic,
-                 Parser.MonolithicTest,
                  Eval.MultiPass,
-                 Eval.MultiPassTest,
-                 Parser.ParserTestUtils,
-                 Eval.EvalTestUtils,
                  Eval.FunctionEvalTestUtils,
                  Eval.FunctionEvalTest,
                  Eval.Function,
-                 Data.Eval
+                 Data.Eval,
+                 Parser.MonolithicParserTestUtils,
+                 Parser.MonolithicParserTest,
+                 Eval.MultiPassEvalTest,
+                 Eval.MultiPassEvalTestUtils

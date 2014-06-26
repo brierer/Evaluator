@@ -1,11 +1,11 @@
 {-# OPTIONS_GHC -F -pgmF htfpp #-}
-module Eval.MultiPassTest where
+module Eval.MultiPassEvalTest where
 
-import Data.Eval               (EvalError(..))
-import Eval.EvalTestUtils      (HasProg,UniqueDefs(..),MultiDefs(..),ValidVars(..),UndefVars(..),CycleVars(..),ValidFuncs(..),UndefFuncs(..),NonTopShowFuncs(..),NoShowFuncs(..),
-                                initTable',derefValidProg',nonEmpty,fromProgForms,toToken)
-import Eval.MultiPass          (initTable,derefVars,validateFunctions)
-import Test.Framework          (TestSuite,makeTestSuite,makeQuickCheckTest,makeLoc,qcAssertion,(==>))
+import Data.Eval                   (EvalError(..))
+import Eval.MultiPassEvalTestUtils (HasProg,UniqueDefs(..),MultiDefs(..),ValidVars(..),UndefVars(..),CycleVars(..),ValidFuncs(..),UndefFuncs(..),NonTopShowFuncs(..),NoShowFuncs(..),
+                                    initTable',derefValidProg',nonEmpty,fromProgForms,toToken)
+import Eval.MultiPass              (initTable,derefVars,validateFunctions)
+import Test.Framework              (TestSuite,makeTestSuite,makeQuickCheckTest,makeLoc,qcAssertion,(==>))
 
 prop_MultiDefs (MultiDefs  prog p x)                        = nonEmpty prog ==> Left (MultipleDefinitions p x) == initTable (toToken prog)
 prop_ValidDefs (UniqueDefs prog)                            =                   Right (fromProgForms prog)     == initTable (toToken prog)

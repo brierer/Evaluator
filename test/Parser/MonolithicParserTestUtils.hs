@@ -1,5 +1,5 @@
 {-# OPTIONS_GHC -fno-warn-incomplete-patterns  #-}
-module Parser.ParserTestUtils where
+module Parser.MonolithicParserTestUtils where
 
 import Data.List                       ((\\))
 import Data.Token                      (ProgToken(..),FormToken(..),PairToken(..),IdToken(..),ExpToken(..))
