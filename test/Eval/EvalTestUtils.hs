@@ -65,22 +65,22 @@ instance Arbitrary ValidVars where
 mValidProg pa f = liftM fromForms (pa >>= replaceAllVars f . forms)
 
 replaceAllVars _ []  = return []
-replaceAllVars f (FormT _ n v:fs) = do
+replaceAllVars f (FormT p n v:fs) = do
   v' <- replaceVars (map formName fs) f v
   rest <- replaceAllVars f fs
-  return $ FormT p0 n v': rest
+  return $ FormT p n v': rest
 
-replaceVars ns f (FuncT _ w n es)     = liftM (FuncT p0 w n) $ mapM (replaceVars ns f) es
-replaceVars ns f (ArrayT _ w es)      = liftM (ArrayT p0 w)  $ mapM (replaceVars ns f) es
-replaceVars ns f (ObjT _ w ps)        = liftM (ObjT p0 w)    $ mapM (mapMPair $ replaceVars ns f) ps
-replaceVars [] _ (VarT _ (IdT _ w _)) = return (NullT p0 w)
-replaceVars ns f (VarT _ (IdT _ w _)) = liftM (VarT p0.IdT p0 w) $ f ns
+replaceVars ns f (FuncT p w n es)     = liftM (FuncT p w n) $ mapM (replaceVars ns f) es
+replaceVars ns f (ArrayT p w es)      = liftM (ArrayT p w)  $ mapM (replaceVars ns f) es
+replaceVars ns f (ObjT p w ps)        = liftM (ObjT p w)    $ mapM (mapMPair $ replaceVars ns f) ps
+replaceVars [] _ (VarT p (IdT _ w _)) = return (NullT p w)
+replaceVars ns f (VarT p (IdT q w _)) = liftM (VarT p.IdT q w) $ f ns
 replaceVars _  _ e                    = return e
 
 data UndefVars = UndefVars ValidVars String deriving (Show)
 instance Arbitrary UndefVars where
-  arbitrary              = mUndefProg arbitrary   elements
-  shrink (UndefVars p _) = mUndefProg (sShrink p) id
+  arbitrary                 = mUndefProg arbitrary      elements
+  shrink (UndefVars prog _) = mUndefProg (sShrink prog) id
 mUndefProg pa f = let empty = UndefVars (fromForms []) "" in do
   fs <- liftM forms pa
   let ns = getRefed fs
@@ -99,15 +99,15 @@ getRefed = S.toList . f S.empty
 
 data CycleVars = CycleVars ValidVars [(Pos,String)] deriving (Show)
 instance Arbitrary CycleVars where
-  arbitrary              = mCycleProg arbitrary   elements
-  shrink (CycleVars p _) = mCycleProg (sShrink p) id
+  arbitrary                 = mCycleProg arbitrary      elements
+  shrink (CycleVars prog _) = mCycleProg (sShrink prog) id
 mCycleProg pa f = let empty = CycleVars (fromForms []) [] in do
   fs <- liftM (filter hasVarF.forms) pa
   nullGuard fs empty $ do
     let ns = map formName fs
     fs' <- zipWithM (makeCycle f) fs $ tail $ cycle ns
     return $ CycleVars (fromForms fs') (flipZip $ sort $ zip ns $ map formPos fs) where flipZip = uncurry (flip zip).unzip
-makeCycle f (FormT _ n e) m = liftM (FormT p0 n) $ replaceVars [m] f e
+makeCycle f (FormT p n e) m = liftM (FormT p n) $ replaceVars [m] f e
 
 data ValidFuncs = ValidFuncs ValidVars [String] deriving (Eq,Show)
 instance HasProg ValidFuncs where
@@ -130,10 +130,10 @@ funcNames = concatMap f where
 insertTopShow fs = FormT p0 (IdT p0 w2 "show") (FuncT p0"" (IdT p0 w2 "show") $ map formVal fs):fs
 
 replaceNonTopShows = map f where 
-  f (FormT _ n e)               = FormT p0 n $ g e
-  g (FuncT _ w (IdT _ w' n) es) = FuncT p0 w (IdT p0 w' (case n of "show" -> "notShow"; _ -> n)) $ map g es
-  g (ArrayT _ w es)             = ArrayT p0 w $ map g es
-  g (ObjT _ w ps)               = ObjT p0 w $ map (mapPair g) ps
+  f (FormT p n e)               = FormT p n $ g e
+  g (FuncT p w (IdT q w' n) es) = FuncT p w (IdT q w' (case n of "show" -> "notShow"; _ -> n)) $ map g es
+  g (ArrayT p w es)             = ArrayT p w $ map g es
+  g (ObjT p w ps)               = ObjT p w $ map (mapPair g) ps
   g e                           = e  
   
 removeTopShow []                                                           = []
@@ -155,19 +155,19 @@ mUndefFuncs pa f1 f2 = let empty = UndefFuncs (fromForms []) "" "" in do
     return $ UndefFuncs (ValidFuncs (fromForms fs') fns) (formName f) fn'
 
 removeUnderscores = fromForms.map f.forms where
-  f (FormT _ n e)               = FormT p0 n $ g e
-  g (FuncT _ w (IdT _ w' n) es) = FuncT p0 w (IdT p0 w' (filter (/='_') n)) $ map g es
-  g (ArrayT _ w es)             = ArrayT p0 w $ map g es
-  g (ObjT _ w ps)               = ObjT p0 w $ map (mapPair g) ps
+  f (FormT p n e)               = FormT p n $ g e
+  g (FuncT p w (IdT q w' n) es) = FuncT p w (IdT q w' (filter (/='_') n)) $ map g es
+  g (ArrayT p w es)             = ArrayT p w $ map g es
+  g (ObjT p w ps)               = ObjT p w $ map (mapPair g) ps
   g e                           = e
 
 replaceFunc :: String -> String -> FormToken -> FormToken
-replaceFunc fn n' (FormT _ n e)              = FormT p0 n $ replaceFuncE fn n' e
+replaceFunc fn n' (FormT p n e)              = FormT p n $ replaceFuncE fn n' e
 
 replaceFuncE :: String -> String -> ExpToken -> ExpToken
-replaceFuncE fn n' (FuncT _ w (IdT _ w' n) es) = FuncT p0 w (IdT p0 w' (if fn == n then n' else n)) $ map (replaceFuncE fn n') es
-replaceFuncE fn n' (ArrayT _ w es)             = ArrayT p0 w $ map (replaceFuncE fn n') es
-replaceFuncE fn n' (ObjT _ w ps)               = ObjT p0 w   $ map (mapPair $ replaceFuncE fn n') ps
+replaceFuncE fn n' (FuncT p w (IdT q w' n) es) = FuncT p w (IdT q w' (if fn == n then n' else n)) $ map (replaceFuncE fn n') es
+replaceFuncE fn n' (ArrayT p w es)             = ArrayT p w $ map (replaceFuncE fn n') es
+replaceFuncE fn n' (ObjT p w ps)               = ObjT p w   $ map (mapPair $ replaceFuncE fn n') ps
 replaceFuncE _  _  e                           = e
 
 usesFunc :: String -> FormToken -> Bool
@@ -193,16 +193,16 @@ mNonTopShowFuncs pa f1 f2 = let empty = NonTopShowFuncs (fromForms []) "" in do
     return $ NonTopShowFuncs (ValidFuncs (fromForms fs') fns) (formName f)
 
 removeShows = fromForms.map f.forms where
-  f (FormT _ n (FuncT _ w m es)) = FormT p0 n $ FuncT p0 w m $ map g es
-  f (FormT _ n e)                = FormT p0 n $ g e
-  g (FuncT _ w (IdT _ w' n) es)  = FuncT p0 w (IdT p0 w' (if n == "show" then "notShow" else n)) $ map g es
-  g (ArrayT _ w es)              = ArrayT p0 w $ map g es
-  g (ObjT _ w ps)                = ObjT p0 w $ map (mapPair g) ps
+  f (FormT p n (FuncT q w m es)) = FormT p n $ FuncT q w m $ map g es
+  f (FormT p n e)                = FormT p n $ g e
+  g (FuncT p w (IdT q w' n) es)  = FuncT p w (IdT q w' (if n == "show" then "notShow" else n)) $ map g es
+  g (ArrayT p w es)              = ArrayT p w $ map g es
+  g (ObjT p w ps)                = ObjT p w $ map (mapPair g) ps
   g e                            = e
   
 replaceNonTopFunc :: String -> String -> FormToken -> FormToken
-replaceNonTopFunc fn n' (FormT _ n (FuncT _ w m es)) = FormT p0 n $ FuncT p0 w m $ map (replaceFuncE fn n') es
-replaceNonTopFunc fn n' (FormT _ n e)                = FormT p0 n $ replaceFuncE fn n' e
+replaceNonTopFunc fn n' (FormT p n (FuncT q w m es)) = FormT p n $ FuncT q w m $ map (replaceFuncE fn n') es
+replaceNonTopFunc fn n' (FormT p n e)                = FormT p n $ replaceFuncE fn n' e
 
 usesFuncNonTop :: String -> FormToken -> Bool
 usesFuncNonTop fn (FormT _ _ (FuncT _ _ _ es)) = any (usesFuncE fn) es
@@ -224,7 +224,7 @@ derefValidProg' = initTable'.derefValidProg
 initTable' = (\(Right x)->x).initTable.toToken
 
 derefAll []             = []
-derefAll (FormT _ n v:fs) = let moo1 = FormT p0 n (derefOne fs v):derefAll fs
+derefAll (FormT p n v:fs) = let moo1 = FormT p n (derefOne fs v):derefAll fs
                             in  if any hasVarF moo1 then derefAll moo1 else moo1
 
 hasVarF (FormT _ _ e) = hasVar e
@@ -235,12 +235,12 @@ hasVar (ObjT _ _ ps)    = any hasVarP ps
 hasVar (VarT _ _)       = True
 hasVar _                = False
 
-derefOne fs (FuncT _ w m es)     = FuncT p0 w m  $ map (derefOne fs) es
-derefOne fs (ArrayT _ w es)      = ArrayT p0 w   $ map (derefOne fs) es
-derefOne fs (ObjT _ w ps)        = ObjT p0 w     $ map (derefP fs) ps
+derefOne fs (FuncT p w m es)     = FuncT p w m  $ map (derefOne fs) es
+derefOne fs (ArrayT p w es)      = ArrayT p w   $ map (derefOne fs) es
+derefOne fs (ObjT p w ps)        = ObjT p w     $ map (derefP fs) ps
 derefOne fs (VarT _ (IdT _ _ m)) = fromMaybe (error $ "Couldn't find var ["++m++"] in prog ["++show fs++"]") $ lookup m $ map toTuple fs
 derefOne _  e                    = e
-derefP   fs (PairT _ n e)        = PairT p0 n $ derefOne fs e
+derefP   fs (PairT p n e)        = PairT p n $ derefOne fs e
 
 nullGuard xs ifNull action = if null xs then return ifNull else action
 
