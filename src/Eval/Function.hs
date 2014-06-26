@@ -1,36 +1,32 @@
 module Eval.Function where
 
-import Prelude hiding (exp)
+import Prelude hiding (exp,null)
 
-import Control.Monad  (liftM2)
-import Data.Eval      (ExpObj(..),EvalError(TypeMismatch),Eval,TypeValidator,Func)
-import Data.Token     (PairToken(..),IdToken(..),ExpToken(..),Pos)
+import Control.Monad       (liftM,liftM2,zipWithM,when)
+import Data.Eval           (ExpObj(..),EvalError(..),Eval,FuncEntry,TypeValidator,Func)
+import Data.Token          (PairToken(..),IdToken(..),ExpToken(..),Pos)
 
-funcs :: Marshallable a => 
-        [(String,       ([TypeValidator a],Func))]
-funcs =   -- 1 arg functions
-        [ ("show",       ([array], showF))
-        , ("multi",      ([array], multiF))
-        , ("mean",       ([array], meanF))
-        , ("descriptive",([array], descF))
-          -- 2 arg functions
-        , ("table",      ([matrix,obj], tableF))
-        , ("nTimes",     ([num,num],    nTimesF))
-        , ("take",       ([num,matrix], takeF))
-        , ("sortTable",  ([num,matrix], sortTableF))
-          -- 3 arg functions
-        , ("plotLine",   ([array,array,obj],plotLineF))
-        ]
+{-| Function validation and application -}
+applyFunc :: [(String,([TypeValidator ExpToken],Func))] -> ExpToken -> Eval ExpObj
+applyFunc fs (FuncT p _ (IdT _ _ i) es) = case lookup i fs of 
+  Nothing -> error $ "Couldn't lookup func ["++i++"]"
+  Just (validators,func) -> validateArgsLength p i (length validators) (length es) >> zipWithM ($) validators es >>= func
+applyFunc _ e = error $ "MultiPass::applyFunc [Unexpected expression in pattern matching ["++show e++"]]"
+
+validateArgsLength :: Pos -> String -> Int -> Int -> Eval ()
+validateArgsLength p i lv le = when (lv /= le) $ Left $ InvalidNbOfArgs p i lv le 
 
 {-| Validation functions and combinators -}
 class Marshallable a where
-  exp      :: TypeValidator a
+  exp :: [FuncEntry a] -> TypeValidator a
+  exp fs = array fs <|> obj fs <|> str <|> num <|> bool <|> null <|> typeMismatch "Expression"
+  
   showable :: TypeValidator a
   table    :: TypeValidator a
   plot     :: TypeValidator a
   matrix   :: TypeValidator a
-  array    :: TypeValidator a
-  obj      :: TypeValidator a
+  array    :: [FuncEntry a] ->TypeValidator a
+  obj      :: [FuncEntry a] ->TypeValidator a
   str      :: TypeValidator a
   num      :: TypeValidator a
   bool     :: TypeValidator a
@@ -39,21 +35,22 @@ class Marshallable a where
   getP :: a -> Pos
   getT :: a -> String
 
+(<|>) :: TypeValidator a -> TypeValidator a -> TypeValidator a
+infixl 3 <|>
+(a <|> b) x = case a x of r@(Right _) -> r; Left _ -> b x
+
 instance Marshallable ExpToken where
-  exp _      = error "Eval.Function::exp<ExpToken> [Not Implemented]"
   showable _ = error "Eval.Function::showable<ExpToken> [Not Implemented]"
   table _    = error "Eval.Function::table<ExpToken> [Not Implemented]"
   plot _     = error "Eval.Function::plot<ExpToken> [Not Implemented]"
   matrix _   = error "Eval.Function::matrix<ExpToken> [Not Implemented]"
-  array _    = error "Eval.Function::array<ExpToken> [Not Implemented]"
-  obj _      = error "Eval.Function::obj<ExpToken> [Not Implemented]"
 
---  array (ArrayT p _ es) = liftM (ArrayO p) $ mapM exp es;   array e = typeMismatch (head types) e
---  obj  (ObjT p _ ps)    = liftM (ObjO p) $ mapM toTuple ps; obj e   = typeMismatch (types !! 1) e
-  str  (StrT p _ s)     = return $ StrO p s;                str e   = typeMismatch (types !! 2) e
-  num  (NumT p _ _ n)   = return $ NumO p n;                num e   = typeMismatch (types !! 3) e
-  bool (BoolT p _ b)    = return $ BoolO p b;               bool e  = typeMismatch (types !! 4) e
-  null (NullT p _)      = return $ NullO p;                 null e  = typeMismatch (types !! 5) e
+  array fs (ArrayT p _ es)  = liftM (ArrayO p) $ mapM (exp fs) es;   array _ e = typeMismatch (head types) e
+  obj fs   (ObjT p _ ps)    = liftM (ObjO p) $ mapM (toTuple fs) ps; obj _ e   = typeMismatch (types !! 1) e
+  str      (StrT p _ s)     = return $ StrO p s;                     str e     = typeMismatch (types !! 2) e
+  num      (NumT p _ _ n)   = return $ NumO p n;                     num e     = typeMismatch (types !! 3) e
+  bool     (BoolT p _ b)    = return $ BoolO p b;                    bool e    = typeMismatch (types !! 4) e
+  null     (NullT p _)      = return $ NullO p;                      null e    = typeMismatch (types !! 5) e
   
   getP (ArrayT p _ _) = p
   getP (ObjT p _ _)   = p
@@ -72,18 +69,17 @@ instance Marshallable ExpToken where
   getT e          = error $ "Eval.Function::getT<ExpToken> [Failed pattern match ["++show e++"]]"
 
 instance Marshallable ExpObj where
-  exp _      = error "Eval.Function::exp<Obj> [Not Implemented]"
   showable _ = error "Eval.Function::showable<Obj> [Not Implemented]"
   table _    = error "Eval.Function::table<Obj> [Not Implemented]"
   plot _     = error "Eval.Function::plot<Obj> [Not Implemented]"
   matrix _   = error "Eval.Function::matrix<Obj> [Not Implemented]"
 
-  array x@(ArrayO{}) = return x; array e = typeMismatch (head types) e
-  obj   x@(ObjO{})   = return x; obj e   = typeMismatch (types !! 1) e  
-  str   x@(StrO{})   = return x; str e   = typeMismatch (types !! 2) e
-  num   x@(NumO{})   = return x; num e   = typeMismatch (types !! 3) e
-  bool  x@(BoolO{})  = return x; bool e  = typeMismatch (types !! 4) e
-  null  x@(NullO{})  = return x; null e  = typeMismatch (types !! 5) e
+  array _ x@(ArrayO{}) = return x; array _ e = typeMismatch (head types) e
+  obj _   x@(ObjO{})   = return x; obj _ e   = typeMismatch (types !! 1) e  
+  str     x@(StrO{})   = return x; str e     = typeMismatch (types !! 2) e
+  num     x@(NumO{})   = return x; num e     = typeMismatch (types !! 3) e
+  bool    x@(BoolO{})  = return x; bool e    = typeMismatch (types !! 4) e
+  null    x@(NullO{})  = return x; null e    = typeMismatch (types !! 5) e
   
   getP (ArrayO p _) = p
   getP (ObjO p _)   = p
@@ -102,74 +98,11 @@ instance Marshallable ExpObj where
 --  getT e          = error $ "Eval.Function::getT<Obj> [Failed pattern match ["++show e++"]]"
 
 
-typeMismatch :: Marshallable a => String -> a -> Eval ExpObj
+typeMismatch :: Marshallable a => String -> TypeValidator a
 typeMismatch expected e = Left $ TypeMismatch (getP e) expected (getT e)
-
-{-| Funcs -}
-showF      :: Func
-multiF     :: Func
-meanF      :: Func
-descF      :: Func
-tableF     :: Func
-nTimesF    :: Func
-takeF      :: Func
-sortTableF :: Func
-plotLineF  :: Func
-
-showF _      = error "Eval.Function::showF  [Not Implemented]"
-multiF _     = error "Eval.Function::multiF [Not Implemented]"
-meanF _      = error "Eval.Function::meanF  [Not Implemented]"
-descF _      = error "Eval.Function::descF  [Not Implemented]"
-tableF _     = error "Eval.Function::tableF     [Not Implemented]"
-nTimesF _    = error "Eval.Function::ntimesF    [Not Implemented]"
-takeF _      = error "Eval.Function::takeF      [Not Implemented]"
-sortTableF _ = error "Eval.Function::sortTableF [Not Implemented]"
-plotLineF _  = error "Eval.Function::plotLineF [Not Implemented]"
 
 types :: [String]
 types = ["Array","Object","String","Number","Boolean","Null"]
 
-toTuple :: PairToken -> Eval (String,ExpObj)
-toTuple (PairT _ (IdT _ _ x) y) = liftM2 (,) (return x) (exp y)
-
-{-|
-unlines $  [ "show = show([tservice,tsalaire,trente])" , "tservice = table([[service]],{col:[\"service\"]})" , "tsalaire = table([salaires],{col:[\"salaire\"]})" , "trente = table([rente],{col:[\"rente\"]})" , "rente = multi([0.02,moyensalaire,service])" , "moyensalaire = mean(salaires)" , "salaires = [55000,60000,45000]" , "service = 35" ]
-
-
-show = show([tablegoal,table(get,{col:["Depense","Septembre","Octobre"]})])
-tablegoal = table(goal,{col:["Depense","objectif"]})
-goal = [["Loyer","Epicerie","Resto","Alcool","Electricite","Ecole"],[510,200,100,50,40,166]]
-get = [["Loyer","Epicerie","Resto","Alcool","Electricite","Ecole"],
-[510,75,105,7,0,0],
-[510,117,75,0,47,6]]
-
-show = show([plotLine(x,y,{title:"MesNotes",color:"pink"}),table([x,y],{col:["X","Note"]})])
-moyenne = [[mean(y)]]
-x = [1,2,3,4,5,6,7]
-y = [0.25,0.72,0.82,0.53,0.75,0.8,0.86]
-
-show = show([x])
-x = table(desc,{})
-data = nTimes(1,1000000)
-desc = descriptive(data)
-
-show = show([table([country,gdp],{col:["pays","GDP"]}),[[mean(gdp)]],dsfdsf])
-gdp = [-2,2.4,7.7,"","",-7.9,"","",0.7,1,2.4,2.9,"","","","","",2.6]
-country = ["US","UK","Sweden","Spain","Portugal",
-"NewZealand",
-"Netherlands","Norway","Japan","Italy",
-"Ireland","Greece","Germany","France","Finland",
-"Denmark","Canada","Belgium","Austria","Australia"]
-dsfdsf = table([[2,2],[2,2]],{})
-
-
-show = show([table(means,{col:["Name"]}),table(noteTop,{col:["Nom","Note"]})])
-means = [[mean(col(1,noteTop)),"z"]]
-noteTop = take(10,noteSorted)
-noteSorted = sortTable(1,note)
-note = [name,noteExam]
-name = ["Lili","Nicole","Steve","George","Bob","Leonardo","Raphael","Carey","Naomi","Catherine","Julia",
-"Carolina","Madonna","Sherron","Diana"]
-noteExam = [99,41,55,22,37,75,19,74,73,85,63,60,82,54,14]
-
--}
+toTuple :: [FuncEntry ExpToken] -> PairToken -> Eval (String,ExpObj)
+toTuple fs (PairT _ (IdT _ _ x) y) = liftM2 (,) (return x) (exp fs y)

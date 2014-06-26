@@ -4,49 +4,40 @@ module Eval.FunctionEvalTest where
 import Test.Framework hiding            (forAll)
 import Prelude        hiding            (null)
                                         
-import Data.Eval                        (EvalError(..))
-import Eval.Function                    (Marshallable(..),funcs,types)
-import Eval.FunctionEvalTestUtils       (Is(..),TestFuncs(..),ExpOA(..),ArrayOA(..),ObjOA(..),StrOA(..),NumOA(..),BoolOA(..),NullOA(..),testFunc,applyFunc',forAll,removeEntry,funcNames,testF)
-import Parser.MonolithicParserTestUtils (P(..),ExpTA(..),StrTA(..),NumTA(..),BoolTA(..),NullTA(..),unExpTA)
+import Data.Eval                        (EvalError(..),ExpObj(..))
+import Data.Token                       (IdToken(..),ExpToken(NullT))
+import Eval.Function                    (Marshallable(..),types,applyFunc)
+import Eval.FunctionEvalTestUtils       (Is(..),TestFuncs(..),ExpOA(..),ArrayOA(..),ObjOA(..),StrOA(..),NumOA(..),BoolOA(..),NullOA(..),ExpTS(..),ArrayTS(..),ObjTS(..),
+                                         testFunc,forAll,removeEntry,funcNames,testF,mkFunc)
+import Parser.MonolithicParserTestUtils (IdTA(..),ExpTA(..),StrTA(..),NumTA(..),BoolTA(..),NullTA(..))
 
-prop_NbArgs1 (P p) esTA = length esTA > 1 ==> let es = map unExpTA esTA in
-  all (\name -> Left (InvalidNbOfArgs p name 1 0)           == applyFunc' funcs p name []
-             && Left (InvalidNbOfArgs p name 1 (length es)) == applyFunc' funcs p name es)
-    ["show","multi","mean","descriptive"]
-
-prop_NbArgs2 (P p) esTA = length esTA > 2 ==> let es = map unExpTA esTA in
-  all (\name -> Left (InvalidNbOfArgs p name 2 0)           == applyFunc' funcs p name []
-             && Left (InvalidNbOfArgs p name 2 1)           == applyFunc' funcs p name (take 1 es)
-             && Left (InvalidNbOfArgs p name 2 (length es)) == applyFunc' funcs p name es)
-    ["table","nTimes","take","sortTable"]
-
-prop_NbArgs3 (P p) esTA = length esTA > 3 ==> let es = map unExpTA esTA in
-  all (\name -> Left (InvalidNbOfArgs p name 3 0)           == applyFunc' funcs p name []
-             && Left (InvalidNbOfArgs p name 3 1)           == applyFunc' funcs p name (take 1 es)
-             && Left (InvalidNbOfArgs p name 3 2)           == applyFunc' funcs p name (take 2 es)
-             && Left (InvalidNbOfArgs p name 3 (length es)) == applyFunc' funcs p name es)
-    ["plotLine"]
-
-{-| Validators including literals -}
+{-| Number of args validation -}
+prop_NbArgs (NonNegative n) (NonNegative m) (IdTA (IdT p w name)) = n /= m ==>
+  let (nbParams,nbArgs) = (n `mod` 1000,m `mod` 1000) 
+      fs = [(name,(replicate nbParams null,const $ return $ NullO p))]
+  in  Left (InvalidNbOfArgs p name nbParams nbArgs) == applyFunc fs (mkFunc p name $ replicate nbArgs $ NullT p w) &&
+      Right (NullO p)                               == applyFunc fs (mkFunc p name $ replicate nbParams $ NullT p w)
+  
+{-| Type validations -}
 -- Array
---prop_ErrorMarshallArrayLit  (ExpTA e) = not (isArray e || isVar e || isFunc e) ==> Left (TypeMismatch (getP e) "Array" (getT e)) == array e
-prop_ErrorMarshallArrayObj  (ExpOA e) = not (isArray e)                        ==> Left (TypeMismatch (getP e) "Array" (getT e)) == array e
-prop_ErrorMarshallArrayFunc (TF es)   = 
-  forAll (removeEntry "arrayTestF" $ zip3 funcNames types es) $ \(name,t,e) ->     Left (TypeMismatch (getP e) "Array" t)        == array (testFunc es (getP e) name) 
+prop_ErrorMarshallArrayLit  (ExpTS e) = not (isArray e || isVar e || isFunc e) ==> Left (TypeMismatch (getP e) "Array" (getT e)) == array [] e
+prop_ErrorMarshallArrayObj  (ExpOA e) = not (isArray e)                        ==> Left (TypeMismatch (getP e) "Array" (getT e)) == array [] e
+prop_ErrorMarshallArrayFunc (TF es)      = 
+  forAll (removeEntry "arrayTestF" $ zip3 funcNames types es) $ \(name,t,e) ->     Left (TypeMismatch (getP e) "Array" t)        == array [] (testFunc es (getP e) name) 
 
---prop_MarshallArrayLit  (ArrayTA a)           = testF a == array a
-prop_MarshallArrayObj  (ArrayOA a)           = Right a == array a
-prop_MarshallArrayFunc (TF es@[a,_,_,_,_,_]) = testF a == array (testFunc es (getP a) "arrayTestF")
+prop_MarshallArrayLit  (ArrayTS a)           = testF a == array [] a
+prop_MarshallArrayObj  (ArrayOA a)           = Right a == array [] a
+prop_MarshallArrayFunc (TF es@[a,_,_,_,_,_]) = testF a == array [] (testFunc es (getP a) "arrayTestF")
 
 -- Obj
---prop_ErrorMarshallObjLit  (ExpTA e) = not (isObj e || isVar e || isFunc e) ==> Left (TypeMismatch (getP e) "Object" (getT e)) == obj e
-prop_ErrorMarshallObjObj  (ExpOA e) = not (isObj e)                        ==> Left (TypeMismatch (getP e) "Object" (getT e)) == obj e
+prop_ErrorMarshallObjLit  (ExpTS e) = not (isObj e || isVar e || isFunc e) ==> Left (TypeMismatch (getP e) "Object" (getT e)) == obj [] e
+prop_ErrorMarshallObjObj  (ExpOA e) = not (isObj e)                        ==> Left (TypeMismatch (getP e) "Object" (getT e)) == obj [] e
 prop_ErrorMarshallObjFunc (TF es)   = 
-  forAll (removeEntry "objTestF" $ zip3 funcNames types es) $ \(name,t,e) ->   Left (TypeMismatch (getP e) "Object" t)        == obj (testFunc es (getP e) name) 
+  forAll (removeEntry "objTestF" $ zip3 funcNames types es) $ \(name,t,e) ->   Left (TypeMismatch (getP e) "Object" t)        == obj [] (testFunc es (getP e) name) 
 
---prop_MarshallObjLit  (ObjTA o)             = testF o == obj o
-prop_MarshallObjObj  (ObjOA o)             = Right o == obj o
-prop_MarshallObjFunc (TF es@[_,o,_,_,_,_]) = testF o == obj (testFunc es (getP o) "objTestF")
+prop_MarshallObjLit  (ObjTS o)             = testF o == obj [] o
+prop_MarshallObjObj  (ObjOA o)             = Right o == obj [] o
+prop_MarshallObjFunc (TF es@[_,o,_,_,_,_]) = testF o == obj [] (testFunc es (getP o) "objTestF")
 
 -- Str
 prop_ErrorMarshallStrLit  (ExpTA e) = not (isStr e || isVar e || isFunc e) ==> Left (TypeMismatch (getP e) "String" (getT e)) == str e

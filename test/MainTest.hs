@@ -5,6 +5,7 @@ import Test.Framework (TestSuite,makeTestSuite,htfMain)
 import {-@ HTF_TESTS @-} Parser.MonolithicParserTest
 import {-@ HTF_TESTS @-} Eval.MultiPassEvalTest
 import {-@ HTF_TESTS @-} Eval.FunctionEvalTest
+import {-@ HTF_TESTS @-} Eval.EngineTest
 
 main :: IO ()
 main = htfMain htf_importedTests

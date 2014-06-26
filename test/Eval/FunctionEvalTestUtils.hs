@@ -8,8 +8,10 @@ import Control.Applicative              (Applicative)
 import Control.Monad                    (liftM,liftM2,join)
 import Data.Eval                        (ExpObj(..),Eval)
 import Data.Token                       (PairToken(..),IdToken(..),ExpToken(..))
-import Eval.MultiPass                   (applyFunc)
-import Parser.MonolithicParserTestUtils (P(..),sizedArrayTA,sizedObjTA,toArrayTA,toObjTA,toStrTA,toNumTA,toBoolTA,toNullTA,unArrayTA,unObjTA,unStrTA,unNumTA,unBoolTA,unNullTA,sized1,sShrink,unP,toP,liftMF2,sizedListOf)
+import Eval.Function                    (applyFunc)
+import Eval.MultiPass                   (mapPair)
+import Parser.MonolithicParserTestUtils (ExpTA(..),ArrayTA(..),ObjTA(..),P(..),sizedArrayTA,sizedObjTA,toExpTA,toArrayTA,toObjTA,toStrTA,toNumTA,toBoolTA,toNullTA,unExpTA,unArrayTA,unObjTA,
+                                         unStrTA,unNumTA,unBoolTA,unNullTA,sized1,sShrink,unP,toP,liftMF2,sizedListOf)
 import Test.Framework                   (Arbitrary(..),elements)
 
 class Is a where
@@ -126,6 +128,30 @@ mNullOA = liftM (NullOA .NullO .unP)
 toNullOA = NullOA
 unNullOA (NullOA n) = n
 
+data ExpTS = ExpTS ExpToken deriving (Show)
+instance Arbitrary ExpTS where
+  arbitrary        = mExpTS arbitrary
+  shrink (ExpTS e) = mExpTS (shrink $ toExpTA e)
+mExpTS = liftM (ExpTS .simplify.unExpTA)
+
+data ArrayTS = ArrayTS ExpToken deriving (Show)
+instance Arbitrary ArrayTS where
+  arbitrary          = mArrayTS arbitrary
+  shrink (ArrayTS e) = mArrayTS (shrink $ toArrayTA e)
+mArrayTS = liftM (ArrayTS .simplify.unArrayTA)
+
+data ObjTS = ObjTS ExpToken deriving (Show)
+instance Arbitrary ObjTS where
+  arbitrary          = mObjTS arbitrary
+  shrink (ObjTS e) = mObjTS (shrink $ toObjTA e)
+mObjTS = liftM (ObjTS .simplify.unObjTA)
+
+simplify (FuncT p _ _ _)      = NullT p w2
+simplify (ArrayT p w es)      = ArrayT p w $ map simplify es
+simplify (ObjT p w ps)        = ObjT p w $ map (mapPair simplify) ps
+simplify (VarT _ (IdT p w _)) = NullT p w
+simplify e                    = e
+
 applyFunc' fs p n es = applyFunc fs (mkFunc p n es)
 testFunc fs p n = fromRight $ applyFunc' (mkFuncs fs) p n []
 fromRight (Right x) = x
@@ -163,4 +189,8 @@ mStrOA   :: (Applicative m, Monad m) => m P -> m String           -> m StrOA
 mNumOA   :: (Applicative m, Monad m) => m P -> m Double           -> m NumOA
 mBoolOA  :: (Applicative m, Monad m) => m P -> m Bool             -> m BoolOA
 mNullOA  :: (Applicative m, Monad m) => m P -> m NullOA
+
+mExpTS   :: Monad m => m ExpTA   -> m ExpTS
+mArrayTS :: Monad m => m ArrayTA -> m ArrayTS
+mObjTS   :: Monad m => m ObjTA   -> m ObjTS
 

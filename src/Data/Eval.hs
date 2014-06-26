@@ -26,5 +26,6 @@ data ExpObj = ArrayO Pos [ExpObj]
             | NullO  Pos
               deriving (Eq,Show)
 
+type FuncEntry a = (String,([TypeValidator a],Func))
 type TypeValidator a = a -> Eval ExpObj
 type Func = [ExpObj] -> Eval ExpObj
