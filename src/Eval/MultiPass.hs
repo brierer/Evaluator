@@ -28,7 +28,7 @@ deref :: Table -> Table -> ExpToken -> Eval ExpToken
 deref ps fs (FuncT p w n es)   = liftM (FuncT p w n) $ mapM (deref ps fs) es
 deref ps fs (ArrayT p w es)    = liftM (ArrayT p w)  $ mapM (deref ps fs) es             
 deref ps fs (ObjT p w ts)      = liftM (ObjT p w)    $ mapM (mapMPair $ deref ps fs) ts
-deref ps fs (VarT p i)         = let IdT _ _ n = i in case M.lookup n fs of Just (x,_) -> return x; Nothing -> case M.lookup n ps of Just _ -> return $ VarT p i; Nothing -> Left $ UndefinedVariable n
+deref ps fs (VarT p i)         = let IdT q _ n = i in case M.lookup n fs of Just (x,_) -> return x; Nothing -> case M.lookup n ps of Just _ -> return $ VarT p i; Nothing -> Left $ UndefinedVariable q n
 deref _  _  e                  = return e
 
 hasAnyVar :: ExpToken -> Bool

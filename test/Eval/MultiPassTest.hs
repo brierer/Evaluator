@@ -10,7 +10,7 @@ import Test.Framework          (TestSuite,makeTestSuite,makeQuickCheckTest,makeL
 prop_MultiDefs (MultiDefs  prog p x)                        = nonEmpty prog ==> Left (MultipleDefinitions p x) == initTable (toToken prog)
 prop_ValidDefs (UniqueDefs prog)                            =                   Right (fromProgForms prog)     == initTable (toToken prog)
                                                                                                             
-prop_UndefVars (UndefVars prog x)                           = nonEmpty prog ==> Left (UndefinedVariable x)     == derefVars (initTable' prog)
+prop_UndefVars (UndefVars prog p x)                         = nonEmpty prog ==> Left (UndefinedVariable p x)   == derefVars (initTable' prog)
 prop_CycleVars (CycleVars prog ps)                          = nonEmpty prog ==> Left (CycleInDefinitions ps)   == derefVars (initTable' prog)
 prop_ValidVars (ValidVars prog)                             =                   Right (derefValidProg' prog)   == derefVars (initTable' prog)
 
