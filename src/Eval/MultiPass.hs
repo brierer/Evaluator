@@ -1,4 +1,12 @@
-module Eval.MultiPass where
+module Eval.MultiPass
+( initTable
+, derefVars
+, validateFunctions
+, formVal
+, pairVal
+, mapPair
+, mapMPair
+) where
 
 import qualified Data.Map as M (empty,lookup,insert,null,toList,keys,delete,elems)
 

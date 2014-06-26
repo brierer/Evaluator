@@ -1,4 +1,12 @@
-module Data.Token where
+module Data.Token
+( ProgToken(..)
+, FormToken(..)
+, PairToken(..)
+, IdToken(..)
+, ExpToken(..)
+, Pos
+, IntegerS
+) where
 
 data ProgToken = ProgT Pos [FormToken]      deriving (Show)
 data FormToken = FormT Pos IdToken ExpToken deriving (Show)

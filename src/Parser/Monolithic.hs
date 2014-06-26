@@ -1,4 +1,19 @@
-module Parser.Monolithic where
+module Parser.Monolithic
+( Unparse(unparse)
+, progT
+, formT
+, pairT
+, idT
+, expT
+, funcT
+, arrayT
+, objT
+, varT
+, strT
+, numT
+, boolT
+, nullT
+) where
 
 import Data.Char                     (toLower)
 import Data.List                     (intercalate)
@@ -22,15 +37,28 @@ seq4 (a,b,c,d) = (,,,) <$> a <*> b <*> c <*> d
 seq6 :: (P a, P b, P c, P d, P e, P f) -> P (a,b,c,d,e,f)
 seq6 (a,b,c,d,e,f) = (,,,,,) <$> a <*> b <*> c <*> d <*> e <*> f
 
-{-| Formula tokens -}
+{-| Non expression tokens -}
 progT :: Parser ProgToken
 formT :: Parser FormToken
+pairT :: Parser PairToken
+idT :: Parser IdToken
+expT  :: Parser ExpToken
 
 -- progT -> EMPTY | formT (';' formT)*
 progT = do p <- pos; liftM (ProgT p) $ formT `sepBy` char ';'
 
 -- formT -> idT '=' expT
 formT = do (p,i,_,e) <- seq4 (pos, idT, char '=', expT); return $ FormT p i e
+
+-- pairT -> idT ':' expT
+pairT = do (p,i,_,e) <- seq4 (pos, idT, char ':', expT); return $ PairT p i e
+
+-- idT -> alpha [alpha | digit]*
+idT = let alpha = ['a'..'z'] ++ ['A'..'Z']
+      in do (wb,p,i,wa) <- seq4 (ws,pos,liftM2 (:) (oneOf alpha) $ many (oneOf alpha <|> oneOf ['0'..'9']),ws); return $ IdT p (wb,wa) i
+      
+-- expT -> nullT  |      boolT  |      numT  |      strT   |      funcT  |      arrayT  |      objT  |      varT
+expT = try nullT <|> try boolT <|> try numT <|> try strT  <|> try funcT <|> try arrayT <|> try objT <|> try varT
 
 {-| Composite expressions -}
 funcT  :: Parser ExpToken
@@ -47,23 +75,6 @@ arrayT = do (wb,p,_,es,_,wa) <- seq6 (ws, pos,  char '[', commaSep expT,  char '
 
 -- objT -> '{' COMM_SEP pairT '}'
 objT   = do (wb,p,_,ps,_,wa) <- seq6 (ws, pos,  char '{', commaSep pairT, char '}', ws); return $ ObjT p (wb,wa) ps
-
-{-| Id element -}
-idT :: Parser IdToken
-
--- idT -> alpha [alpha | digit]*
-idT = let alpha = ['a'..'z'] ++ ['A'..'Z']
-      in do (wb,p,i,wa) <- seq4 (ws,pos,liftM2 (:) (oneOf alpha) $ many (oneOf alpha <|> oneOf ['0'..'9']),ws); return $ IdT p (wb,wa) i
-      
-{-| Sequence elements -}
-expT  :: Parser ExpToken
-pairT :: Parser PairToken
-
--- expT -> nullT  |      boolT  |      numT  |      strT   |      funcT  |      arrayT  |      objT  |      varT
-expT = try nullT <|> try boolT <|> try numT <|> try strT  <|> try funcT <|> try arrayT <|> try objT <|> try varT
-
--- pairT -> idT ':' expT
-pairT = do (p,i,_,e) <- seq4 (pos, idT, char ':', expT); return $ PairT p i e
 
 {-| Atomic expressions -}
 varT  :: Parser ExpToken

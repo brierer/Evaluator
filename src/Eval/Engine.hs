@@ -1,22 +1,32 @@
-module Eval.Engine where
+module Eval.Engine
+( funcs
+, showF
+, multiF
+, meanF
+, descF
+, tableF
+, nTimesF
+, takeF
+, sortTableF
+, plotLineF
+) where
 
 import Prelude hiding (exp,null)
 
-import Data.Eval           (TypeValidator,Func)
-import Eval.Function       (Marshallable,matrix,array,obj,num)
+import Data.Eval           (FuncEntry,Func)
+import Eval.Function       (Marshallable,array,obj,num)
 
-funcs :: Marshallable a => 
-        [(String,       ([TypeValidator a],Func))]
+funcs :: Marshallable a => [FuncEntry a]
 funcs =   -- 1 arg functions
         [ ("show",       ([array'], showF))
         , ("multi",      ([array'], multiF))
         , ("mean",       ([array'], meanF))
         , ("descriptive",([array'], descF))
           -- 2 arg functions
-        , ("table",      ([matrix,obj'], tableF))
+        , ("table",      ([array',obj'], tableF))
         , ("nTimes",     ([num,num],    nTimesF))
-        , ("take",       ([num,matrix], takeF))
-        , ("sortTable",  ([num,matrix], sortTableF))
+        , ("take",       ([num,array'], takeF))
+        , ("sortTable",  ([num,array'], sortTableF))
           -- 3 arg functions
         , ("plotLine",   ([array',array',obj'],plotLineF))
         ] where array' = array funcs; obj' = obj funcs
