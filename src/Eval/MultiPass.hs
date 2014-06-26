@@ -1,6 +1,6 @@
 module Eval.MultiPass where
 
-import qualified Data.Map as M (empty,lookup,insert,null,toList,keys,delete)
+import qualified Data.Map as M (empty,lookup,insert,null,toList,keys,delete,elems)
 
 import Control.Monad           (foldM,liftM,liftM3,when,zipWithM)
 import Data.Token              (ProgToken(..),FormToken(..),PairToken(..),IdToken(..),ExpToken(..),Pos)
@@ -9,7 +9,7 @@ import Data.Eval               (EvalError(..),Eval,State,Table,ExpObj,TypeValida
 initTable :: ProgToken -> Eval Table
 initTable (ProgT _ fs) = foldM f M.empty fs where 
   f m (FormT _ (IdT p _ name) value) = case M.lookup name m of
-    Nothing -> Right $ M.insert name value m
+    Nothing -> Right $ M.insert name (value,p) m
     Just _  -> Left $ MultipleDefinitions p name
 
 derefVars :: Table -> Eval Table
@@ -17,18 +17,18 @@ derefVars = flip f M.empty where
  f pending finished = do
   (newPending, newFinished) <- foldM derefVar (pending,finished) $ M.toList pending
   if M.null newPending      then return newFinished       else 
-   if pending /= newPending then f newPending newFinished else Left $ CycleInDefinitions $ M.keys pending
+   if pending /= newPending then f newPending newFinished else Left $ CycleInDefinitions $ zip (M.keys pending) (map snd $ M.elems pending)
 
-derefVar :: State -> (String,ExpToken) -> Eval State
-derefVar (pending,finished) (n,v) = do
+derefVar :: State -> (String,(ExpToken,Pos)) -> Eval State
+derefVar (pending,finished) (n,(v,p)) = do
   v' <- deref pending finished v
-  return $ uncurry (,) $ if hasAnyVar v' then (M.insert n v' pending,finished) else (M.delete n pending,M.insert n v' finished)
+  return $ uncurry (,) $ if hasAnyVar v' then (M.insert n (v',p) pending,finished) else (M.delete n pending,M.insert n (v',p) finished)
 
 deref :: Table -> Table -> ExpToken -> Eval ExpToken
 deref ps fs (FuncT p w n es)   = liftM (FuncT p w n) $ mapM (deref ps fs) es
 deref ps fs (ArrayT p w es)    = liftM (ArrayT p w)  $ mapM (deref ps fs) es             
 deref ps fs (ObjT p w ts)      = liftM (ObjT p w)    $ mapM (mapMPair $ deref ps fs) ts
-deref ps fs (VarT p i)         = let IdT _ _ n = i in case M.lookup n fs of Just x -> return x; Nothing -> case M.lookup n ps of Just _ -> return $ VarT p i; Nothing -> Left $ UndefinedVariable n
+deref ps fs (VarT p i)         = let IdT _ _ n = i in case M.lookup n fs of Just (x,_) -> return x; Nothing -> case M.lookup n ps of Just _ -> return $ VarT p i; Nothing -> Left $ UndefinedVariable n
 deref _  _  e                  = return e
 
 hasAnyVar :: ExpToken -> Bool
@@ -39,7 +39,7 @@ hasAnyVar (VarT _ _)       = True
 hasAnyVar _                = False
 
 validateFunctions :: [String] -> Table -> Eval ()
-validateFunctions fns t = let table = M.toList t in do
+validateFunctions fns t = let table = map (\(a,(b,_))->(a,b)) $ M.toList t in do
   validateNames fns table
   validateNonTopShows table
   validateTopShow table

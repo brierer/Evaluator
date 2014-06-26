@@ -6,7 +6,7 @@ import Data.Token              (ExpToken,Pos)
 
 data EvalError = MultipleDefinitions Pos String
                | UndefinedVariable String
-               | CycleInDefinitions [String]
+               | CycleInDefinitions [(String,Pos)]
                | UndefinedFunction String String
                | NonTopLevelShow String
                | NoShow
@@ -15,7 +15,7 @@ data EvalError = MultipleDefinitions Pos String
                  deriving (Eq,Show)
 
 type State = (Table,Table)
-type Table = M.Map String ExpToken
+type Table = M.Map String (ExpToken,Pos)
 type Eval = Either EvalError
 
 data ExpObj = ArrayO Pos [ExpObj]

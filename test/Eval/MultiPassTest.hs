@@ -11,7 +11,7 @@ prop_MultiDefs (MultiDefs  prog p x)                          = nonEmpty prog ==
 prop_ValidDefs (UniqueDefs prog)                              =                   Right (fromProgForms prog)     == initTable (toToken prog)
                                                                                                               
 prop_UndefVars (UndefVars prog x)                             = nonEmpty prog ==> Left (UndefinedVariable x)     == derefVars (initTable' prog)
-prop_CycleVars (CycleVars prog xs)                            = nonEmpty prog ==> Left (CycleInDefinitions xs)   == derefVars (initTable' prog)
+prop_CycleVars (CycleVars prog ps)                            = nonEmpty prog ==> Left (CycleInDefinitions ps)   == derefVars (initTable' prog)
 prop_ValidVars (ValidVars prog)                               =                   Right (derefValidProg' prog)   == derefVars (initTable' prog)
 
 prop_UndefFuncs (UndefFuncs      (ValidFuncs prog ns) vn fn)  = nonEmpty prog ==> Left (UndefinedFunction vn fn) == validateFunctions ns (initTable' prog) 

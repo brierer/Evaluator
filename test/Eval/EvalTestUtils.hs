@@ -97,7 +97,7 @@ getRefed = S.toList . f S.empty
         g acc (VarT _ (IdT _ _ n)) = S.insert n acc
         g acc _                    = acc
 
-data CycleVars = CycleVars ValidVars [String] deriving (Show)
+data CycleVars = CycleVars ValidVars [(String,Pos)] deriving (Show)
 instance Arbitrary CycleVars where
   arbitrary              = mCycleProg arbitrary   elements
   shrink (CycleVars p _) = mCycleProg (sShrink p) id
@@ -106,7 +106,7 @@ mCycleProg pa f = let empty = CycleVars (fromForms []) [] in do
   nullGuard fs empty $ do
     let ns = map formName fs
     fs' <- zipWithM (makeCycle f) fs $ tail $ cycle ns
-    return $ CycleVars (fromForms fs') (sort ns)
+    return $ CycleVars (fromForms fs') (sort $ zip ns $ map formPos fs)
 makeCycle f (FormT _ n e) m = liftM (FormT p0 n) $ replaceVars [m] f e
 
 data ValidFuncs = ValidFuncs ValidVars [String] deriving (Eq,Show)
@@ -218,7 +218,7 @@ instance Arbitrary NoShowFuncs where
 mNoShowFuncs = liftM (fromForms.removeTopShow.forms)
 
 {- | Utils -}
-fromProgForms = M.fromList.map toTuple.forms
+fromProgForms = M.fromList.map toTriple.forms
 derefValidProg = fromForms.derefAll.forms
 derefValidProg' = initTable'.derefValidProg
 initTable' = (\(Right x)->x).initTable.toToken
@@ -245,7 +245,9 @@ derefP   fs (PairT _ n e)        = PairT p0 n $ derefOne fs e
 nullGuard xs ifNull action = if null xs then return ifNull else action
 
 toTuple (FormT _ (IdT _ _ a) b) = (a,b)
+toTriple(FormT _ (IdT p _ a) b) = (a,(b,p))
 formName = fst.toTuple
+formPos = snd.snd.toTriple
 
 nonEmpty = not.null.forms
 
