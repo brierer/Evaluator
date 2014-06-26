@@ -46,7 +46,7 @@ validateFunctions fns t = let table = map (\(a,(b,_))->(a,b)) $ M.toList t in do
 
 validateNames :: [String] -> [(String,ExpToken)] -> Eval ()
 validateNames fns = mapM_ (uncurry f)   where
-  f v (FuncT _ _ (IdT _ _ fn) es) | isValidShow v fn fns = mapM_ (f v) es | otherwise = Left $ UndefinedFunction v fn
+  f v (FuncT _ _ (IdT p _ fn) es) | isValidShow v fn fns = mapM_ (f v) es | otherwise = Left $ UndefinedFunction p fn
   f v (ArrayT _ _ es)                                    = mapM_ (f v) es
   f v (ObjT _ _ ps)                                      = mapM_ (f v.pairVal) ps
   f _ _                                                  = return ()

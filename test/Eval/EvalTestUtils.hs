@@ -141,20 +141,20 @@ removeTopShow []                                                           = []
 removeTopShow (FormT _ (IdT _ _ "show") (FuncT _ _ (IdT _ _ "show") _):fs) = fs
 removeTopShow (f:fs)                                                       = f:removeTopShow fs
 
-data UndefFuncs = UndefFuncs ValidFuncs String String deriving (Eq,Show)
+data UndefFuncs = UndefFuncs ValidFuncs Pos String deriving (Eq,Show)
 instance Arbitrary UndefFuncs where
   arbitrary                      =          mUndefFuncs arbitrary                          elements    elements
   shrink p@(UndefFuncs prog _ _) = diff p $ mUndefFuncs (sShrink $ removeUnderscores prog) tail        tail
-mUndefFuncs pa f1 f2 = let empty = UndefFuncs (fromForms []) "" "" in do
+mUndefFuncs pa f1 f2 = let empty = UndefFuncs (fromForms []) p0 "" in do
   ValidFuncs prog fns <- pa
   nullGuard fns empty $ do
     fn <- f1 fns
     let fs = forms prog
         fn' = fn ++ "_"
     moo <- f2 $ filter (usesFunc fn) fs
-    let (f,_) = flip runState p0 $ replaceOneFunc fn fn' moo
+    let (f,p) = flip runState p0 $ replaceOneFunc fn fn' moo
         fs' = map (\f' -> if formName f == formName f' then f else f') fs
-    return $ UndefFuncs (ValidFuncs (fromForms fs') fns) (formName f) fn'
+    return $ UndefFuncs (ValidFuncs (fromForms fs') fns) p fn'
 
 removeUnderscores = fromForms.map f.forms where
   f (FormT p n e)               = FormT p n $ g e
