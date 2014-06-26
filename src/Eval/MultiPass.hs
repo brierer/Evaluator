@@ -58,10 +58,10 @@ validateNonTopShows :: [(String,ExpToken)] -> Eval ()
 validateNonTopShows = mapM_ (uncurry top) where
   top v (FuncT _ _ _ es) = mapM_ (f v) es
   top v e              = f v e
-  f v (FuncT _ _ (IdT _ _ fn) es) | fn /= "show" = mapM_ (f v) es | otherwise = Left $ NonTopLevelShow v
-  f v (ArrayT _ _ es)                          = mapM_ (f v) es
-  f v (ObjT _ _ ps)                            = mapM_ (f v.pairVal) ps
-  f _ _                                        = return ()
+  f v (FuncT _ _ (IdT p _ fn) es) | fn /= "show" = mapM_ (f v) es | otherwise = Left $ NonTopLevelShow p
+  f v (ArrayT _ _ es)                            = mapM_ (f v) es
+  f v (ObjT _ _ ps)                              = mapM_ (f v.pairVal) ps
+  f _ _                                          = return ()
 
 validateTopShow :: [(String,ExpToken)] -> Eval ()
 validateTopShow []                                        = Left NoShow

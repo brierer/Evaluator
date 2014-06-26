@@ -8,7 +8,7 @@ data EvalError = MultipleDefinitions Pos String
                | UndefinedVariable String
                | CycleInDefinitions [(Pos,String)]
                | UndefinedFunction String String
-               | NonTopLevelShow String
+               | NonTopLevelShow Pos
                | NoShow
                | InvalidNbOfArgs Pos String Int Int
                | TypeMismatch Pos String String

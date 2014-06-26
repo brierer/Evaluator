@@ -11,6 +11,7 @@ import Data.Maybe                                     (fromMaybe)
 import Data.Token                                     (ProgToken(..),FormToken(..),PairToken(..),IdToken(..),ExpToken(..),Pos)
 import Control.Applicative                            ((<$>),(<*>))
 import Control.Monad                                  (liftM,zipWithM)
+import Control.Monad.State                            (State,runState,get,put)
 import Eval.MultiPass                                 (initTable,formVal,pairVal,mapPair,mapMPair)
 import Parser.ParserTestUtils                         (ProgTA(..),sShrink)
 import Test.Framework                                 (Arbitrary,arbitrary,shrink,elements)
@@ -150,8 +151,9 @@ mUndefFuncs pa f1 f2 = let empty = UndefFuncs (fromForms []) "" "" in do
     fn <- f1 fns
     let fs = forms prog
         fn' = fn ++ "_"
-    f <- liftM (replaceFunc fn fn') $ f2 $ filter (usesFunc fn) fs
-    let fs' = map (\f' -> if formName f == formName f' then f else f') fs
+    moo <- f2 $ filter (usesFunc fn) fs
+    let (f,_) = flip runState p0 $ replaceOneFunc fn fn' moo
+        fs' = map (\f' -> if formName f == formName f' then f else f') fs
     return $ UndefFuncs (ValidFuncs (fromForms fs') fns) (formName f) fn'
 
 removeUnderscores = fromForms.map f.forms where
@@ -161,14 +163,19 @@ removeUnderscores = fromForms.map f.forms where
   g (ObjT p w ps)               = ObjT p w $ map (mapPair g) ps
   g e                           = e
 
-replaceFunc :: String -> String -> FormToken -> FormToken
-replaceFunc fn n' (FormT p n e)              = FormT p n $ replaceFuncE fn n' e
+replaceOneFunc :: String -> String -> FormToken -> State Pos FormToken
+replaceOneFunc fn n' (FormT p n e)              = liftM (FormT p n) $ replaceOneFuncE fn n' e
 
-replaceFuncE :: String -> String -> ExpToken -> ExpToken
-replaceFuncE fn n' (FuncT p w (IdT q w' n) es) = FuncT p w (IdT q w' (if fn == n then n' else n)) $ map (replaceFuncE fn n') es
-replaceFuncE fn n' (ArrayT p w es)             = ArrayT p w $ map (replaceFuncE fn n') es
-replaceFuncE fn n' (ObjT p w ps)               = ObjT p w   $ map (mapPair $ replaceFuncE fn n') ps
-replaceFuncE _  _  e                           = e
+replaceOneFuncE :: String -> String -> ExpToken -> State Pos ExpToken
+replaceOneFuncE fn n' (FuncT p w (IdT q w' n) es) = do
+  oldP <- get
+  let (newN,newP) = case (fn == n,oldP == p0) of (True,True) -> (n',q); (True,_) -> (n',oldP); _ -> (n,oldP)
+  put newP
+  liftM (FuncT p w (IdT q w' newN)) $ mapM (replaceOneFuncE fn n') es
+  
+replaceOneFuncE fn n' (ArrayT p w es)             = liftM (ArrayT p w) $ mapM (replaceOneFuncE fn n') es
+replaceOneFuncE fn n' (ObjT p w ps)               = liftM (ObjT p w)   $ mapM (mapMPair $ replaceOneFuncE fn n') ps
+replaceOneFuncE _  _  e                           = return e
 
 usesFunc :: String -> FormToken -> Bool
 usesFunc fn (FormT _ _ e) = usesFuncE fn e
@@ -179,18 +186,19 @@ usesFuncE fn (ArrayT _ _ es)            =            any (usesFuncE fn) es
 usesFuncE fn (ObjT _ _ ps)              =            any (usesFuncE fn.pairVal) ps
 usesFuncE _  _                          = False
 
-data NonTopShowFuncs = NonTopShowFuncs ValidFuncs String deriving (Eq,Show)
+data NonTopShowFuncs = NonTopShowFuncs ValidFuncs Pos deriving (Eq,Show)
 instance Arbitrary NonTopShowFuncs where
   arbitrary                         =          mNonTopShowFuncs arbitrary                    elements    elements
   shrink p@(NonTopShowFuncs prog _) = diff p $ mNonTopShowFuncs (sShrink $ removeShows prog) tail        tail
-mNonTopShowFuncs pa f1 f2 = let empty = NonTopShowFuncs (fromForms []) "" in do
+mNonTopShowFuncs pa f1 f2 = let empty = NonTopShowFuncs (fromForms []) p0 in do
   ValidFuncs prog fns <- pa
   nullGuard fns empty $ do
     fn <- f1 fns
     let fs = forms prog
-    f <- liftM (replaceNonTopFunc fn "show") $ f2 $ filter (usesFuncNonTop fn) fs
-    let fs' = map (\f' -> if formName f == formName f' then f else f') fs
-    return $ NonTopShowFuncs (ValidFuncs (fromForms fs') fns) (formName f)
+    moo <- f2 $ filter (usesFuncNonTop fn) fs
+    let (f,p) = flip runState p0 $ replaceOneNonTopFunc fn "show" moo
+        fs' = map (\f' -> if formName f == formName f' then f else f') fs
+    return $ NonTopShowFuncs (ValidFuncs (fromForms fs') fns) p
 
 removeShows = fromForms.map f.forms where
   f (FormT p n (FuncT q w m es)) = FormT p n $ FuncT q w m $ map g es
@@ -200,9 +208,9 @@ removeShows = fromForms.map f.forms where
   g (ObjT p w ps)                = ObjT p w $ map (mapPair g) ps
   g e                            = e
   
-replaceNonTopFunc :: String -> String -> FormToken -> FormToken
-replaceNonTopFunc fn n' (FormT p n (FuncT q w m es)) = FormT p n $ FuncT q w m $ map (replaceFuncE fn n') es
-replaceNonTopFunc fn n' (FormT p n e)                = FormT p n $ replaceFuncE fn n' e
+replaceOneNonTopFunc :: String -> String -> FormToken -> State Pos FormToken
+replaceOneNonTopFunc fn n' (FormT p n (FuncT q w m es)) = liftM (FormT p n .FuncT q w m) $ mapM (replaceOneFuncE fn n') es
+replaceOneNonTopFunc fn n' (FormT p n e)                = liftM (FormT p n) $ replaceOneFuncE fn n' e
 
 usesFuncNonTop :: String -> FormToken -> Bool
 usesFuncNonTop fn (FormT _ _ (FuncT _ _ _ es)) = any (usesFuncE fn) es
