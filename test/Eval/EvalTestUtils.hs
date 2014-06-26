@@ -60,9 +60,9 @@ instance HasProg ValidVars where
   forms (ValidVars prog) = forms prog
   fromForms = ValidVars .fromForms
 instance Arbitrary ValidVars where
-  arbitrary               = mValidProg arbitrary      elements
-  shrink (ValidVars prog) = mValidProg (sShrink prog) id
-mValidProg pa f = liftM fromForms (pa >>= replaceAllVars f . forms)
+  arbitrary               = mValidVars arbitrary      elements
+  shrink (ValidVars prog) = mValidVars (sShrink prog) id
+mValidVars pa f = liftM fromForms (pa >>= replaceAllVars f . forms)
 
 replaceAllVars _ []  = return []
 replaceAllVars f (FormT p n v:fs) = do
@@ -79,9 +79,9 @@ replaceVars _  _ e                    = return e
 
 data UndefVars = UndefVars ValidVars String deriving (Show)
 instance Arbitrary UndefVars where
-  arbitrary                 = mUndefProg arbitrary      elements
-  shrink (UndefVars prog _) = mUndefProg (sShrink prog) id
-mUndefProg pa f = let empty = UndefVars (fromForms []) "" in do
+  arbitrary                 = mUndefVars arbitrary      elements
+  shrink (UndefVars prog _) = mUndefVars (sShrink prog) id
+mUndefVars pa f = let empty = UndefVars (fromForms []) "" in do
   fs <- liftM forms pa
   let ns = getRefed fs
   nullGuard ns empty $ do
@@ -99,9 +99,9 @@ getRefed = S.toList . f S.empty
 
 data CycleVars = CycleVars ValidVars [(Pos,String)] deriving (Show)
 instance Arbitrary CycleVars where
-  arbitrary                 = mCycleProg arbitrary      elements
-  shrink (CycleVars prog _) = mCycleProg (sShrink prog) id
-mCycleProg pa f = let empty = CycleVars (fromForms []) [] in do
+  arbitrary                 = mCycleVars arbitrary      elements
+  shrink (CycleVars prog _) = mCycleVars (sShrink prog) id
+mCycleVars pa f = let empty = CycleVars (fromForms []) [] in do
   fs <- liftM (filter hasVarF.forms) pa
   nullGuard fs empty $ do
     let ns = map formName fs
@@ -258,9 +258,9 @@ p0 = (0,0)
 {-| Monomorphism restriction -}
 mUniqueDefs :: Monad m => m ProgTA     -> m UniqueDefs
 mMultiDefs  :: Monad m => m UniqueDefs -> m MultiDefs
-mValidProg  :: Monad m => m UniqueDefs -> ([String] -> m String) -> m ValidVars
-mUndefProg  :: Monad m => m ValidVars  -> ([String] -> m String) -> m UndefVars
-mCycleProg  :: Monad m => m ValidVars  -> ([String] -> m String) -> m CycleVars
+mValidVars  :: Monad m => m UniqueDefs -> ([String] -> m String) -> m ValidVars
+mUndefVars  :: Monad m => m ValidVars  -> ([String] -> m String) -> m UndefVars
+mCycleVars  :: Monad m => m ValidVars  -> ([String] -> m String) -> m CycleVars
 
 mValidFuncs  :: Monad m => m ValidVars -> m ValidFuncs
 mUndefFuncs  :: Monad m => m ValidFuncs -> ([String] -> m String) -> ([FormToken] -> m FormToken) -> m UndefFuncs
