@@ -2,14 +2,14 @@
 {-# OPTIONS_GHC -fno-warn-incomplete-patterns #-}
 module Eval.FunctionEvalTestUtils where
 
-import Prelude hiding                   (null)
+import Prelude hiding                   (any,null)
 
 import Control.Arrow                    (second)
 import Control.Applicative              (Applicative)
 import Control.Monad                    (liftM,liftM2,join)
-import Data.Eval                        (ExpObj(..))
+import Data.Eval                        (ExpObj(..),Type(..))
 import Data.Token                       (PairToken(..),IdToken(..),ExpToken(..))
-import Eval.Function                    (Marshallable(..),applyFunc,types)
+import Eval.Function                    (Marshallable(..),any,lit,applyFunc)
 import Eval.MultiPass                   (mapPair)
 import Parser.MonolithicParserTestUtils (Unto(..),Tall(..),ExpTA(..),ArrayTA(..),ObjTA(..),StrTA(..),NumTA(..),BoolTA(..),NullTA(..),P(..),
                                          sShrink,tShrink,tShrinks,sizes,sized1,liftMF2,liftMF3,liftMF4)
@@ -174,7 +174,7 @@ simplify (VarT _ (IdT p w _)) = NullT  p w
 simplify e                    = e
 
 
-data TokOrObj = Tok ExpToken | Obj ExpObj deriving (Show)
+data TokOrObj = Tok ExpToken | Obj ExpObj deriving (Eq,Show)
 instance Marshallable TokOrObj where
   table    = error "Eval.FunctionEvalTestUtils::table<TOkOrObj>    [Should not be called]"
   plot     = error "Eval.FunctionEvalTestUtils::plot<TOkOrObj>     [Should not be called]"
@@ -206,12 +206,19 @@ mkFuncs os es = zipWith f funcNamesNoLit os ++ zipWith g funcNamesLit es
   where f name e = (name,([],const $ return e))
         g name e = (name,([],testF' e))
 
-mkEntries n es os = removeEntry n $ zip3 (funcNamesNoLit++funcNamesLit) types (map Obj os++ map Tok es)
+mkEntries ns es os = foldr removeEntry (zip3 (funcNamesNoLit++funcNamesLit) types (map Obj os++ map Tok es)) ns
+types = [Table,Plot,Array,Object,String,Number,Boolean,Null]
 removeEntry n = filter $ \(m,_,_) -> n /= m
 
 getTall (FuncT _ _ _ es)  = length es
 getTall (ArrayT _ _ es)   = length es
 getTall (ObjT _ _ ps)     = length ps
+
+anyCase os es (name,_,Obj e) = Right e == any [] (testFunc os es (getP e) name)
+anyCase os es (name,_,Tok e) = testF e == any [] (testFunc os es (getP e) name)
+
+litCase os es (name,_,Obj e) = Right e == lit [] (testFunc os es (getP e) name)
+litCase os es (name,_,Tok e) = testF e == lit [] (testFunc os es (getP e) name)
 
 toTupleF (PairT _ (IdT _ _ x) y) = liftM2 (,) (return x) (testF y)
 

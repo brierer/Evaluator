@@ -1,7 +1,9 @@
 module Eval.Function
 ( Marshallable(..)
+, any,   anyType
+, noLit, noLitType
+, lit,   litType
 , applyFunc
-, types
 ) where
 
 import Prelude hiding      (any,null)
@@ -11,9 +13,6 @@ import Data.Eval           (Type(..),ExpObj(..),EvalError(..),Eval,FuncEntry,Typ
 import Data.Token          (PairToken(..),IdToken(..),ExpToken(..),Pos)
 
 class Marshallable a where
-  any :: [FuncEntry a] -> TypeValidator a
-  any fs = array fs <|> obj fs <|> str <|> num <|> bool <|> null
-  
   table    :: [FuncEntry a] -> TypeValidator a
   plot     :: [FuncEntry a] -> TypeValidator a
   array    :: [FuncEntry a] -> TypeValidator a
@@ -22,15 +21,15 @@ class Marshallable a where
   num      :: TypeValidator a
   bool     :: TypeValidator a
   null     :: TypeValidator a
-  
+
   getP :: a -> Pos
   getT :: a -> Type
 
 instance Marshallable ExpToken where
-  table _    = error "Eval.Function::table<ExpToken> [Should not be called]"
-  plot _     = error "Eval.Function::plot<ExpToken>  [Should not be called]"
+  table _    = typeMismatch litType
+  plot _     = typeMismatch litType
 
-  array fs (ArrayT p _ es)  = liftM (ArrayO p) $ mapM (any fs)     es; array _ e = typeMismatch Array   e
+  array fs (ArrayT p _ es)  = liftM (ArrayO p) $ mapM (lit fs)     es; array _ e = typeMismatch Array   e
   obj fs   (ObjT p _ ps)    = liftM (ObjO p)   $ mapM (toTuple fs) ps; obj _ e   = typeMismatch Object  e
   str      (StrT p _ s)     = return $ StrO p s;                       str e     = typeMismatch String  e
   num      (NumT p _ _ n)   = return $ NumO p n;                       num e     = typeMismatch Number  e
@@ -81,9 +80,30 @@ instance Marshallable ExpObj where
   getT (BoolO{})   = Boolean
   getT (NullO{})   = Null
 
+any   :: Marshallable a => [FuncEntry a] -> TypeValidator a
+noLit :: Marshallable a => [FuncEntry a] -> TypeValidator a
+lit   :: Marshallable a => [FuncEntry a] -> TypeValidator a
+
+any   fs = table fs <|> plot fs <|> array fs <|> obj fs <|> str <|> num <|> bool <|> null <!> anyType
+noLit fs = table fs <|> plot fs                                                           <!> noLitType
+lit   fs =                          array fs <|> obj fs <|> str <|> num <|> bool <|> null <!> litType
+
+anyType   :: Type
+litType   :: Type
+noLitType :: Type
+
+anyType   = foldl1 Or [noLitType,litType]
+noLitType = foldl1 Or [Table,Plot]
+litType   = foldl1 Or [Array,Object,String,Number,Boolean,Null]
+
+
 (<|>) :: TypeValidator a -> TypeValidator a -> TypeValidator a
 infixl 3 <|>
 (a <|> b) x = case a x of r@(Right _) -> r; Left _ -> b x
+
+infixl 3 <!>
+(<!>) :: Marshallable a => TypeValidator a -> Type -> TypeValidator a
+(<!>) v = (<|>) v . typeMismatch
 
 {-| Function validation and application -}
 applyFunc :: [(String,([TypeValidator ExpToken],Func))] -> ExpToken -> Eval ExpObj
@@ -101,8 +121,5 @@ validateArgsLength p i lv le = when (lv /= le) $ Left $ InvalidNbOfArgs p i lv l
 typeMismatch :: Marshallable a => Type -> TypeValidator a
 typeMismatch expected e = Left $ TypeMismatch (getP e) expected (getT e)
 
-types :: [Type]
-types = [Table,Plot,Array,Object,String,Number,Boolean,Null]
-
 toTuple :: [FuncEntry ExpToken] -> PairToken -> Eval (String,ExpObj)
-toTuple fs (PairT _ (IdT _ _ x) y) = liftM2 (,) (return x) (any fs y)
+toTuple fs (PairT _ (IdT _ _ x) y) = liftM2 (,) (return x) (lit fs y)
