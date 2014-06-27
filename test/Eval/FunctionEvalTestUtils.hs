@@ -11,7 +11,7 @@ import Data.Eval                        (ExpObj(..))
 import Data.Token                       (PairToken(..),IdToken(..),ExpToken(..))
 import Eval.Function                    (Marshallable(..),applyFunc,types)
 import Eval.MultiPass                   (mapPair)
-import Parser.MonolithicParserTestUtils (Unto(..),Size(..),ExpTA(..),ArrayTA(..),ObjTA(..),StrTA(..),NumTA(..),BoolTA(..),NullTA(..),P(..),
+import Parser.MonolithicParserTestUtils (Unto(..),Tall(..),ExpTA(..),ArrayTA(..),ObjTA(..),StrTA(..),NumTA(..),BoolTA(..),NullTA(..),P(..),
                                          sShrink,tShrink,tShrinks,sizes,sized1,liftMF2,liftMF3,liftMF4)
 import Test.Framework                   (Arbitrary(..),Gen,elements)
 
@@ -56,7 +56,7 @@ instance Is ExpObj where
 
 data TestToks = TestToks [ExpToken] deriving (Show)
 instance Arbitrary TestToks where
-  arbitrary                         = mTestToks (size zero) (size zero)  arbitrary   arbitrary    arbitrary   arbitrary
+  arbitrary                         = mTestToks (tall zero) (tall zero)  arbitrary   arbitrary    arbitrary   arbitrary
   shrink (TestToks [a,o,s,nb,b,nu]) = mTestToks (tShrink a) (tShrink o) (tShrink s) (tShrink nb) (tShrink b) (tShrink nu)
   shrink x                          = error $ "FunctionEvalTestUtils::shrink<TestToks> [Pattern mismatch ["++show x++"]]"
 mTestToks a o s n b n' = liftM TestToks $ sequence [liftM un a, liftM un o, liftM un s, liftM un n, liftM un b, liftM un n']
@@ -64,22 +64,22 @@ zero = 0 :: Int
 
 data TestObjs = TestObjs [ExpObj] deriving (Show)
 instance Arbitrary TestObjs where
-  arbitrary               = mTestObjs (size zero) (size zero)
+  arbitrary               = mTestObjs (tall zero) (tall zero)
   shrink (TestObjs [t,p]) = mTestObjs (tShrink t) (tShrink p)
   shrink x                = error $ "FunctionEvalTestUtils::shrink<TestObjs> [Pattern mismatch ["++show x++"]]"
 mTestObjs t p = liftM TestObjs $ sequence [liftM un t, liftM un p]
 
 data ExpOA = ExpOA ExpObj deriving (Show)
 instance Unto ExpOA ExpObj where to = ExpOA; un (ExpOA e) = e
-instance Arbitrary ExpOA where arbitrary = sized1 size; shrink (ExpOA e) = mExpOA (shrinkO e)
-instance Size      ExpOA where                                    size n = mExpOA (randomO n)
+instance Arbitrary ExpOA where arbitrary = sized1 tall; shrink (ExpOA e) = mExpOA (shrinkO e)
+instance Tall      ExpOA where                                    tall n =  mExpOA (randomO n)
 randomO n = join $ elements $ [mStrO, mNumO, mBoolO, mNullO] ++ if n > 0 then [mTableO n,mPlotO n, mArrayO n, mObjO n] else []
 mExpOA = liftM ExpOA
 
-mTableO n = liftM un (size (n-1) :: Gen TableOA)
-mPlotO  n = liftM un (size (n-1) :: Gen PlotOA)
-mArrayO n = liftM un (size (n-1) :: Gen ArrayOA)
-mObjO   n = liftM un (size (n-1) :: Gen ObjOA)
+mTableO n = liftM un (tall (n-1) :: Gen TableOA)
+mPlotO  n = liftM un (tall (n-1) :: Gen PlotOA)
+mArrayO n = liftM un (tall (n-1) :: Gen ArrayOA)
+mObjO   n = liftM un (tall (n-1) :: Gen ObjOA)
 mStrO     = liftM un (arbitrary  :: Gen StrOA)
 mNumO     = liftM un (arbitrary  :: Gen NumOA)
 mBoolO    = liftM un (arbitrary  :: Gen BoolOA)
@@ -96,29 +96,29 @@ shrinkO x@(NullO{})   = liftM un $ sShrink (to x :: NullOA)
 
 data TableOA = TableOA ExpObj deriving (Show)
 instance Unto  TableOA ExpObj where to = TableOA; un (TableOA t) = t
-instance Arbitrary TableOA where arbitrary = sized1 size; shrink (TableOA (TableO p a o)) = mTableOA (tShrink p) (tShrink a) (tShrink o)
-instance Size TableOA      where                                                   size n = mTableOA  arbitrary  (size n)    (size n)
+instance Arbitrary TableOA where arbitrary = sized1 tall; shrink (TableOA (TableO p a o)) = mTableOA (tShrink p) (tShrink a) (tShrink o)
+instance Tall TableOA      where                                                   tall n =  mTableOA  arbitrary  (tall n)    (tall n)
 mTableOA = liftMF3 mkTable un un un where mkTable x y = TableOA .TableO x y
 
 data PlotOA = PlotOA ExpObj deriving (Show)
 instance Unto PlotOA ExpObj where to = PlotOA; un (PlotOA p) = p
-instance Arbitrary PlotOA where arbitrary = sized1 size; shrink (PlotOA (PlotO p xs ys ps)) = mPlotOA (tShrink p) (tShrink xs)   (tShrink ys)   (tShrink ps)
-instance Size      PlotOA where                                                      size n = mPlotOA  arbitrary  (size n)       (size n)       (size n)
+instance Arbitrary PlotOA where arbitrary = sized1 tall; shrink (PlotOA (PlotO p xs ys ps)) = mPlotOA (tShrink p) (tShrink xs)   (tShrink ys)   (tShrink ps)
+instance Tall      PlotOA where                                                      tall n =  mPlotOA  arbitrary  (tall n)       (tall n)       (tall n)
 mPlotOA = liftMF4 mkPlot un un un un where mkPlot x y z = PlotOA .PlotO x y z
 
 data ArrayOA = ArrayOA ExpObj deriving (Show)
 instance Unto  ArrayOA ExpObj where to = ArrayOA; un (ArrayOA a) = a
-instance Arbitrary ArrayOA where arbitrary = sized1 size; shrink (ArrayOA (ArrayO p es)) = mArrayOA (tShrink p) (tShrinks es)
-instance Size      ArrayOA where                                                  size n = mArrayOA  arbitrary  (sizes n)
+instance Arbitrary ArrayOA where arbitrary = sized1 tall; shrink (ArrayOA (ArrayO p es)) = mArrayOA (tShrink p) (tShrinks es)
+instance Tall      ArrayOA where                                                  tall n =  mArrayOA  arbitrary  (sizes n)
 mArrayOA = liftMF2 mkArray un (map un) where mkArray x = ArrayOA .ArrayO x
 
 data ObjOA =  ObjOA ExpObj deriving (Show)
 instance Unto ObjOA ExpObj where to = ObjOA; un (ObjOA o) = o
-instance Arbitrary ObjOA where arbitrary = sized1 size; shrink (ObjOA (ObjO p ps)) = mObjOA (tShrink p) (tShrinks ps)
-instance Size      ObjOA where                                              size n = mObjOA  arbitrary  (sizes n)
+instance Arbitrary ObjOA where arbitrary = sized1 tall; shrink (ObjOA (ObjO p ps)) = mObjOA (tShrink p) (tShrinks ps)
+instance Tall      ObjOA where                                              tall n =  mObjOA  arbitrary  (sizes n)
 mObjOA = liftMF2 mkObj un (map (second un)) where mkObj x = ObjOA .ObjO x
 instance Unto (String,ExpOA) (String,ExpObj) where un = second un; to = second to
-instance Size (String,ExpOA) where size n = liftM2 (,) arbitrary (size n)
+instance Tall (String,ExpOA) where tall n =  liftM2 (,) arbitrary (tall n)
 
 data StrOA =  StrOA ExpObj deriving (Show)
 instance Unto StrOA ExpObj where to = StrOA; un (StrOA s) = s
@@ -157,14 +157,14 @@ mExpTS = liftM (ExpTS .simplify.un)
 
 data ArrayTS = ArrayTS ExpToken deriving (Show)
 instance Unto ArrayTS ExpToken where to = ArrayTS; un (ArrayTS a) = a
-instance Arbitrary ArrayTS where arbitrary = sized1 size; shrink (ArrayTS e) = mArrayTS (tShrink e)
-instance Size      ArrayTS where                                      size n = mArrayTS (size n)
+instance Arbitrary ArrayTS where arbitrary = sized1 tall; shrink (ArrayTS e) = mArrayTS (tShrink e)
+instance Tall      ArrayTS where                                      tall n =  mArrayTS (tall n)
 mArrayTS = liftM (ArrayTS .simplify.un)
 
 data ObjTS = ObjTS ExpToken deriving (Show)
 instance Unto ObjTS ExpToken where to = ObjTS; un (ObjTS o) = o
-instance Arbitrary ObjTS where arbitrary = sized1 size; shrink (ObjTS e) = mObjTS (tShrink e)
-instance Size      ObjTS where                                    size n = mObjTS (size n)
+instance Arbitrary ObjTS where arbitrary = sized1 tall; shrink (ObjTS e) = mObjTS (tShrink e)
+instance Tall      ObjTS where                                    tall n =  mObjTS (tall n)
 mObjTS = liftM (ObjTS .simplify.un)
 
 simplify (FuncT p _ _ _)      = NullT  p w2
@@ -209,9 +209,9 @@ mkFuncs os es = zipWith f funcNamesNoLit os ++ zipWith g funcNamesLit es
 mkEntries n es os = removeEntry n $ zip3 (funcNamesNoLit++funcNamesLit) types (map Obj os++ map Tok es)
 removeEntry n = filter $ \(m,_,_) -> n /= m
 
-getSize (FuncT _ _ _ es)  = length es
-getSize (ArrayT _ _ es)   = length es
-getSize (ObjT _ _ ps)     = length ps
+getTall (FuncT _ _ _ es)  = length es
+getTall (ArrayT _ _ es)   = length es
+getTall (ObjT _ _ ps)     = length ps
 
 toTupleF (PairT _ (IdT _ _ x) y) = liftM2 (,) (return x) (testF y)
 

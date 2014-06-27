@@ -12,23 +12,23 @@ import Test.Framework                  (Arbitrary,Gen,Positive(..),arbitrary,shr
 import Text.ParserCombinators.Parsec   (parse)
 
 class Unto a b where to :: b -> a; un :: a -> b
-class Size a   where size :: Int -> Gen a
+class Tall a   where tall :: Int -> Gen a
 
 data ProgTA = ProgTA ProgToken deriving (Eq,Show)
-instance Arbitrary ProgTA where arbitrary = sized1 size; shrink (ProgTA (ProgT p fs)) = mProgTA (tShrink p) (tShrinks fs)
-instance Size      ProgTA where                                                size n = mProgTA  arbitrary  (sizes n) 
+instance Arbitrary ProgTA where arbitrary = sized1 tall; shrink (ProgTA (ProgT p fs)) = mProgTA (tShrink p) (tShrinks fs)
+instance Tall      ProgTA where                                                tall n =  mProgTA  arbitrary  (sizes n) 
 mProgTA = liftMF2 mkProg un uns where mkProg x = ProgTA . ProgT x
 
 data FormTA = FormTA FormToken deriving (Show)
 instance Unto FormTA FormToken where to = FormTA; un (FormTA f) = f
-instance Arbitrary FormTA where arbitrary = sized1 size; shrink (FormTA (FormT p i e)) = mFormTA (tShrink p) (tShrink i) (tShrink e)
-instance Size      FormTA where                                                 size n = mFormTA  arbitrary   arbitrary  (size n) 
+instance Arbitrary FormTA where arbitrary = sized1 tall; shrink (FormTA (FormT p i e)) = mFormTA (tShrink p) (tShrink i) (tShrink e)
+instance Tall      FormTA where                                                 tall n =  mFormTA  arbitrary   arbitrary  (tall n) 
 mFormTA = liftMF3 mkForm un un un where mkForm x y = FormTA .FormT x y
 
 data PairTA = PairTA PairToken deriving (Show)
 instance Unto PairTA PairToken where to = PairTA; un (PairTA p) = p
-instance Arbitrary PairTA where arbitrary = sized1 size; shrink (PairTA (PairT p i v)) = mPairTA (tShrink p) (tShrink i) (tShrink v)
-instance Size      PairTA where                                                 size n = mPairTA  arbitrary   arbitrary  (size n) 
+instance Arbitrary PairTA where arbitrary = sized1 tall; shrink (PairTA (PairT p i v)) = mPairTA (tShrink p) (tShrink i) (tShrink v)
+instance Tall      PairTA where                                                 tall n =  mPairTA  arbitrary   arbitrary  (tall n) 
 mPairTA = liftMF3 mkPair un un un where mkPair x y = PairTA .PairT x y
 
 data IdTA =   IdTA IdToken deriving (Show)
@@ -43,14 +43,14 @@ alphaDigit = alpha ++ ['0'..'9']
 
 data ExpTA =  ExpTA ExpToken deriving (Show)
 instance Unto ExpTA ExpToken where to = ExpTA; un (ExpTA e) = e
-instance Arbitrary ExpTA where arbitrary = sized1 size; shrink (ExpTA e) = mExpTA (shrinkT e)
-instance Size      ExpTA where                                    size n = mExpTA (randomT n)
+instance Arbitrary ExpTA where arbitrary = sized1 tall; shrink (ExpTA e) = mExpTA (shrinkT e)
+instance Tall      ExpTA where                                    tall n =  mExpTA (randomT n)
 randomT n = join $ elements $ [mVarT, mStrT, mNumT, mBoolT, mNullT] ++ if n > 0 then [mFuncT n, mArrayT n, mObjT n] else []
 mExpTA = liftM ExpTA
 
-mFuncT  n = liftM un (size (n-1) :: Gen FuncTA)
-mArrayT n = liftM un (size (n-1) :: Gen ArrayTA)
-mObjT   n = liftM un (size (n-1) :: Gen ObjTA)
+mFuncT  n = liftM un (tall (n-1) :: Gen FuncTA)
+mArrayT n = liftM un (tall (n-1) :: Gen ArrayTA)
+mObjT   n = liftM un (tall (n-1) :: Gen ObjTA)
 mVarT     = liftM un (arbitrary  :: Gen VarTA)
 mStrT     = liftM un (arbitrary  :: Gen StrTA)
 mNumT     = liftM un (arbitrary  :: Gen NumTA)
@@ -68,20 +68,20 @@ shrinkT x@(NullT{})  = liftM un $ sShrink (to x :: NullTA)
 
 data FuncTA = FuncTA ExpToken deriving (Show)
 instance Unto FuncTA ExpToken where to = FuncTA; un (FuncTA f) = f
-instance Arbitrary FuncTA where arbitrary = sized1 size; shrink (FuncTA (FuncT p w i es)) = mFuncTA (tShrink p) (tShrink w) (tShrink i) (tShrinks es)
-instance Size      FuncTA where                                                    size n = mFuncTA  arbitrary   arbitrary   arbitrary  (sizes n)
+instance Arbitrary FuncTA where arbitrary = sized1 tall; shrink (FuncTA (FuncT p w i es)) = mFuncTA (tShrink p) (tShrink w) (tShrink i) (tShrinks es)
+instance Tall      FuncTA where                                                    tall n =  mFuncTA  arbitrary   arbitrary   arbitrary  (sizes n)
 mFuncTA = liftMF4 mkFunc un un un uns where mkFunc x y z = FuncTA .FuncT x y z
 
 data ArrayTA = ArrayTA ExpToken deriving (Show)
 instance Unto  ArrayTA ExpToken where to = ArrayTA; un (ArrayTA a) = a
-instance Arbitrary ArrayTA where arbitrary = sized1 size; shrink (ArrayTA (ArrayT p w es)) = mArrayTA (tShrink p) (tShrink w) (tShrinks es)
-instance Size      ArrayTA where                                                    size n = mArrayTA  arbitrary   arbitrary  (sizes n)
+instance Arbitrary ArrayTA where arbitrary = sized1 tall; shrink (ArrayTA (ArrayT p w es)) = mArrayTA (tShrink p) (tShrink w) (tShrinks es)
+instance Tall      ArrayTA where                                                    tall n =  mArrayTA  arbitrary   arbitrary  (sizes n)
 mArrayTA = liftMF3 mkArray un un uns where mkArray x y = ArrayTA .ArrayT x y
 
 data ObjTA =  ObjTA ExpToken deriving (Show)
 instance Unto ObjTA ExpToken where to = ObjTA; un (ObjTA o) = o
-instance Arbitrary ObjTA where arbitrary = sized1 size; shrink (ObjTA (ObjT p w ps)) = mObjTA (sShrink $ to p) (sShrink $ to w) (tShrinks ps)
-instance Size      ObjTA where                                                size n = mObjTA arbitrary        arbitrary        (sizes n)
+instance Arbitrary ObjTA where arbitrary = sized1 tall; shrink (ObjTA (ObjT p w ps)) = mObjTA (sShrink $ to p) (sShrink $ to w) (tShrinks ps)
+instance Tall      ObjTA where                                                tall n =  mObjTA arbitrary        arbitrary        (sizes n)
 mObjTA = liftMF3 mkObj un un uns where mkObj x y = ObjTA .ObjT x y
 
 data VarTA =  VarTA ExpToken deriving (Show)
@@ -164,7 +164,7 @@ liftMF2 g f1 f2       x1 x2        = g <$> liftM f1 x1 <*> liftM f2 x2
 liftMF3 g f1 f2 f3    x1 x2 x3     = g <$> liftM f1 x1 <*> liftM f2 x2 <*> liftM f3 x3
 liftMF4 g f1 f2 f3 f4 x1 x2 x3 x4  = g <$> liftM f1 x1 <*> liftM f2 x2 <*> liftM f3 x3 <*> liftM f4 x4
 
-sizes p = do Positive m <- arbitrary; ps <- replicateM m $ size p; return $ sList ps
+sizes p = do Positive m <- arbitrary; ps <- replicateM m $ tall p; return $ sList ps
 
 sized1 p = sized f where f i = p $ i `mod` 3
 sListOf = liftM sList . listOf
