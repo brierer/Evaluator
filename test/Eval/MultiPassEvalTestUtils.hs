@@ -1,48 +1,39 @@
 {-# OPTIONS_GHC -fno-warn-orphans  #-}
 module Eval.MultiPassEvalTestUtils where
 
-import qualified Data.Map as M                        (fromList)
-import qualified Data.Set as S                        (empty,toList,insert)
-
-import Data.Eval                                      (Table)
-import Data.Function                                  (on)
-import Data.List                                      (nubBy,sort,nub)
-import Data.Maybe                                     (fromMaybe)
-import Data.Token                                     (ProgToken(..),FormToken(..),PairToken(..),IdToken(..),ExpToken(..),Pos)
-import Control.Applicative                            ((<$>),(<*>))
-import Control.Monad                                  (liftM,zipWithM)
-import Control.Monad.State                            (State,runState,get,put)
-import Eval.MultiPass                                 (initTable,formVal,pairVal,mapPair,mapMPair)
-import Parser.MonolithicParserTestUtils               (ProgTA(..),sShrink)
-import Test.Framework                                 (Arbitrary,arbitrary,shrink,elements)
-import Text.ParserCombinators.Parsec.Error            (ParseError,errorMessages)
+import qualified Data.Map as M             (fromList)
+import qualified Data.Set as S             (empty,toList,insert)
+                                           
+import Data.Eval                           (Table)
+import Data.Function                       (on)
+import Data.List                           (nubBy,sort,nub)
+import Data.Maybe                          (fromMaybe)
+import Data.Token                          (ProgToken(..),FormToken(..),PairToken(..),IdToken(..),ExpToken(..),Pos)
+import Control.Applicative                 ((<$>),(<*>))
+import Control.Monad                       (liftM,zipWithM)
+import Control.Monad.State                 (State,runState,get,put)
+import Eval.MultiPass                      (initTable,formVal,pairVal,mapPair,mapMPair)
+import Parser.MonolithicParserTestUtils    (ProgTA(..),sShrink)
+import Test.Framework                      (Arbitrary,arbitrary,shrink,elements)
+import Text.ParserCombinators.Parsec.Error (ParseError,errorMessages)
 
 instance Eq ParseError where (==) a b = errorMessages a == errorMessages b
 
 class HasProg a where
-  forms :: a -> [FormToken]
+  forms     :: a -> [FormToken]
   fromForms :: [FormToken] -> a
-  toToken :: a -> ProgToken
+  toToken   :: a -> ProgToken
   toToken = fromForms.forms
 
-instance HasProg ProgToken where
-  forms (ProgT _ fs) = fs
-  fromForms = ProgT p0
-
-instance HasProg ProgTA where
-  forms (ProgTA p) = forms p
-  fromForms = ProgTA .fromForms
+instance HasProg ProgToken where forms (ProgT _ fs) = fs;      fromForms = ProgT p0
+instance HasProg ProgTA    where forms (ProgTA p)   = forms p; fromForms = ProgTA .fromForms
         
 data UniqueDefs = UniqueDefs ProgTA deriving (Eq,Show)
-instance HasProg UniqueDefs where
-  forms (UniqueDefs prog) = forms prog
-  fromForms = UniqueDefs .fromForms
+instance HasProg UniqueDefs where forms (UniqueDefs prog) = forms prog; fromForms = UniqueDefs .fromForms
 instance Arbitrary UniqueDefs where
   arbitrary                = mUniqueDefs arbitrary
   shrink (UniqueDefs prog) = mUniqueDefs (sShrink prog)
 mUniqueDefs = liftM (fromForms.uniqueForms.forms)
-toUniqueDefs = UniqueDefs
-unUniqueDefs (UniqueDefs p) = p
 uniqueForms = nubBy ((==) `on` formName)
 
 data MultiDefs  = MultiDefs UniqueDefs Pos String deriving (Eq,Show)

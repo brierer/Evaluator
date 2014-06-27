@@ -7,26 +7,30 @@ import Prelude        hiding            (null)
 import Data.Eval                        (EvalError(..))
 import Eval.Engine                      (funcs)
 import Eval.FunctionEvalTestUtils       (applyFunc')
-import Parser.MonolithicParserTestUtils (P(..),unExpTA)
+import Parser.MonolithicParserTestUtils (P(..),ExpTA(..),uns)
 
-prop_NbArgs1 (P p) esTA = length esTA > 1 ==> let es = map unExpTA esTA in
+prop_NbArgs1 (P p) esTA = length esTA > 1 ==> let es = uns esTA in
   all (\name -> Left (InvalidNbOfArgs p name 1 0)           == applyFunc' funcs p name []
              && Left (InvalidNbOfArgs p name 1 (length es)) == applyFunc' funcs p name es)
     ["show","multi","mean","descriptive"]
 
-prop_NbArgs2 (P p) esTA = length esTA > 2 ==> let es = map unExpTA esTA in
+prop_NbArgs2 (P p) esTA = length esTA > 2 ==> let es = uns esTA in
   all (\name -> Left (InvalidNbOfArgs p name 2 0)           == applyFunc' funcs p name []
              && Left (InvalidNbOfArgs p name 2 1)           == applyFunc' funcs p name (take 1 es)
              && Left (InvalidNbOfArgs p name 2 (length es)) == applyFunc' funcs p name es)
     ["table","nTimes","take","sortTable"]
 
-prop_NbArgs3 (P p) esTA = length esTA > 3 ==> let es = map unExpTA esTA in
+prop_NbArgs3 (P p) esTA = length esTA > 3 ==> let es = uns esTA in
   all (\name -> Left (InvalidNbOfArgs p name 3 0)           == applyFunc' funcs p name []
              && Left (InvalidNbOfArgs p name 3 1)           == applyFunc' funcs p name (take 1 es)
              && Left (InvalidNbOfArgs p name 3 2)           == applyFunc' funcs p name (take 2 es)
              && Left (InvalidNbOfArgs p name 3 (length es)) == applyFunc' funcs p name es)
     ["plotLine"]
 
+type Test = P -> [ExpTA] -> Property
+prop_NbArgs1 :: Test
+prop_NbArgs2 :: Test
+prop_NbArgs3 :: Test
     
 {-|
 unlines $  [ "show = show([tservice,tsalaire,trente])" , "tservice = table([[service]],{col:[\"service\"]})" , "tsalaire = table([salaires],{col:[\"salaire\"]})" , "trente = table([rente],{col:[\"rente\"]})" , "rente = multi([0.02,moyensalaire,service])" , "moyensalaire = mean(salaires)" , "salaires = [55000,60000,45000]" , "service = 35" ]
