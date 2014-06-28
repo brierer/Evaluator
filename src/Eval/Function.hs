@@ -15,6 +15,7 @@ import Data.Token          (PairToken(..),IdToken(..),ExpToken(..),Pos)
 class Marshallable a where
   table    :: [FuncEntry a] -> TypeValidator a
   plot     :: [FuncEntry a] -> TypeValidator a
+  funCall  :: [FuncEntry a] -> TypeValidator a
   array    :: [FuncEntry a] -> TypeValidator a
   obj      :: [FuncEntry a] -> TypeValidator a
   str      :: TypeValidator a
@@ -29,20 +30,22 @@ instance Marshallable ExpToken where
   table _    = typeMismatch litType
   plot _     = typeMismatch litType
 
-  array fs (ArrayT p _ es)  = liftM (ArrayO p) $ mapM (lit fs)     es; array _ e = typeMismatch Array   e
-  obj fs   (ObjT p _ ps)    = liftM (ObjO p)   $ mapM (toTuple fs) ps; obj _ e   = typeMismatch Object  e
-  str      (StrT p _ s)     = return $ StrO p s;                       str e     = typeMismatch String  e
-  num      (NumT p _ _ n)   = return $ NumO p n;                       num e     = typeMismatch Number  e
-  bool     (BoolT p _ b)    = return $ BoolO p b;                      bool e    = typeMismatch Boolean e
-  null     (NullT p _)      = return $ NullO p;                        null e    = typeMismatch Null    e
+  funCall fs f@(FuncT{})      = applyFunc fs f;                          funCall _ e  = typeMismatch FunCall e
+  array fs   (ArrayT p _ es)  = liftM (ArrayO p) $ mapM (lit fs)     es; array _ e    = typeMismatch Array   e
+  obj fs     (ObjT p _ ps)    = liftM (ObjO p)   $ mapM (toTuple fs) ps; obj _ e      = typeMismatch Object  e
+  str        (StrT p _ s)     = return $ StrO p s;                       str e        = typeMismatch String  e
+  num        (NumT p _ _ n)   = return $ NumO p n;                       num e        = typeMismatch Number  e
+  bool       (BoolT p _ b)    = return $ BoolO p b;                      bool e       = typeMismatch Boolean e
+  null       (NullT p _)      = return $ NullO p;                        null e       = typeMismatch Null    e
   
-  getP (ArrayT p _ _) = p
-  getP (ObjT p _ _)   = p
-  getP (StrT p _ _)   = p
-  getP (NumT p _ _ _) = p
-  getP (BoolT p _ _)  = p
-  getP (NullT p _)    = p
-  getP e              = error $ "Eval.Function::getP<ExpToken> [Failed pattern match ["++show e++"]]"
+  getP (FuncT _  _ (IdT p _ _) _) = p
+  getP (ArrayT p _ _)             = p
+  getP (ObjT p _ _)               = p
+  getP (StrT p _ _)               = p
+  getP (NumT p _ _ _)             = p
+  getP (BoolT p _ _)              = p
+  getP (NullT p _)                = p
+  getP e                          = error $ "Eval.Function::getP<ExpToken> [Failed pattern match ["++show e++"]]"
   
   getT (ArrayT{})     = Array  
   getT (ObjT{})       = Object 
@@ -53,6 +56,7 @@ instance Marshallable ExpToken where
   getT e              = error $ "8val.Function::getT<ExpToken> [Failed pattern match ["++show e++"]]"
 
 instance Marshallable ExpObj where
+  funCall _                                  = typeMismatch FunCall
   table _ x@(TableO{}) = return x; table _ e = typeMismatch Table   e
   plot _  x@(PlotO{})  = return x; plot _ e  = typeMismatch Plot    e
   array _ x@(ArrayO{}) = return x; array _ e = typeMismatch Array   e
@@ -84,9 +88,9 @@ any   :: Marshallable a => [FuncEntry a] -> TypeValidator a
 noLit :: Marshallable a => [FuncEntry a] -> TypeValidator a
 lit   :: Marshallable a => [FuncEntry a] -> TypeValidator a
 
-any   fs = table fs <|> plot fs <|> array fs <|> obj fs <|> str <|> num <|> bool <|> null <!> anyType
-noLit fs = table fs <|> plot fs                                                           <!> noLitType
-lit   fs =                          array fs <|> obj fs <|> str <|> num <|> bool <|> null <!> litType
+any   fs = table fs <|> plot fs <|> funCall fs <|> array fs <|> obj fs <|> str <|> num <|> bool <|> null <!> anyType
+noLit fs = table fs <|> plot fs                                                                          <!> noLitType
+lit   fs =                          funCall fs <|> array fs <|> obj fs <|> str <|> num <|> bool <|> null <!> litType
 
 anyType   :: Type
 litType   :: Type

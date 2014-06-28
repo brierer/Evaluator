@@ -28,7 +28,7 @@ type State = (Table,Table)
 type Table = M.Map String (ExpToken,Pos)
 type Eval = Either EvalError
 
-data Type = Table | Plot | Array | Object | String | Number | Boolean | Null 
+data Type = Table | Plot | FunCall | Array | Object | String | Number | Boolean | Null 
           | Type `Or` Type 
             deriving (Eq,Show)
 

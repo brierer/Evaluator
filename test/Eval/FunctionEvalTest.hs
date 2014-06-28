@@ -9,8 +9,9 @@ import Data.Eval                        (EvalError(..),ExpObj(..),Type(..))
 import Data.Token                       (IdToken(..),ExpToken(NullT))
 import Eval.Function                    (Marshallable(..),any,noLit,noLitType,lit,litType,applyFunc)
 import Eval.FunctionEvalTestUtils       (Is(..),TestToks(..),TestObjs(..),ExpOA(..),TableOA(..),PlotOA(..),ArrayOA(..),
-                                         ObjOA(..),StrOA(..),NumOA(..),BoolOA(..),NullOA(..),ExpTS(..),ArrayTS(..),ObjTS(..),TokOrObj(..),
-                                         testFunc,forAll,mkEntries,anyCase,litCase,testF,mkFunc,funcNamesLit,funcNamesNoLit)
+                                         ObjOA(..),StrOA(..),NumOA(..),BoolOA(..),NullOA(..),ExpTS(..),ArrayTS(..),ObjTS(..),ExpTF(..),ArrayTF(..),ObjTF(..),TokOrObj(..),
+                                         testFunc,forAll,mkEntries,anyCase,litCase,testS,testF,mkFunc,funcNamesLit,funcNamesNoLit,constM)
+import Eval.MultiPassEvalTestUtils      (usesFuncE)
 import Parser.MonolithicParserTestUtils (IdTA(..),ExpTA(..),StrTA(..),NumTA(..),BoolTA(..),NullTA(..))
 
 {-| Number of args validation -}
@@ -22,7 +23,7 @@ prop_NbArgs (NonNegative n) (NonNegative m) (IdTA (IdT p w name)) = let (nbParam
 {-| Combinators -}
 
 -- Any type (can't fail)
-prop_MarshallAnyLit (ExpTS e)                    = testF e == any [] e
+prop_MarshallAnyLit (ExpTS e)                    = testS e == any [] e
 prop_MarshallAnyObj (ExpOA e)                    = Right e == any [] e
 prop_MarshallAnyFunc (TestObjs os) (TestToks es) = forAll (mkEntries [] es os) (anyCase os es)
 
@@ -31,7 +32,6 @@ prop_MarshallAnyFunc (TestObjs os) (TestToks es) = forAll (mkEntries [] es os) (
 prop_ErrorMarshallNoLitLit (ExpTS e)                     = Left (TypeMismatch (getP e) noLitType (getT e)) == noLit [] e
 prop_ErrorMarshallNoLitFunc (TestObjs os) (TestToks es)  = 
   forAll (mkEntries funcNamesNoLit es os) $ \(name,t,e) -> Left (TypeMismatch (getP e) noLitType t)        == noLit [] (testFunc os es (getP e) name) 
-
 
 prop_MarshallNoLitObj  (ExpOA e)                       = isTable e || isPlot e ==> Right e == noLit [] e
 prop_MarshallNoLitFunc (TestObjs os) (TestToks es)     =
@@ -59,7 +59,7 @@ prop_ErrorMarshallLitObj (ExpOA e)                    = isTable e || isPlot e ==
 prop_ErrorMarshallLitFunc (TestObjs os) (TestToks es) = 
   forAll (mkEntries funcNamesLit es os) $ \(name,t,e) ->                          Left (TypeMismatch (getP e) litType t)        == lit [] (testFunc os es (getP e) name) 
 
-prop_MarshallLitLit  (ExpTS e)                   = testF e == lit [] e
+prop_MarshallLitLit  (ExpTS e)                   = testS e == lit [] e
 prop_MarshallLitFunc (TestObjs os) (TestToks es) = forAll (mkEntries funcNamesNoLit es os) (litCase os es)
 
 -- Array
@@ -68,9 +68,9 @@ prop_ErrorMarshallArrayObj  (ExpOA e)                   = not (isArray e)       
 prop_ErrorMarshallArrayFunc (TestObjs os) (TestToks es) = 
   forAll (mkEntries ["arrayTestF"] es os) $ \(name,t,e) ->                                           Left (TypeMismatch (getP e) Array t)        == array [] (testFunc os es (getP e) name) 
 
-prop_MarshallArrayLit  (ArrayTS a)                               = testF a == array [] a
+prop_MarshallArrayLit  (ArrayTS a)                               = testS a == array [] a
 prop_MarshallArrayObj  (ArrayOA a)                               = Right a == array [] a
-prop_MarshallArrayFunc (TestObjs os) (TestToks es@[a,_,_,_,_,_]) = testF a == array [] (testFunc os es (getP a) "arrayTestF")
+prop_MarshallArrayFunc (TestObjs os) (TestToks es@[a,_,_,_,_,_]) = testS a == array [] (testFunc os es (getP a) "arrayTestF")
 
 -- Obj
 prop_ErrorMarshallObjLit  (ExpTS e)                   = not (isObj e || isVar e || isFunc e) ==> Left (TypeMismatch (getP e) Object (getT e)) == obj [] e
@@ -78,9 +78,9 @@ prop_ErrorMarshallObjObj  (ExpOA e)                   = not (isObj e)           
 prop_ErrorMarshallObjFunc (TestObjs os) (TestToks es) = 
   forAll (mkEntries ["objTestF"] es os) $ \(name,t,e) ->                                         Left (TypeMismatch (getP e) Object t)        == obj [] (testFunc os es (getP e) name) 
 
-prop_MarshallObjLit  (ObjTS o)                                 = testF o == obj [] o
+prop_MarshallObjLit  (ObjTS o)                                 = testS o == obj [] o
 prop_MarshallObjObj  (ObjOA o)                                 = Right o == obj [] o
-prop_MarshallObjFunc (TestObjs os) (TestToks es@[_,o,_,_,_,_]) = testF o == obj [] (testFunc os es (getP o) "objTestF")
+prop_MarshallObjFunc (TestObjs os) (TestToks es@[_,o,_,_,_,_]) = testS o == obj [] (testFunc os es (getP o) "objTestF")
 
 -- Str
 prop_ErrorMarshallStrLit  (ExpTA e)                   = not (isStr e || isVar e || isFunc e) ==> Left (TypeMismatch (getP e) String (getT e)) == str e
@@ -88,9 +88,9 @@ prop_ErrorMarshallStrObj  (ExpOA e)                   = not (isStr e)           
 prop_ErrorMarshallStrFunc (TestObjs os) (TestToks es) = 
   forAll (mkEntries ["strTestF"] es os) $ \(name,t,e) ->                                         Left (TypeMismatch (getP e) String t)        == str (testFunc os es (getP e) name) 
 
-prop_MarshallStrLit  (StrTA s)                                 = testF s == str s
+prop_MarshallStrLit  (StrTA s)                                 = testS s == str s
 prop_MarshallStrObj  (StrOA s)                                 = Right s == str s
-prop_MarshallStrFunc (TestObjs os) (TestToks es@[_,_,s,_,_,_]) = testF s == str (testFunc os es (getP s) "strTestF")
+prop_MarshallStrFunc (TestObjs os) (TestToks es@[_,_,s,_,_,_]) = testS s == str (testFunc os es (getP s) "strTestF")
 
 -- Num
 prop_ErrorMarshallNumLit  (ExpTA e)                   = not (isNum e || isVar e || isFunc e) ==> Left (TypeMismatch (getP e) Number (getT e)) == num e
@@ -98,9 +98,9 @@ prop_ErrorMarshallNumObj  (ExpOA e)                   = not (isNum e)           
 prop_ErrorMarshallNumFunc (TestObjs os) (TestToks es) = 
   forAll (mkEntries ["numTestF"] es os) $ \(name,t,e) ->                                         Left (TypeMismatch (getP e) Number t)        == num (testFunc os es (getP e) name) 
 
-prop_MarshallNumLit  (NumTA _ n)                               = testF n == num n
+prop_MarshallNumLit  (NumTA _ n)                               = testS n == num n
 prop_MarshallNumObj  (NumOA   n)                               = Right n == num n
-prop_MarshallNumFunc (TestObjs os) (TestToks es@[_,_,_,n,_,_]) = testF n == num (testFunc os es (getP n) "numTestF")
+prop_MarshallNumFunc (TestObjs os) (TestToks es@[_,_,_,n,_,_]) = testS n == num (testFunc os es (getP n) "numTestF")
 
 -- Bool
 prop_ErrorMarshallBoolLit  (ExpTA e)                   = not (isBool e || isVar e || isFunc e) ==> Left (TypeMismatch (getP e) Boolean (getT e)) == bool e
@@ -108,9 +108,9 @@ prop_ErrorMarshallBoolObj  (ExpOA e)                   = not (isBool e)         
 prop_ErrorMarshallBoolFunc (TestObjs os) (TestToks es) = 
   forAll (mkEntries ["boolTestF"] es os) $ \(name,t,e) ->                                          Left (TypeMismatch (getP e) Boolean t)        == bool (testFunc os es (getP e) name) 
 
-prop_MarshallBoolLit  (BoolTA b)                                = testF b == bool b
+prop_MarshallBoolLit  (BoolTA b)                                = testS b == bool b
 prop_MarshallBoolObj  (BoolOA b)                                = Right b == bool b
-prop_MarshallBoolFunc (TestObjs os) (TestToks es@[_,_,_,_,b,_]) = testF b == bool (testFunc os es (getP b) "boolTestF")
+prop_MarshallBoolFunc (TestObjs os) (TestToks es@[_,_,_,_,b,_]) = testS b == bool (testFunc os es (getP b) "boolTestF")
 
 -- Null
 prop_ErrorMarshallNullLit  (ExpTA e)        = not (isNull e || isVar e || isFunc e) ==> Left (TypeMismatch (getP e) Null (getT e)) == null e
@@ -118,9 +118,23 @@ prop_ErrorMarshallNullObj  (ExpOA e)        = not (isNull e)                    
 prop_ErrorMarshallNullFunc (TestObjs os) (TestToks es) = 
   forAll (mkEntries ["nullTestF"] es os) $ \(name,t,e) ->                               Left (TypeMismatch (getP e) Null t)        == null (testFunc os es (getP e) name) 
 
-prop_MarshallNullLit  (NullTA n)                                = testF n == null n
+prop_MarshallNullLit  (NullTA n)                                = testS n == null n
 prop_MarshallNullObj  (NullOA n)                                = Right n == null n
-prop_MarshallNullFunc (TestObjs os) (TestToks es@[_,_,_,_,_,n]) = testF n == null (testFunc os es (getP n) "nullTestF")
+prop_MarshallNullFunc (TestObjs os) (TestToks es@[_,_,_,_,_,n]) = testS n == null (testFunc os es (getP n) "nullTestF")
+
+{-| Literals containing function calls -}
+prop_MarshallFuncsLit   (ExpTF   e o (IdT _ _ i)) = usesFuncE i e ==> testF fs e == lit   fs e where fs = [(i,([],constM o))]
+prop_MarshallFuncsArray (ArrayTF e o (IdT _ _ i)) = usesFuncE i e ==> testF fs e == array fs e where fs = [(i,([],constM o))]
+prop_MarshallFuncsObj   (ObjTF   e o (IdT _ _ i)) = usesFuncE i e ==> testF fs e == obj   fs e where fs = [(i,([],constM o))]
+
+
+
+
+
+
+
+
+
 
 
 

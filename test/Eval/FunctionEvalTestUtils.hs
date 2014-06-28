@@ -11,7 +11,7 @@ import Data.Eval                        (ExpObj(..),Type(..))
 import Data.Token                       (PairToken(..),IdToken(..),ExpToken(..))
 import Eval.Function                    (Marshallable(..),any,lit,applyFunc)
 import Eval.MultiPass                   (mapPair)
-import Parser.MonolithicParserTestUtils (Unto(..),Tall(..),ExpTA(..),ArrayTA(..),ObjTA(..),StrTA(..),NumTA(..),BoolTA(..),NullTA(..),P(..),
+import Parser.MonolithicParserTestUtils (Unto(..),Tall(..),IdTA(..),ExpTA(..),ArrayTA(..),ObjTA(..),StrTA(..),NumTA(..),BoolTA(..),NullTA(..),P(..),
                                          sShrink,tShrink,tShrinks,sizes,sized1,liftMF2,liftMF3,liftMF4)
 import Test.Framework                   (Arbitrary(..),Gen,elements)
 
@@ -150,9 +150,8 @@ mNullOA = liftM (NullOA .NullO .un)
 
 data ExpTS =  ExpTS ExpToken deriving (Show)
 instance Unto ExpTS ExpToken where to = ExpTS; un (ExpTS e) = e
-instance Arbitrary ExpTS where
-  arbitrary        = mExpTS arbitrary
-  shrink (ExpTS e) = mExpTS (tShrink e)
+instance Arbitrary ExpTS where arbitrary = sized1 tall; shrink (ExpTS e) = mExpTS (tShrink e)
+instance Tall ExpTS where                                         tall n = mExpTS (tall n)
 mExpTS = liftM (ExpTS .simplify.un)
 
 data ArrayTS = ArrayTS ExpToken deriving (Show)
@@ -173,12 +172,35 @@ simplify (ObjT p w ps)        = ObjT   p w $ map (mapPair simplify) ps
 simplify (VarT _ (IdT p w _)) = NullT  p w
 simplify e                    = e
 
+data ExpTF =  ExpTF ExpToken ExpObj IdToken deriving (Show)
+instance Arbitrary ExpTF where arbitrary = sized1 tall; shrink (ExpTF e o i) = mExpTF (tShrink e) (tShrink o) (tShrink i) 
+instance Tall      ExpTF where                                        tall n = mExpTF (tall n)    (tall n)     arbitrary
+mExpTF = moo ExpTF 
+
+data ArrayTF =  ArrayTF ExpToken ExpObj IdToken deriving (Show)
+instance Arbitrary ArrayTF where arbitrary = sized1 tall; shrink (ArrayTF e o i) = mArrayTF (tShrink e) (tShrink o) (tShrink i) 
+instance Tall      ArrayTF where                                          tall n = mArrayTF (tall n)    (tall n)     arbitrary
+mArrayTF = moo ArrayTF 
+
+data ObjTF =  ObjTF ExpToken ExpObj IdToken deriving (Show)
+instance Arbitrary ObjTF where arbitrary = sized1 tall; shrink (ObjTF e o i) = mObjTF (tShrink e) (tShrink o) (tShrink i) 
+instance Tall      ObjTF where                                        tall n = mObjTF (tall n)    (tall n)     arbitrary
+mObjTF = moo ObjTF
+
+moo f ea oa ia = do e <- ea; o <- oa; i <- ia; return $ f (simplifyF (un i) $ un e) (un o) (un i)
+
+simplifyF i (FuncT p w _ _)      = FuncT  p w i [] 
+simplifyF i (ArrayT p w es)      = ArrayT p w $ map  (simplifyF i)          es
+simplifyF i (ObjT p w ps)        = ObjT   p w $ map (mapPair $ simplifyF i) ps
+simplifyF _ (VarT _ (IdT p w _)) = NullT  p w
+simplifyF _ e                    = e
 
 data TokOrObj = Tok ExpToken | Obj ExpObj deriving (Eq,Show)
 instance Marshallable TokOrObj where
   table    = error "Eval.FunctionEvalTestUtils::table<TOkOrObj>    [Should not be called]"
   plot     = error "Eval.FunctionEvalTestUtils::plot<TOkOrObj>     [Should not be called]"
-  array    = error "Eval.FunctionEvalTestUtils::array<TOkOrObj>    [Should not be called]"
+  funCall  = error "Eval.FunctionEvalTestUtils::plot<TOkOrObj>     [Should not be called]"
+  array    = error "Eval.FunctionEvalTestUtils::funCall<TOkOrObj>  [Should not be called]"
   obj      = error "Eval.FunctionEvalTestUtils::obj<TOkOrObj>      [Should not be called]"
   str      = error "Eval.FunctionEvalTestUtils::str<TOkOrObj>      [Should not be called]"
   num      = error "Eval.FunctionEvalTestUtils::num<TOkOrObj>      [Should not be called]"
@@ -199,12 +221,14 @@ forAll = flip all
 w1 = ""
 w2 = ("","")
 p0 = (0 :: Int,0 :: Int)
+constM = const.return
 
 funcNamesLit   = ["arrayTestF","objTestF","strTestF","numTestF","boolTestF","nullTestF"]
 funcNamesNoLit = ["tableTestF","plotTestF"]
-mkFuncs os es = zipWith f funcNamesNoLit os ++ zipWith g funcNamesLit es
-  where f name e = (name,([],const $ return e))
-        g name e = (name,([],testF' e))
+mkFuncs os es = fs
+  where fs = zipWith f funcNamesNoLit os ++ zipWith g funcNamesLit es
+        f name e = (name,([],constM e))
+        g name e = (name,([],const $ testF fs e))
 
 mkEntries ns es os = foldr removeEntry (zip3 (funcNamesNoLit++funcNamesLit) types (map Obj os++ map Tok es)) ns
 types = [Table,Plot,Array,Object,String,Number,Boolean,Null]
@@ -215,21 +239,22 @@ getTall (ArrayT _ _ es)   = length es
 getTall (ObjT _ _ ps)     = length ps
 
 anyCase os es (name,_,Obj e) = Right e == any [] (testFunc os es (getP e) name)
-anyCase os es (name,_,Tok e) = testF e == any [] (testFunc os es (getP e) name)
+anyCase os es (name,_,Tok e) = testS e == any [] (testFunc os es (getP e) name)
 
 litCase os es (name,_,Obj e) = Right e == lit [] (testFunc os es (getP e) name)
-litCase os es (name,_,Tok e) = testF e == lit [] (testFunc os es (getP e) name)
+litCase os es (name,_,Tok e) = testS e == lit [] (testFunc os es (getP e) name)
 
-toTupleF (PairT _ (IdT _ _ x) y) = liftM2 (,) (return x) (testF y)
+toTupleF fs (PairT _ (IdT _ _ x) y) = liftM2 (,) (return x) (testF fs y)
 
-testF' e [] = testF e
-testF (ArrayT p _ es) = liftM (ArrayO p) $ mapM testF es
-testF (ObjT p _ ps)   = liftM (ObjO p)   $ mapM toTupleF ps
-testF (StrT p _ s)    = return $ StrO p s
-testF (NumT p _ _ n)  = return $ NumO p n
-testF (BoolT p _ b)   = return $ BoolO p b
-testF (NullT p _)     = return $ NullO p
-testF e               = error $ "FunctionEvalTestUtils::testF [Failed pattern match ["++show e++"]]"
+testS = testF []
+testF fs f@(FuncT{})     = applyFunc fs f
+testF fs (ArrayT p _ es) = liftM (ArrayO p) $ mapM (testF fs) es
+testF fs (ObjT p _ ps)   = liftM (ObjO p)   $ mapM (toTupleF fs) ps
+testF _  (StrT p _ s)    = return $ StrO p s
+testF _  (NumT p _ _ n)  = return $ NumO p n
+testF _  (BoolT p _ b)   = return $ BoolO p b
+testF _  (NullT p _)     = return $ NullO p
+testF _  e               = error $ "FunctionEvalTestUtils::testF [Failed pattern match ["++show e++"]]"
 
 {-| Monomorphism restriction -}
 mTestToks :: (Applicative m, Monad m) => m ArrayTS -> m ObjTS -> m StrTA -> m NumTA -> m BoolTA -> m NullTA -> m TestToks
@@ -248,5 +273,9 @@ mNullOA   :: (Applicative m, Monad m) => m P                                    
 mExpTS    :: (Applicative m, Monad m) => m ExpTA   -> m ExpTS
 mArrayTS  :: (Applicative m, Monad m) => m ArrayTA -> m ArrayTS
 mObjTS    :: (Applicative m, Monad m) => m ObjTA   -> m ObjTS
+
+mExpTF    :: (Applicative m, Monad m) => m ExpTA   -> m ExpOA -> m IdTA -> m ExpTF
+mArrayTF  :: (Applicative m, Monad m) => m ArrayTA -> m ExpOA -> m IdTA -> m ArrayTF
+mObjTF    :: (Applicative m, Monad m) => m ObjTA   -> m ExpOA -> m IdTA -> m ObjTF
 
 
