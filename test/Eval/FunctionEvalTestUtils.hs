@@ -7,13 +7,14 @@ import Prelude hiding                   (any,null)
 import Control.Arrow                    (second)
 import Control.Applicative              (Applicative)
 import Control.Monad                    (liftM,liftM2,join)
-import Data.Eval                        (ExpObj(..),Type(..))
+import Data.Eval                        (EvalError(..),ExpObj(..),Type(..))
+import Data.List                        (permutations,(\\))
 import Data.Token                       (PairToken(..),IdToken(..),ExpToken(..))
-import Eval.Function                    (Marshallable(..),any,lit,applyFunc)
+import Eval.Function                    (Marshallable(..),any,lit,applyFunc,(<|>),(<!>))
 import Eval.MultiPass                   (mapPair)
 import Parser.MonolithicParserTestUtils (Unto(..),Tall(..),IdTA(..),ExpTA(..),ArrayTA(..),ObjTA(..),StrTA(..),NumTA(..),BoolTA(..),NullTA(..),P(..),
                                          sShrink,tShrink,tShrinks,sizes,sized1,liftMF2,liftMF3,liftMF4)
-import Test.Framework                   (Arbitrary(..),Gen,elements)
+import Test.Framework                   (Arbitrary(..),Gen,elements,choose)
 
 class Is a where
   isFunc     :: a -> Bool
@@ -208,8 +209,29 @@ instance Marshallable TokOrObj where
   null     = error "Eval.FunctionEvalTestUtils::null<TOkOrObj>     [Should not be called]"
   getT     = error "Eval.FunctionEvalTestUtils::getT<TOkOrObj>     [Should not be called]"
 
-  getP (Tok x) = getP x
-  getP (Obj x) = getP x
+  getP (Tok x) = getP x; getP (Obj x) = getP x
+
+data TestIndexesT = TestIndexesT [Int] [Int] deriving (Show)
+data TestIndexesO = TestIndexesO [Int] [Int] deriving (Show)
+instance Arbitrary TestIndexesT where arbitrary = arbIndexes (permutations [0..5]) TestIndexesT; shrink (TestIndexesT is rest) = shrinkIndexes is rest TestIndexesT
+instance Arbitrary TestIndexesO where arbitrary = arbIndexes (permutations [0..7]) TestIndexesO; shrink (TestIndexesO is rest) = shrinkIndexes is rest TestIndexesO
+  
+arbIndexes is f = do
+    i <- choose (0,length is-1)
+    j <- choose (2,4)
+    let (indexes,rest) = splitAt j (is !! i)
+    return $ f indexes rest
+    
+shrinkIndexes is rest f | length is <= 2 = [] | otherwise = [f (is \\ [i]) (i:rest) | i <- is]
+
+orCase es vs indexes rest f = 
+  let ps = zip es vs
+      toOr   = map (ps!!) indexes
+      wrongs = map (fst.(ps!!)) rest
+      validator    = foldl1 (<|>) (map snd toOr) <!> expectedType
+      expectedType = foldl1  Or   (map (getT.fst) toOr)  
+  in  forAll toOr   (\(e,v) -> f e == v e) &&
+      forAll wrongs (\e -> Left (TypeMismatch (getP e) expectedType (getT e)) == validator e)
 
 applyFunc' fs p n es = applyFunc fs (mkFunc p n es)
 testFunc os fs p n = fromRight $ applyFunc' (mkFuncs os fs) p n []

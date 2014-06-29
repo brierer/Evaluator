@@ -8,9 +8,9 @@ import Control.Monad                    (liftM)
 import Data.Eval                        (EvalError(..),ExpObj(..),Type(..))
 import Data.Token                       (IdToken(..),ExpToken(NullT))
 import Eval.Function                    (Marshallable(..),any,noLit,noLitType,lit,litType,applyFunc)
-import Eval.FunctionEvalTestUtils       (Is(..),TestToks(..),TestObjs(..),ExpOA(..),TableOA(..),PlotOA(..),ArrayOA(..),
-                                         ObjOA(..),StrOA(..),NumOA(..),BoolOA(..),NullOA(..),ExpTS(..),ArrayTS(..),ObjTS(..),ExpTF(..),ArrayTF(..),ObjTF(..),TokOrObj(..),
-                                         testFunc,forAll,mkEntries,anyCase,litCase,testS,testF,mkFunc,funcNamesLit,funcNamesNoLit,constM)
+import Eval.FunctionEvalTestUtils       (Is(..),TestToks(..),TestObjs(..),ExpOA(..),TableOA(..),PlotOA(..),ArrayOA(..),ObjOA(..),StrOA(..),NumOA(..),BoolOA(..),NullOA(..),
+                                         ExpTS(..),ArrayTS(..),ObjTS(..),ExpTF(..),ArrayTF(..),ObjTF(..),TokOrObj(..),TestIndexesT(..),TestIndexesO(..),
+                                         testFunc,forAll,mkEntries,anyCase,litCase,testS,testF,mkFunc,funcNamesLit,funcNamesNoLit,constM,orCase)
 import Eval.MultiPassEvalTestUtils      (usesFuncE)
 import Parser.MonolithicParserTestUtils (IdTA(..),ExpTA(..),StrTA(..),NumTA(..),BoolTA(..),NullTA(..))
 
@@ -21,6 +21,10 @@ prop_NbArgs (NonNegative n) (NonNegative m) (IdTA (IdT p w name)) = let (nbParam
       Right (NullO p)                               == applyFunc fs (mkFunc p name $ replicate nbParams $ NullT p w)
 
 {-| Combinators -}
+-- Or
+prop_OrLit (TestToks es) (TestIndexesT indexes rest) = orCase es [array[],obj[],str,num,bool,null]indexes rest testS
+prop_OrObj (TableOA t) (PlotOA p) (ArrayOA a) (ObjOA o) (StrOA s) (NumOA nb) (BoolOA b) (NullOA nu) (TestIndexesO indexes rest)
+  = orCase [t,p,a,o,s,nb,b,nu] [table[],plot[],array[],obj[],str,num,bool,null] indexes rest Right
 
 -- Any type (can't fail)
 prop_MarshallAnyLit (ExpTS e)                    = testS e == any [] e

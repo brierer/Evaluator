@@ -3,6 +3,7 @@ module Eval.Function
 , any,   anyType
 , noLit, noLitType
 , lit,   litType
+, (<|>), (<!>)
 , applyFunc
 ) where
 
