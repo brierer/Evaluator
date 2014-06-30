@@ -14,10 +14,12 @@ import Data.Eval           (Type(..),ExpObj(..),EvalError(..),Eval,FuncEntry,Typ
 import Data.Token          (PairToken(..),IdToken(..),ExpToken(..),Pos)
 
 class Marshallable a where
+  arrayOf  :: TypeValidator a -> TypeValidator a
+  
   table    :: [FuncEntry a] -> TypeValidator a
   plot     :: [FuncEntry a] -> TypeValidator a
   funCall  :: [FuncEntry a] -> TypeValidator a
-  array    :: [FuncEntry a] -> TypeValidator a
+  array    :: [FuncEntry a] -> TypeValidator a; array = arrayOf.any 
   obj      :: [FuncEntry a] -> TypeValidator a
   str      :: TypeValidator a
   num      :: TypeValidator a
@@ -30,14 +32,15 @@ class Marshallable a where
 instance Marshallable ExpToken where
   table _    = typeMismatch litType
   plot _     = typeMismatch litType
+  
+  arrayOf v  (ArrayT p _ es)  = liftM (ArrayO p) $ mapM v es;            arrayOf _ e = typeMismatch Array   e
 
-  funCall fs f@(FuncT{})      = applyFunc fs f;                          funCall _ e  = typeMismatch FunCall e
-  array fs   (ArrayT p _ es)  = liftM (ArrayO p) $ mapM (lit fs)     es; array _ e    = typeMismatch Array   e
-  obj fs     (ObjT p _ ps)    = liftM (ObjO p)   $ mapM (toTuple fs) ps; obj _ e      = typeMismatch Object  e
-  str        (StrT p _ s)     = return $ StrO p s;                       str e        = typeMismatch String  e
-  num        (NumT p _ _ n)   = return $ NumO p n;                       num e        = typeMismatch Number  e
-  bool       (BoolT p _ b)    = return $ BoolO p b;                      bool e       = typeMismatch Boolean e
-  null       (NullT p _)      = return $ NullO p;                        null e       = typeMismatch Null    e
+  funCall fs f@(FuncT{})      = applyFunc fs f;                          funCall _ e = typeMismatch FunCall e
+  obj fs     (ObjT p _ ps)    = liftM (ObjO p)   $ mapM (toTuple fs) ps; obj _ e     = typeMismatch Object  e
+  str        (StrT p _ s)     = return $ StrO p s;                       str e       = typeMismatch String  e
+  num        (NumT p _ _ n)   = return $ NumO p n;                       num e       = typeMismatch Number  e
+  bool       (BoolT p _ b)    = return $ BoolO p b;                      bool e      = typeMismatch Boolean e
+  null       (NullT p _)      = return $ NullO p;                        null e      = typeMismatch Null    e
   
   getP (FuncT _  _ (IdT p _ _) _) = p
   getP (ArrayT p _ _)             = p
@@ -57,15 +60,17 @@ instance Marshallable ExpToken where
   getT e              = error $ "8val.Function::getT<ExpToken> [Failed pattern match ["++show e++"]]"
 
 instance Marshallable ExpObj where
-  funCall _                                  = typeMismatch FunCall
-  table _ x@(TableO{}) = return x; table _ e = typeMismatch Table   e
-  plot _  x@(PlotO{})  = return x; plot _ e  = typeMismatch Plot    e
-  array _ x@(ArrayO{}) = return x; array _ e = typeMismatch Array   e
-  obj _   x@(ObjO{})   = return x; obj _ e   = typeMismatch Object  e
-  str     x@(StrO{})   = return x; str e     = typeMismatch String  e
-  num     x@(NumO{})   = return x; num e     = typeMismatch Number  e
-  bool    x@(BoolO{})  = return x; bool e    = typeMismatch Boolean e
-  null    x@(NullO{})  = return x; null e    = typeMismatch Null    e
+  funCall _ = typeMismatch FunCall
+  
+  arrayOf v (ArrayO p es) = liftM (ArrayO p) $ mapM v es; arrayOf _ e = typeMismatch Array   e
+  
+  table _   x@(TableO{}) = return x;                      table _ e   = typeMismatch Table   e
+  plot _    x@(PlotO{})  = return x;                      plot _ e    = typeMismatch Plot    e
+  obj _     x@(ObjO{})   = return x;                      obj _ e     = typeMismatch Object  e
+  str       x@(StrO{})   = return x;                      str e       = typeMismatch String  e
+  num       x@(NumO{})   = return x;                      num e       = typeMismatch Number  e
+  bool      x@(BoolO{})  = return x;                      bool e      = typeMismatch Boolean e
+  null      x@(NullO{})  = return x;                      null e      = typeMismatch Null    e
   
   getP (TableO p _ _)  = p
   getP (PlotO p _ _ _) = p

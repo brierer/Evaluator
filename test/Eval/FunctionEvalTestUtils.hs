@@ -7,8 +7,9 @@ import Prelude hiding                   (any,null)
 import Control.Arrow                    (second)
 import Control.Applicative              (Applicative)
 import Control.Monad                    (liftM,liftM2,join)
-import Data.Eval                        (EvalError(..),ExpObj(..),Type(..))
+import Data.Eval                        (EvalError(..),ExpObj(..),Type(..),TypeValidator)
 import Data.List                        (permutations,(\\))
+import Data.Maybe                       (isJust)
 import Data.Token                       (PairToken(..),IdToken(..),ExpToken(..))
 import Eval.Function                    (Marshallable(..),any,lit,applyFunc,(<|>),(<!>))
 import Eval.MultiPass                   (mapPair)
@@ -70,7 +71,7 @@ instance Arbitrary TestObjs where
   shrink x                = error $ "FunctionEvalTestUtils::shrink<TestObjs> [Pattern mismatch ["++show x++"]]"
 mTestObjs t p = liftM TestObjs $ sequence [liftM un t, liftM un p]
 
-data ExpOA = ExpOA ExpObj deriving (Show)
+data ExpOA = ExpOA ExpObj deriving (Eq,Show)
 instance Unto ExpOA ExpObj where to = ExpOA; un (ExpOA e) = e
 instance Arbitrary ExpOA where arbitrary = sized1 tall; shrink (ExpOA e) = mExpOA (shrinkO e)
 instance Tall      ExpOA where                                    tall n =  mExpOA (randomO n)
@@ -149,7 +150,7 @@ instance Arbitrary NullOA where
   shrink (NullOA (NullO p)) = mNullOA (tShrink p)
 mNullOA = liftM (NullOA .NullO .un)
 
-data ExpTS =  ExpTS ExpToken deriving (Show)
+data ExpTS =  ExpTS ExpToken deriving (Eq,Show)
 instance Unto ExpTS ExpToken where to = ExpTS; un (ExpTS e) = e
 instance Arbitrary ExpTS where arbitrary = sized1 tall; shrink (ExpTS e) = mExpTS (tShrink e)
 instance Tall ExpTS where                                         tall n = mExpTS (tall n)
@@ -176,19 +177,19 @@ simplify e                    = e
 data ExpTF =  ExpTF ExpToken ExpObj IdToken deriving (Show)
 instance Arbitrary ExpTF where arbitrary = sized1 tall; shrink (ExpTF e o i) = mExpTF (tShrink e) (tShrink o) (tShrink i) 
 instance Tall      ExpTF where                                        tall n = mExpTF (tall n)    (tall n)     arbitrary
-mExpTF = moo ExpTF 
+mExpTF = makeTF ExpTF 
 
 data ArrayTF =  ArrayTF ExpToken ExpObj IdToken deriving (Show)
 instance Arbitrary ArrayTF where arbitrary = sized1 tall; shrink (ArrayTF e o i) = mArrayTF (tShrink e) (tShrink o) (tShrink i) 
 instance Tall      ArrayTF where                                          tall n = mArrayTF (tall n)    (tall n)     arbitrary
-mArrayTF = moo ArrayTF 
+mArrayTF = makeTF ArrayTF 
 
 data ObjTF =  ObjTF ExpToken ExpObj IdToken deriving (Show)
 instance Arbitrary ObjTF where arbitrary = sized1 tall; shrink (ObjTF e o i) = mObjTF (tShrink e) (tShrink o) (tShrink i) 
 instance Tall      ObjTF where                                        tall n = mObjTF (tall n)    (tall n)     arbitrary
-mObjTF = moo ObjTF
+mObjTF = makeTF ObjTF
 
-moo f ea oa ia = do e <- ea; o <- oa; i <- ia; return $ f (simplifyF (un i) $ un e) (un o) (un i)
+makeTF f ea oa ia = do e <- ea; o <- oa; i <- ia; return $ f (simplifyF (un i) $ un e) (un o) (un i)
 
 simplifyF i (FuncT p w _ _)      = FuncT  p w i [] 
 simplifyF i (ArrayT p w es)      = ArrayT p w $ map  (simplifyF i)          es
@@ -201,7 +202,7 @@ instance Marshallable TokOrObj where
   table    = error "Eval.FunctionEvalTestUtils::table<TOkOrObj>    [Should not be called]"
   plot     = error "Eval.FunctionEvalTestUtils::plot<TOkOrObj>     [Should not be called]"
   funCall  = error "Eval.FunctionEvalTestUtils::plot<TOkOrObj>     [Should not be called]"
-  array    = error "Eval.FunctionEvalTestUtils::funCall<TOkOrObj>  [Should not be called]"
+  arrayOf  = error "Eval.FunctionEvalTestUtils::funCall<TOkOrObj>  [Should not be called]"
   obj      = error "Eval.FunctionEvalTestUtils::obj<TOkOrObj>      [Should not be called]"
   str      = error "Eval.FunctionEvalTestUtils::str<TOkOrObj>      [Should not be called]"
   num      = error "Eval.FunctionEvalTestUtils::num<TOkOrObj>      [Should not be called]"
@@ -232,6 +233,29 @@ orCase es vs indexes rest f =
       expectedType = foldl1  Or   (map (getT.fst) toOr)  
   in  forAll toOr   (\(e,v) -> f e == v e) &&
       forAll wrongs (\e -> Left (TypeMismatch (getP e) expectedType (getT e)) == validator e)
+      
+data ValA a = ValA String (TypeValidator a)
+instance Show (ValA a) where show (ValA s _) = "ValA " ++ s
+instance Marshallable a => Arbitrary (ValA a) where arbitrary = sized1 tall; shrink _  = []
+instance Marshallable a => Tall      (ValA a) where
+  tall 0 = liftM (uncurry ValA) $ elements leafValidators
+  tall n = do
+    ValA s1 v1 <- tall $ n-1
+    ValA s2 v2 <- tall $ n-1
+    (s,moo) <- elements [(s1,v1),(s2,v2),(s1++" or "++s2,v1<|>v2)]
+    liftM (uncurry ValA) $ elements $ ("arrayOf<"++s++">",arrayOf moo):leafValidators
+
+leafValidators :: Marshallable a => [(String,TypeValidator a)]
+leafValidators = [("array",array[]),("obj",obj[]),("str",str),("num",num),("bool",bool),("null",null)]
+
+findWithPosAndType _ _ []                                                = Nothing
+findWithPosAndType p t (e:_)  | getP e == p && getT e == t               = Just e 
+                              | isJust (findWithPosAndType p t $ subs e) = Just e
+findWithPosAndType p t (_:es)                                            = findWithPosAndType p t es
+
+class Subs a where subs :: a -> [a]
+instance Subs ExpToken where subs (ArrayT _ _ xs) = xs; subs _ = []
+instance Subs ExpObj   where subs (ArrayO _   xs) = xs; subs _ = []
 
 applyFunc' fs p n es = applyFunc fs (mkFunc p n es)
 testFunc os fs p n = fromRight $ applyFunc' (mkFuncs os fs) p n []

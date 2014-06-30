@@ -6,13 +6,15 @@ import Prelude        hiding            (any,null)
                                         
 import Control.Monad                    (liftM)                                        
 import Data.Eval                        (EvalError(..),ExpObj(..),Type(..))
-import Data.Token                       (IdToken(..),ExpToken(NullT))
+import Data.List                        ((\\))
+import Data.Token                       (IdToken(..),ExpToken(..))
 import Eval.Function                    (Marshallable(..),any,noLit,noLitType,lit,litType,applyFunc)
 import Eval.FunctionEvalTestUtils       (Is(..),TestToks(..),TestObjs(..),ExpOA(..),TableOA(..),PlotOA(..),ArrayOA(..),ObjOA(..),StrOA(..),NumOA(..),BoolOA(..),NullOA(..),
-                                         ExpTS(..),ArrayTS(..),ObjTS(..),ExpTF(..),ArrayTF(..),ObjTF(..),TokOrObj(..),TestIndexesT(..),TestIndexesO(..),
-                                         testFunc,forAll,mkEntries,anyCase,litCase,testS,testF,mkFunc,funcNamesLit,funcNamesNoLit,constM,orCase)
+                                         ExpTS(..),ArrayTS(..),ObjTS(..),ExpTF(..),ArrayTF(..),ObjTF(..),TokOrObj(..),TestIndexesT(..),TestIndexesO(..),ValA(..),
+                                         testFunc,forAll,mkEntries,anyCase,litCase,testS,testF,mkFunc,funcNamesLit,funcNamesNoLit,constM,orCase,findWithPosAndType)
 import Eval.MultiPassEvalTestUtils      (usesFuncE)
-import Parser.MonolithicParserTestUtils (IdTA(..),ExpTA(..),StrTA(..),NumTA(..),BoolTA(..),NullTA(..))
+import Parser.MonolithicParserTestUtils (IdTA(..),ExpTA(..),StrTA(..),NumTA(..),BoolTA(..),NullTA(..),P(..),W(..),un)
+
 
 {-| Number of args validation -}
 prop_NbArgs (NonNegative n) (NonNegative m) (IdTA (IdT p w name)) = let (nbParams,nbArgs) = (n `mod` 1000,m `mod` 1000)  in nbParams /= nbArgs ==>
@@ -22,9 +24,21 @@ prop_NbArgs (NonNegative n) (NonNegative m) (IdTA (IdT p w name)) = let (nbParam
 
 {-| Combinators -}
 -- Or
-prop_OrLit (TestToks es) (TestIndexesT indexes rest) = orCase es [array[],obj[],str,num,bool,null]indexes rest testS
+prop_OrLit (TestToks es) (TestIndexesT indexes rest) = orCase es [array[],obj[],str,num,bool,null] indexes rest testS
 prop_OrObj (TableOA t) (PlotOA p) (ArrayOA a) (ObjOA o) (StrOA s) (NumOA nb) (BoolOA b) (NullOA nu) (TestIndexesO indexes rest)
   = orCase [t,p,a,o,s,nb,b,nu] [table[],plot[],array[],obj[],str,num,bool,null] indexes rest Right
+
+prop_ArrayOfLit :: P -> (W,W) -> [ExpTS] -> ValA ExpToken -> Bool
+prop_ArrayOfLit p w ts (ValA s v) = let es = map un ts; arr = ArrayT (un p) (un w) es in case arrayOf v arr of
+  r@(Right _)                        -> r == testS arr
+  l@(Left (TypeMismatch pos _ actT)) -> let Just e = findWithPosAndType pos actT es; ts' = ts \\ [ExpTS e]
+                                        in  l == v e && prop_ArrayOfLit p w ts' (ValA s v)
+
+prop_ArrayOfObj :: P -> [ExpOA] -> ValA ExpObj -> Bool
+prop_ArrayOfObj p ts (ValA s v) = let es = map un ts; arr = ArrayO (un p) es in case arrayOf v arr of
+  Right a                            -> a == arr
+  l@(Left (TypeMismatch pos _ actT)) -> let Just e = findWithPosAndType pos actT es; ts' = ts \\ [ExpOA e]
+                                        in  l == v e && prop_ArrayOfObj p ts' (ValA s v)
 
 -- Any type (can't fail)
 prop_MarshallAnyLit (ExpTS e)                    = testS e == any [] e
