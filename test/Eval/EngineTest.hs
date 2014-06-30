@@ -4,42 +4,46 @@ module Eval.EngineTest where
 import Test.Framework hiding            (forAll)
                                         
 import Data.Eval                        (EvalError(..))
-import Data.Token                       (IdToken(..),ExpToken(..))
+import Data.Token                       (ExpToken(..))
 import Eval.Engine                      (funcs)
-import Eval.Function                    (arrayOf,table,plot,(<|>),applyFunc)
-import Eval.FunctionEvalTestUtils       (ExpTS(..),applyFunc')
-import Parser.MonolithicParserTestUtils (W(..),P(..),ExpTA(..),un,uns)
+import Eval.Function                    (arrayOf,table,plot,num,(<|>),applyFunc)
+import Eval.FunctionEvalTestUtils       (Is(..),ExpTS(..),w2,p0,applyFunc',mkFunc)
+import Parser.MonolithicParserTestUtils (P(..),ExpTA(..),un,uns)
 
 prop_NbArgs1 (P p) esTA = length esTA > 1 ==> let es = uns esTA in
-  all (\name -> Left (InvalidNbOfArgs p name 1 0)           == applyFunc' funcs p name []
-             && Left (InvalidNbOfArgs p name 1 (length es)) == applyFunc' funcs p name es)
-    ["show","multi","mean","descriptive"]
+    all (\name -> Left (InvalidNbOfArgs p name 1 0)           == applyFunc' funcs p name ([] :: [ExpToken])
+               && Left (InvalidNbOfArgs p name 1 (length es)) == applyFunc' funcs p name es)
+      ["show","multi","mean","descriptive"]
 
 prop_NbArgs2 (P p) esTA = length esTA > 2 ==> let es = uns esTA in
-  all (\name -> Left (InvalidNbOfArgs p name 2 0)           == applyFunc' funcs p name []
-             && Left (InvalidNbOfArgs p name 2 1)           == applyFunc' funcs p name (take 1 es)
-             && Left (InvalidNbOfArgs p name 2 (length es)) == applyFunc' funcs p name es)
-    ["table","nTimes","take","sortTable"]
+    all (\name -> Left (InvalidNbOfArgs p name 2 0)           == applyFunc' funcs p name ([] :: [ExpToken])
+               && Left (InvalidNbOfArgs p name 2 1)           == applyFunc' funcs p name (take 1 es)
+               && Left (InvalidNbOfArgs p name 2 (length es)) == applyFunc' funcs p name es)
+      ["table","nTimes","take","sortTable"]
 
 prop_NbArgs3 (P p) esTA = length esTA > 3 ==> let es = uns esTA in
-  all (\name -> Left (InvalidNbOfArgs p name 3 0)           == applyFunc' funcs p name []
+  all (\name -> Left (InvalidNbOfArgs p name 3 0)           == applyFunc' funcs p name ([] :: [ExpToken])
              && Left (InvalidNbOfArgs p name 3 1)           == applyFunc' funcs p name (take 1 es)
              && Left (InvalidNbOfArgs p name 3 2)           == applyFunc' funcs p name (take 2 es)
              && Left (InvalidNbOfArgs p name 3 (length es)) == applyFunc' funcs p name es)
     ["plotLine"]
 
-type Test = P -> [ExpTA] -> Property
-prop_NbArgs1 :: Test
-prop_NbArgs2 :: Test
-prop_NbArgs3 :: Test
+prop_ErrorTypeShow  p ts = let es = uns ts in                       not (null es) ==> let arg = ArrayT p0 w2 es in  arrayOf (table funcs <|> plot funcs) arg == applyFunc funcs (mkFunc (un p) "show" [arg])
+prop_ErrorTypeMulti p ts = let es = uns ts in any (not.isNum) es && not (null es) ==> let arg = ArrayT p0 w2 es in  arrayOf num arg                          == applyFunc funcs (mkFunc (un p) "multi" [arg])
+prop_ErrorTypeMean  p ts = let es = uns ts in any (not.isNum) es && not (null es) ==> let arg = ArrayT p0 w2 es in  arrayOf num arg                          == applyFunc funcs (mkFunc (un p) "mean" [arg])
+prop_ErrorTypeDesc  p ts = let es = uns ts in any (not.isNum) es && not (null es) ==> let arg = ArrayT p0 w2 es in  arrayOf num arg                          == applyFunc funcs (mkFunc (un p) "descriptive" [arg])
 
---prop_ErrorTypeShowLit :: P -> P -> P -> W -> (W,W) -> (W,W) -> [ExpTS] -> Property
---prop_ErrorTypeShowLit pf pi pa wf wi wa es = not (null es) ==> 
---  let arg = ArrayT (un pa) (un wa) (uns es)
---      expected = arrayOf (table funcs <|> plot funcs) arg
---      actual = applyFunc funcs (FuncT (un pf) (un wf) (IdT (un pi) (un wi) "show") [arg])
---  in  expected == actual
-    
+{-| Mandatory type signatures -}
+type NbArgTest = P -> [ExpTA] ->  Property
+prop_NbArgs1 :: NbArgTest 
+prop_NbArgs2 :: NbArgTest 
+prop_NbArgs3 :: NbArgTest 
+
+prop_ErrorTypeShow  :: P -> [ExpTS] -> Property
+prop_ErrorTypeMulti :: P -> [ExpTS] -> Property
+prop_ErrorTypeMean  :: P -> [ExpTS] -> Property
+prop_ErrorTypeDesc  :: P -> [ExpTS] -> Property
+
 {-|
 unlines $  [ "show = show([tservice,tsalaire,trente])" , "tservice = table([[service]],{col:[\"service\"]})" , "tsalaire = table([salaires],{col:[\"salaire\"]})" , "trente = table([rente],{col:[\"rente\"]})" , "rente = multi([0.02,moyensalaire,service])" , "moyensalaire = mean(salaires)" , "salaires = [55000,60000,45000]" , "service = 35" ]
 

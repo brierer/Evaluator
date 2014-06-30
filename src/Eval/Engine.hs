@@ -19,9 +19,9 @@ import Eval.Function       (Marshallable,arrayOf,table,plot,array,obj,num,(<|>))
 funcs :: Marshallable a => [FuncEntry a]
 funcs =   -- 1 arg functions
         [ ("show",       ([arrayOf $ table funcs <|> plot funcs], showF))
-        , ("multi",      ([array'], multiF))
-        , ("mean",       ([array'], meanF))
-        , ("descriptive",([array'], descF))
+        , ("multi",      ([arrayOf num], multiF))
+        , ("mean",       ([arrayOf num], meanF))
+        , ("descriptive",([arrayOf num], descF))
           -- 2 arg functions
         , ("table",      ([array',obj'], tableF))
         , ("nTimes",     ([num,num],    nTimesF))
