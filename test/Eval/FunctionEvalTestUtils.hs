@@ -14,7 +14,7 @@ import Data.Token                       (PairToken(..),IdToken(..),ExpToken(..))
 import Eval.Function                    (Marshallable(..),any,lit,applyFunc,(<|>),(<!>))
 import Eval.MultiPass                   (mapPair)
 import Parser.MonolithicParserTestUtils (Unto(..),Tall(..),IdTA(..),ExpTA(..),ArrayTA(..),ObjTA(..),StrTA(..),NumTA(..),BoolTA(..),NullTA(..),P(..),
-                                         sShrink,tShrink,tShrinks,sizes,sized1,liftMF2,liftMF3,liftMF4)
+                                         sShrink,tShrink,tShrinks,sizes,sized1,liftMF2,liftMF3,liftMF4,uns)
 import Test.Framework                   (Arbitrary(..),Gen,elements,choose)
 
 class Is a where
@@ -112,7 +112,7 @@ data ArrayOA = ArrayOA ExpObj deriving (Show)
 instance Unto  ArrayOA ExpObj where to = ArrayOA; un (ArrayOA a) = a
 instance Arbitrary ArrayOA where arbitrary = sized1 tall; shrink (ArrayOA (ArrayO p es)) = mArrayOA (tShrink p) (tShrinks es)
 instance Tall      ArrayOA where                                                  tall n =  mArrayOA  arbitrary  (sizes n)
-mArrayOA = liftMF2 mkArray un (map un) where mkArray x = ArrayOA .ArrayO x
+mArrayOA = liftMF2 mkArray un uns where mkArray x = ArrayOA .ArrayO x
 
 data ObjOA =  ObjOA ExpObj deriving (Show)
 instance Unto ObjOA ExpObj where to = ObjOA; un (ObjOA o) = o

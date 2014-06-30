@@ -2,12 +2,13 @@
 module Eval.EngineTest where
 
 import Test.Framework hiding            (forAll)
-import Prelude        hiding            (null)
                                         
 import Data.Eval                        (EvalError(..))
+import Data.Token                       (IdToken(..),ExpToken(..))
 import Eval.Engine                      (funcs)
-import Eval.FunctionEvalTestUtils       (applyFunc')
-import Parser.MonolithicParserTestUtils (P(..),ExpTA(..),uns)
+import Eval.Function                    (arrayOf,table,plot,(<|>),applyFunc)
+import Eval.FunctionEvalTestUtils       (ExpTS(..),applyFunc')
+import Parser.MonolithicParserTestUtils (W(..),P(..),ExpTA(..),un,uns)
 
 prop_NbArgs1 (P p) esTA = length esTA > 1 ==> let es = uns esTA in
   all (\name -> Left (InvalidNbOfArgs p name 1 0)           == applyFunc' funcs p name []
@@ -31,6 +32,13 @@ type Test = P -> [ExpTA] -> Property
 prop_NbArgs1 :: Test
 prop_NbArgs2 :: Test
 prop_NbArgs3 :: Test
+
+--prop_ErrorTypeShowLit :: P -> P -> P -> W -> (W,W) -> (W,W) -> [ExpTS] -> Property
+--prop_ErrorTypeShowLit pf pi pa wf wi wa es = not (null es) ==> 
+--  let arg = ArrayT (un pa) (un wa) (uns es)
+--      expected = arrayOf (table funcs <|> plot funcs) arg
+--      actual = applyFunc funcs (FuncT (un pf) (un wf) (IdT (un pi) (un wi) "show") [arg])
+--  in  expected == actual
     
 {-|
 unlines $  [ "show = show([tservice,tsalaire,trente])" , "tservice = table([[service]],{col:[\"service\"]})" , "tsalaire = table([salaires],{col:[\"salaire\"]})" , "trente = table([rente],{col:[\"rente\"]})" , "rente = multi([0.02,moyensalaire,service])" , "moyensalaire = mean(salaires)" , "salaires = [55000,60000,45000]" , "service = 35" ]

@@ -14,11 +14,11 @@ module Eval.Engine
 import Prelude hiding (exp,null)
 
 import Data.Eval           (FuncEntry,Func)
-import Eval.Function       (Marshallable,array,obj,num)
+import Eval.Function       (Marshallable,arrayOf,table,plot,array,obj,num,(<|>))
 
 funcs :: Marshallable a => [FuncEntry a]
 funcs =   -- 1 arg functions
-        [ ("show",       ([array'], showF))
+        [ ("show",       ([arrayOf $ table funcs <|> plot funcs], showF))
         , ("multi",      ([array'], multiF))
         , ("mean",       ([array'], meanF))
         , ("descriptive",([array'], descF))

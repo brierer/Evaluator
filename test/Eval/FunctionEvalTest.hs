@@ -13,7 +13,7 @@ import Eval.FunctionEvalTestUtils       (Is(..),TestToks(..),TestObjs(..),ExpOA(
                                          ExpTS(..),ArrayTS(..),ObjTS(..),ExpTF(..),ArrayTF(..),ObjTF(..),TokOrObj(..),TestIndexesT(..),TestIndexesO(..),ValA(..),
                                          testFunc,forAll,mkEntries,anyCase,litCase,testS,testF,mkFunc,funcNamesLit,funcNamesNoLit,constM,orCase,findWithPosAndType)
 import Eval.MultiPassEvalTestUtils      (usesFuncE)
-import Parser.MonolithicParserTestUtils (IdTA(..),ExpTA(..),StrTA(..),NumTA(..),BoolTA(..),NullTA(..),P(..),W(..),un)
+import Parser.MonolithicParserTestUtils (IdTA(..),ExpTA(..),StrTA(..),NumTA(..),BoolTA(..),NullTA(..),P(..),W(..),un,uns)
 
 
 {-| Number of args validation -}
@@ -29,13 +29,13 @@ prop_OrObj (TableOA t) (PlotOA p) (ArrayOA a) (ObjOA o) (StrOA s) (NumOA nb) (Bo
   = orCase [t,p,a,o,s,nb,b,nu] [table[],plot[],array[],obj[],str,num,bool,null] indexes rest Right
 
 prop_ArrayOfLit :: P -> (W,W) -> [ExpTS] -> ValA ExpToken -> Bool
-prop_ArrayOfLit p w ts (ValA s v) = let es = map un ts; arr = ArrayT (un p) (un w) es in case arrayOf v arr of
+prop_ArrayOfLit p w ts (ValA s v) = let es = uns ts; arr = ArrayT (un p) (un w) es in case arrayOf v arr of
   r@(Right _)                        -> r == testS arr
   l@(Left (TypeMismatch pos _ actT)) -> let Just e = findWithPosAndType pos actT es; ts' = ts \\ [ExpTS e]
                                         in  l == v e && prop_ArrayOfLit p w ts' (ValA s v)
 
 prop_ArrayOfObj :: P -> [ExpOA] -> ValA ExpObj -> Bool
-prop_ArrayOfObj p ts (ValA s v) = let es = map un ts; arr = ArrayO (un p) es in case arrayOf v arr of
+prop_ArrayOfObj p ts (ValA s v) = let es = uns ts; arr = ArrayO (un p) es in case arrayOf v arr of
   Right a                            -> a == arr
   l@(Left (TypeMismatch pos _ actT)) -> let Just e = findWithPosAndType pos actT es; ts' = ts \\ [ExpOA e]
                                         in  l == v e && prop_ArrayOfObj p ts' (ValA s v)
