@@ -43,8 +43,8 @@ instance Arbitrary MultiDefs where
 mMultiDefs pa = let empty = MultiDefs (fromForms []) p0 "" in do
   fs <- liftM forms pa
   nullGuard fs empty $ do
-    let (FormT _ (IdT p _ n) _) = head fs
-        fs' = FormT p0 (IdT p0 w2 n) (NullT p0 w2):tail fs 
+    let (FormT (IdT p _ n) _) = head fs
+        fs' = FormT (IdT p0 w2 n) (NullT p0 w2):tail fs 
     return $ MultiDefs (fromForms $ fs'++fs++fs') p n 
     
 data ValidVars = ValidVars UniqueDefs deriving (Eq,Show)
@@ -57,17 +57,17 @@ instance Arbitrary ValidVars where
 mValidVars pa f = liftM fromForms (pa >>= replaceAllVars f . forms)
 
 replaceAllVars _ []  = return []
-replaceAllVars f (FormT p n v:fs) = do
+replaceAllVars f (FormT n v:fs) = do
   v' <- replaceVars (map formName fs) f v
   rest <- replaceAllVars f fs
-  return $ FormT p n v': rest
+  return $ FormT n v': rest
 
-replaceVars ns f (FuncT p w n es)     = liftM (FuncT p w n) $ mapM (replaceVars ns f) es
-replaceVars ns f (ArrayT p w es)      = liftM (ArrayT p w)  $ mapM (replaceVars ns f) es
-replaceVars ns f (ObjT p w ps)        = liftM (ObjT p w)    $ mapM (mapMPair $ replaceVars ns f) ps
-replaceVars [] _ (VarT p (IdT _ w _)) = return (NullT p w)
-replaceVars ns f (VarT p (IdT q w _)) = liftM (VarT p.IdT q w) $ f ns
-replaceVars _  _ e                    = return e
+replaceVars ns f (FuncT w n es)     = liftM (FuncT w n) $ mapM (replaceVars ns f) es
+replaceVars ns f (ArrayT p w es)    = liftM (ArrayT p w)  $ mapM (replaceVars ns f) es
+replaceVars ns f (ObjT p w ps)      = liftM (ObjT p w)    $ mapM (mapMPair $ replaceVars ns f) ps
+replaceVars [] _ (VarT (IdT _ w _)) = return (NullT p0 w)
+replaceVars ns f (VarT (IdT q w _)) = liftM (VarT .IdT q w) $ f ns
+replaceVars _  _ e                  = return e
 
 data UndefVars = UndefVars ValidVars Pos String deriving (Show)
 instance Arbitrary UndefVars where
@@ -87,22 +87,22 @@ mUndefVars pa f1 f2 = let empty = UndefVars (fromForms []) p0 "" in do
       return $ UndefVars (fromForms result) p n'
 
 removeUnderscoresV = fromForms.map f.forms where
-  f (FormT p n e)         = FormT p n $ g e
-  g (FuncT p w i es)      = FuncT p w i $ map g es
-  g (ArrayT p w es)       = ArrayT p w  $ map g es
-  g (ObjT p w ps)         = ObjT p w $ map (mapPair g) ps
-  g (VarT p (IdT q w' n)) = VarT p (IdT q w' (filter (/='_') n))
-  g e                     = e
+  f (FormT n e)         = FormT n $ g e
+  g (FuncT w i es)      = FuncT w i $ map g es
+  g (ArrayT p w es)     = ArrayT p w  $ map g es
+  g (ObjT p w ps)       = ObjT p w $ map (mapPair g) ps
+  g (VarT (IdT q w' n)) = VarT $ IdT q w' (filter (/='_') n)
+  g e                   = e
 
 replaceOneVar :: String -> String -> FormToken -> State Pos FormToken
-replaceOneVar fn n' (FormT p n e) = liftM (FormT p n) $ replaceOneVarE fn n' e
+replaceOneVar fn n' (FormT n e) = liftM (FormT n) $ replaceOneVarE fn n' e
 
 replaceOneVarE :: String -> String -> ExpToken -> State Pos ExpToken
-replaceOneVarE fn n' (FuncT p w i es)     = liftM (FuncT p w i) $ mapM (replaceOneVarE fn n') es
-replaceOneVarE fn n' (ArrayT p w es)      = liftM (ArrayT p w) $ mapM (replaceOneVarE fn n') es
-replaceOneVarE fn n' (ObjT p w ps)        = liftM (ObjT p w)   $ mapM (mapMPair $ replaceOneVarE fn n') ps
-replaceOneVarE fn n' (VarT p (IdT q w n)) = liftM (VarT p . IdT q w) $ getNewName fn n n' q
-replaceOneVarE _  _  e                    = return e
+replaceOneVarE fn n' (FuncT w i es)     = liftM (FuncT w i) $ mapM (replaceOneVarE fn n') es
+replaceOneVarE fn n' (ArrayT p w es)    = liftM (ArrayT p w) $ mapM (replaceOneVarE fn n') es
+replaceOneVarE fn n' (ObjT p w ps)      = liftM (ObjT p w)   $ mapM (mapMPair $ replaceOneVarE fn n') ps
+replaceOneVarE fn n' (VarT (IdT q w n)) = liftM (VarT . IdT q w) $ getNewName fn n n' q
+replaceOneVarE _  _  e                  = return e
 
 getNewName fn n n' q = do
   oldP <- get
@@ -111,23 +111,23 @@ getNewName fn n n' q = do
   return newN
 
 usesVar :: String -> FormToken -> Bool
-usesVar fn (FormT _ _ e) = usesVarE fn e
+usesVar fn (FormT _ e) = usesVarE fn e
 
 usesVarE :: String -> ExpToken -> Bool
-usesVarE fn (FuncT _ _ _ es)     = any (usesFuncE fn) es
-usesVarE fn (ArrayT _ _ es)      = any (usesFuncE fn) es
-usesVarE fn (ObjT _ _ ps)        = any (usesFuncE fn.pairVal) ps
-usesVarE fn (VarT _ (IdT _ _ n)) = fn == n   
-usesVarE _  _                    = False
+usesVarE fn (FuncT _ _ es)     = any (usesFuncE fn) es
+usesVarE fn (ArrayT _ _ es)    = any (usesFuncE fn) es
+usesVarE fn (ObjT _ _ ps)      = any (usesFuncE fn.pairVal) ps
+usesVarE fn (VarT (IdT _ _ n)) = fn == n   
+usesVarE _  _                  = False
     
 getRefed = S.toList . f S.empty
   where f acc []                   = acc
-        f acc (FormT _ _ e:fs)     = f (g acc e) fs
-        g acc (FuncT _ _ _ es)     = foldl g acc es
-        g acc (ArrayT _ _ es)      = foldl g acc es
-        g acc (ObjT _ _ ps)        = foldl g acc $ map pairVal ps
-        g acc (VarT _ (IdT _ _ n)) = S.insert n acc
-        g acc _                    = acc
+        f acc (FormT _ e:fs)     = f (g acc e) fs
+        g acc (FuncT _ _ es)     = foldl g acc es
+        g acc (ArrayT _ _ es)    = foldl g acc es
+        g acc (ObjT _ _ ps)      = foldl g acc $ map pairVal ps
+        g acc (VarT (IdT _ _ n)) = S.insert n acc
+        g acc _                  = acc
 
 data CycleVars = CycleVars ValidVars [(Pos,String)] deriving (Show)
 instance Arbitrary CycleVars where
@@ -139,7 +139,7 @@ mCycleVars pa f = let empty = CycleVars (fromForms []) [] in do
     let ns = map formName fs
     fs' <- zipWithM (makeCycle f) fs $ tail $ cycle ns
     return $ CycleVars (fromForms fs') (flipZip $ sort $ zip ns $ map formPos fs) where flipZip = uncurry (flip zip).unzip
-makeCycle f (FormT p n e) m = liftM (FormT p n) $ replaceVars [m] f e
+makeCycle f (FormT n e) m = liftM (FormT n) $ replaceVars [m] f e
 
 data ValidFuncs = ValidFuncs ValidVars [String] deriving (Eq,Show)
 instance HasProg ValidFuncs where
@@ -154,23 +154,23 @@ funcNamesF :: [FormToken] -> [String]
 funcNamesF = filter (/="show").nub.funcNames.map formVal
 funcNames :: [ExpToken] -> [String]
 funcNames = concatMap f where
-  f (FuncT _ _ (IdT _ _ n) es) = n:funcNames es
-  f (ArrayT _ _ es)            = funcNames es
-  f (ObjT _ _ ps)              = funcNames $ map pairVal ps
-  f _                          = []
+  f (FuncT _ (IdT _ _ n) es) = n:funcNames es
+  f (ArrayT _ _ es)          = funcNames es
+  f (ObjT _ _ ps)            = funcNames $ map pairVal ps
+  f _                        = []
 
-insertTopShow fs = FormT p0 (IdT p0 w2 "show") (FuncT p0"" (IdT p0 w2 "show") $ map formVal fs):fs
+insertTopShow fs = FormT (IdT p0 w2 "show") (FuncT "" (IdT p0 w2 "show") $ map formVal fs):fs
 
 replaceNonTopShows = map f where 
-  f (FormT p n e)               = FormT p n $ g e
-  g (FuncT p w (IdT q w' n) es) = FuncT p w (IdT q w' (case n of "show" -> "notShow"; _ -> n)) $ map g es
-  g (ArrayT p w es)             = ArrayT p w $ map g es
-  g (ObjT p w ps)               = ObjT p w $ map (mapPair g) ps
-  g e                           = e  
+  f (FormT n e)               = FormT n $ g e
+  g (FuncT w (IdT q w' n) es) = FuncT w (IdT q w' (case n of "show" -> "notShow"; _ -> n)) $ map g es
+  g (ArrayT p w es)           = ArrayT p w $ map g es
+  g (ObjT p w ps)             = ObjT p w $ map (mapPair g) ps
+  g e                         = e  
   
-removeTopShow []                                                           = []
-removeTopShow (FormT _ (IdT _ _ "show") (FuncT _ _ (IdT _ _ "show") _):fs) = fs
-removeTopShow (f:fs)                                                       = f:removeTopShow fs
+removeTopShow []                                                       = []
+removeTopShow (FormT (IdT _ _ "show") (FuncT _ (IdT _ _ "show") _):fs) = fs
+removeTopShow (f:fs)                                                   = f:removeTopShow fs
 
 data UndefFuncs = UndefFuncs ValidFuncs Pos String deriving (Eq,Show)
 instance Arbitrary UndefFuncs where
@@ -188,29 +188,29 @@ mUndefFuncs pa f1 f2 = let empty = UndefFuncs (fromForms []) p0 "" in do
     return $ UndefFuncs (ValidFuncs (fromForms fs') fns) p fn'
 
 removeUnderscores = fromForms.map f.forms where
-  f (FormT p n e)               = FormT p n $ g e
-  g (FuncT p w (IdT q w' n) es) = FuncT p w (IdT q w' (filter (/='_') n)) $ map g es
-  g (ArrayT p w es)             = ArrayT p w $ map g es
-  g (ObjT p w ps)               = ObjT p w $ map (mapPair g) ps
-  g e                           = e
+  f (FormT n e)               = FormT n $ g e
+  g (FuncT w (IdT q w' n) es) = FuncT w (IdT q w' (filter (/='_') n)) $ map g es
+  g (ArrayT p w es)           = ArrayT p w $ map g es
+  g (ObjT p w ps)             = ObjT p w $ map (mapPair g) ps
+  g e                         = e
 
 replaceOneFunc :: String -> String -> FormToken -> State Pos FormToken
-replaceOneFunc fn n' (FormT p n e) = liftM (FormT p n) $ replaceOneFuncE fn n' e
+replaceOneFunc fn n' (FormT n e) = liftM (FormT n) $ replaceOneFuncE fn n' e
 
 replaceOneFuncE :: String -> String -> ExpToken -> State Pos ExpToken
-replaceOneFuncE fn n' (FuncT p w (IdT q w' n) es) = getNewName fn n n' q >>= \newN -> liftM (FuncT p w (IdT q w' newN)) $ mapM (replaceOneFuncE fn n') es
-replaceOneFuncE fn n' (ArrayT p w es)             = liftM (ArrayT p w) $ mapM (replaceOneFuncE fn n') es
-replaceOneFuncE fn n' (ObjT p w ps)               = liftM (ObjT p w)   $ mapM (mapMPair $ replaceOneFuncE fn n') ps
-replaceOneFuncE _  _  e                           = return e
+replaceOneFuncE fn n' (FuncT w (IdT q w' n) es) = getNewName fn n n' q >>= \newN -> liftM (FuncT w (IdT q w' newN)) $ mapM (replaceOneFuncE fn n') es
+replaceOneFuncE fn n' (ArrayT p w es)           = liftM (ArrayT p w) $ mapM (replaceOneFuncE fn n') es
+replaceOneFuncE fn n' (ObjT p w ps)             = liftM (ObjT p w)   $ mapM (mapMPair $ replaceOneFuncE fn n') ps
+replaceOneFuncE _  _  e                         = return e
 
 usesFunc :: String -> FormToken -> Bool
-usesFunc fn (FormT _ _ e) = usesFuncE fn e
+usesFunc fn (FormT _ e) = usesFuncE fn e
 
 usesFuncE :: String -> ExpToken -> Bool
-usesFuncE fn (FuncT _ _ (IdT _ _ n) es) = fn == n || any (usesFuncE fn) es
-usesFuncE fn (ArrayT _ _ es)            =            any (usesFuncE fn) es
-usesFuncE fn (ObjT _ _ ps)              =            any (usesFuncE fn.pairVal) ps
-usesFuncE _  _                          = False
+usesFuncE fn (FuncT _ (IdT _ _ n) es) = fn == n || any (usesFuncE fn) es
+usesFuncE fn (ArrayT _ _ es)          =            any (usesFuncE fn) es
+usesFuncE fn (ObjT _ _ ps)            =            any (usesFuncE fn.pairVal) ps
+usesFuncE _  _                        = False
 
 data NonTopShowFuncs = NonTopShowFuncs ValidFuncs Pos deriving (Eq,Show)
 instance Arbitrary NonTopShowFuncs where
@@ -227,20 +227,20 @@ mNonTopShowFuncs pa f1 f2 = let empty = NonTopShowFuncs (fromForms []) p0 in do
     return $ NonTopShowFuncs (ValidFuncs (fromForms fs') fns) p
 
 removeShows = fromForms.map f.forms where
-  f (FormT p n (FuncT q w m es)) = FormT p n $ FuncT q w m $ map g es
-  f (FormT p n e)                = FormT p n $ g e
-  g (FuncT p w (IdT q w' n) es)  = FuncT p w (IdT q w' (if n == "show" then "notShow" else n)) $ map g es
-  g (ArrayT p w es)              = ArrayT p w $ map g es
-  g (ObjT p w ps)                = ObjT p w $ map (mapPair g) ps
-  g e                            = e
+  f (FormT n (FuncT w m es))  = FormT n $ FuncT w m $ map g es
+  f (FormT n e)               = FormT n $ g e
+  g (FuncT w (IdT q w' n) es) = FuncT w (IdT q w' (if n == "show" then "notShow" else n)) $ map g es
+  g (ArrayT p w es)           = ArrayT p w $ map g es
+  g (ObjT p w ps)             = ObjT p w $ map (mapPair g) ps
+  g e                         = e
   
 replaceOneNonTopFunc :: String -> String -> FormToken -> State Pos FormToken
-replaceOneNonTopFunc fn n' (FormT p n (FuncT q w m es)) = liftM (FormT p n .FuncT q w m) $ mapM (replaceOneFuncE fn n') es
-replaceOneNonTopFunc fn n' (FormT p n e)                = liftM (FormT p n) $ replaceOneFuncE fn n' e
+replaceOneNonTopFunc fn n' (FormT n (FuncT w m es)) = liftM (FormT n .FuncT w m) $ mapM (replaceOneFuncE fn n') es
+replaceOneNonTopFunc fn n' (FormT n e)              = liftM (FormT n) $ replaceOneFuncE fn n' e
 
 usesFuncNonTop :: String -> FormToken -> Bool
-usesFuncNonTop fn (FormT _ _ (FuncT _ _ _ es)) = any (usesFuncE fn) es
-usesFuncNonTop fn (FormT _ _ e)                = usesFuncE fn e
+usesFuncNonTop fn (FormT _ (FuncT _ _ es)) = any (usesFuncE fn) es
+usesFuncNonTop fn (FormT _ e)              = usesFuncE fn e
 
 data NoShowFuncs = NoShowFuncs ValidFuncs deriving (Eq,Show)
 instance HasProg NoShowFuncs where
@@ -258,28 +258,28 @@ derefValidProg' = initTable'.derefValidProg
 initTable' = (\(Right x)->x).initTable.toToken
 
 derefAll []             = []
-derefAll (FormT p n v:fs) = let moo1 = FormT p n (derefOne fs v):derefAll fs
-                            in  if any hasVarF moo1 then derefAll moo1 else moo1
+derefAll (FormT n v:fs) = let moo1 = FormT n (derefOne fs v):derefAll fs
+                          in  if any hasVarF moo1 then derefAll moo1 else moo1
 
-hasVarF (FormT _ _ e) = hasVar e
-hasVarP (PairT _ _ e) = hasVar e
-hasVar (FuncT _ _ _ es) = any hasVar es
-hasVar (ArrayT _ _ es)  = any hasVar es
-hasVar (ObjT _ _ ps)    = any hasVarP ps
-hasVar (VarT _ _)       = True
-hasVar _                = False
+hasVarF (FormT _ e)    = hasVar e
+hasVarP (PairT _ _ e)  = hasVar e
+hasVar (FuncT _ _ es)  = any hasVar es
+hasVar (ArrayT _ _ es) = any hasVar es
+hasVar (ObjT _ _ ps)   = any hasVarP ps
+hasVar (VarT _)        = True
+hasVar _               = False
 
-derefOne fs (FuncT p w m es)     = FuncT p w m  $ map (derefOne fs) es
-derefOne fs (ArrayT p w es)      = ArrayT p w   $ map (derefOne fs) es
-derefOne fs (ObjT p w ps)        = ObjT p w     $ map (derefP fs) ps
-derefOne fs (VarT _ (IdT _ _ m)) = fromMaybe (error $ "Couldn't find var ["++m++"] in prog ["++show fs++"]") $ lookup m $ map toTuple fs
-derefOne _  e                    = e
-derefP   fs (PairT p n e)        = PairT p n $ derefOne fs e
+derefOne fs (FuncT w m es)     = FuncT w m  $ map (derefOne fs) es
+derefOne fs (ArrayT p w es)    = ArrayT p w $ map (derefOne fs) es
+derefOne fs (ObjT p w ps)      = ObjT p w   $ map (derefP fs) ps
+derefOne fs (VarT (IdT _ _ m)) = fromMaybe (error $ "Couldn't find var ["++m++"] in prog ["++show fs++"]") $ lookup m $ map toTuple fs
+derefOne _  e                  = e
+derefP   fs (PairT p n e)      = PairT p n $ derefOne fs e
 
 nullGuard xs ifNull action = if null xs then return ifNull else action
 
-toTuple (FormT _ (IdT _ _ a) b) = (a,b)
-toTriple(FormT _ (IdT p _ a) b) = (a,(b,p))
+toTuple (FormT (IdT _ _ a) b) = (a,b)
+toTriple(FormT (IdT p _ a) b) = (a,(b,p))
 formName = fst.toTuple
 formPos = snd.snd.toTriple
 

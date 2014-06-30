@@ -23,32 +23,44 @@ import Control.Applicative           ((<$), (<$>), (<*>))
 import Text.ParserCombinators.Parsec (Parser,many,space,sepBy,char,try,notFollowedBy,oneOf,
                                       between,noneOf,option,many1,string,digit,getPosition,sourceLine,sourceColumn,(<|>))
 
-ws :: Parser String
-ws = many space
 
-pos :: Parser (Int,Int)
-pos = liftM ((,) <$> sourceLine <*> sourceColumn) getPosition
+{-| Formal grammar 
 
-type P = Parser
+START -> progT
 
-seq4 :: (P a, P b, P c, P d) -> P (a,b,c,d)
-seq4 (a,b,c,d) = (,,,) <$> a <*> b <*> c <*> d
+progT -> EMPTY | formT (';' formT)*
+formT -> idT '=' expT
 
-seq6 :: (P a, P b, P c, P d, P e, P f) -> P (a,b,c,d,e,f)
-seq6 (a,b,c,d,e,f) = (,,,,,) <$> a <*> b <*> c <*> d <*> e <*> f
+expT  -> nullT | boolT | numT | strT | funcT | arrayT | objT | varT
+
+funcT  -> idT '(' COMM_SEP expT ')'
+arrayT -> '[' COMM_SEP expT ']'
+objT   -> '{' COMM_SEP pairT '}'
+varT   -> idT NOT_FOLLOWED_BY [(:]
+strT   -> '"' (ASCII BUT '"')* '"'
+numT   -> integerS ('.' DIGIT+)? ([eE] integerS)?
+boolT  -> 'true' | 'false'
+nullT  -> 'null'
+
+pairT       -> idT ':' expT
+idT         -> ALPHA (ALPHA | DIGIT)*
+integerS   -> '-'? $digit+
+COMM_SEP x -> EMPTY | x (',' x)*
+
+-}
 
 {-| Non expression tokens -}
 progT :: Parser ProgToken
 formT :: Parser FormToken
 pairT :: Parser PairToken
-idT :: Parser IdToken
+idT   :: Parser IdToken
 expT  :: Parser ExpToken
 
 -- progT -> EMPTY | formT (';' formT)*
 progT = do p <- pos; liftM (ProgT p) $ formT `sepBy` char ';'
 
 -- formT -> idT '=' expT
-formT = do (p,i,_,e) <- seq4 (pos, idT, char '=', expT); return $ FormT p i e
+formT = do (_,i,_,e) <- seq4 (pos, idT, char '=', expT); return $ FormT i e
 
 -- pairT -> idT ':' expT
 pairT = do (p,i,_,e) <- seq4 (pos, idT, char ':', expT); return $ PairT p i e
@@ -68,7 +80,7 @@ objT   :: Parser ExpToken
 -- COMM_SEP x = EMPTY | x (',' x)*
 
 -- funcT -> idT '(' COMM_SEP expT ')'
-funcT  = do ( p,i,_,es,_,wa) <- seq6 (pos, idT, char '(', commaSep expT,  char ')', ws); return $ FuncT p wa i es
+funcT  = do ( _,i,_,es,_,wa) <- seq6 (pos, idT, char '(', commaSep expT,  char ')', ws); return $ FuncT wa i es
 
 -- arrayT -> '[' COMM_SEP expT ']'
 arrayT = do (wb,p,_,es,_,wa) <- seq6 (ws, pos,  char '[', commaSep expT,  char ']', ws); return $ ArrayT p (wb,wa) es
@@ -84,7 +96,7 @@ boolT :: Parser ExpToken
 nullT :: Parser ExpToken
 
 -- varT -> idT -- Not func or pair id
-varT = do p <- pos; i <- idT; notFollowedBy (oneOf "(:"); return $ VarT p i
+varT = do i <- idT; notFollowedBy (oneOf "(:"); return $ VarT i
 
 -- strT -> '"' ($printable - ['"'])* '"'
 strT = do (wb,p,v,wa) <- seq4 (ws, pos, between (char '"') (char '"') $ many $ noneOf "\"", ws); return $ StrT p (wb,wa) v
@@ -113,10 +125,24 @@ kw s = string s >> notFollowedBy (noneOf ")}],; \v\f\t\r\n")
 commaSep :: Parser a -> Parser [a]
 commaSep p = p `sepBy` char ','
 
+ws :: Parser String
+ws = many space
+
+pos :: Parser (Int,Int)
+pos = liftM ((,) <$> sourceLine <*> sourceColumn) getPosition
+
+type P = Parser
+
+seq4 :: (P a, P b, P c, P d) -> P (a,b,c,d)
+seq4 (a,b,c,d) = (,,,) <$> a <*> b <*> c <*> d
+
+seq6 :: (P a, P b, P c, P d, P e, P f) -> P (a,b,c,d,e,f)
+seq6 (a,b,c,d,e,f) = (,,,,,) <$> a <*> b <*> c <*> d <*> e <*> f
+
 {-| Unparse the derivation tree, exactly as it was parsed -}
 class Unparse a where unparse :: a -> String
 instance Unparse ProgToken where unparse (ProgT _ fs)      = unparses' ";" fs
-instance Unparse FormToken where unparse (FormT _ s e)     = unparse s ++ "=" ++ unparse e
+instance Unparse FormToken where unparse (FormT   s e)     = unparse s ++ "=" ++ unparse e
 instance Unparse PairToken where unparse (PairT _ s e)     = unparse s ++ ":" ++ unparse e
 instance Unparse ExpToken  where unparse                   = unparseExp
 instance Unparse IdToken   where unparse (IdT _ (wb,wa) s) = wb ++ s ++ wa 
@@ -128,10 +154,10 @@ unparses' :: Unparse a => String -> [a] -> String
 unparses' sep = intercalate sep . map unparse
 
 unparseExp :: ExpToken -> String
-unparseExp (FuncT  _  wa i es)    = unparse i ++ "(" ++ unparses es ++ ")" ++ wa
+unparseExp (FuncT     wa i es)    = unparse i ++ "(" ++ unparses es ++ ")" ++ wa
 unparseExp (ArrayT _ (wb,wa) es)  = wb ++ "[" ++ unparses es ++ "]" ++ wa
 unparseExp (ObjT   _ (wb,wa) ps)  = wb ++ "{" ++ unparses ps ++ "}" ++ wa
-unparseExp (VarT   _         v)   = unparse v
+unparseExp (VarT             v)   = unparse v
 unparseExp (StrT   _ (wb,wa) s)   = wb ++ show s                    ++ wa
 unparseExp (NumT   _ (wb,wa) o _) = wb ++ o                         ++ wa
 unparseExp (BoolT  _ (wb,wa) b)   = wb ++ map toLower (show b)      ++ wa

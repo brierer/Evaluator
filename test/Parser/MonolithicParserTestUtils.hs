@@ -21,9 +21,9 @@ mProgTA = liftMF2 mkProg un uns where mkProg x = ProgTA . ProgT x
 
 data FormTA = FormTA FormToken deriving (Show)
 instance Unto FormTA FormToken where to = FormTA; un (FormTA f) = f
-instance Arbitrary FormTA where arbitrary = sized1 tall; shrink (FormTA (FormT p i e)) = mFormTA (tShrink p) (tShrink i) (tShrink e)
-instance Tall      FormTA where                                                 tall n =  mFormTA  arbitrary   arbitrary  (tall n) 
-mFormTA = liftMF3 mkForm un un un where mkForm x y = FormTA .FormT x y
+instance Arbitrary FormTA where arbitrary = sized1 tall; shrink (FormTA (FormT i e)) = mFormTA (tShrink i) (tShrink e)
+instance Tall      FormTA where                                               tall n = mFormTA arbitrary  (tall n) 
+mFormTA = liftMF2 mkForm un un where mkForm x = FormTA .FormT x
 
 data PairTA = PairTA PairToken deriving (Show)
 instance Unto PairTA PairToken where to = PairTA; un (PairTA p) = p
@@ -68,9 +68,9 @@ shrinkT x@(NullT{})  = liftM un $ sShrink (to x :: NullTA)
 
 data FuncTA = FuncTA ExpToken deriving (Show)
 instance Unto FuncTA ExpToken where to = FuncTA; un (FuncTA f) = f
-instance Arbitrary FuncTA where arbitrary = sized1 tall; shrink (FuncTA (FuncT p w i es)) = mFuncTA (tShrink p) (tShrink w) (tShrink i) (tShrinks es)
-instance Tall      FuncTA where                                                    tall n =  mFuncTA  arbitrary   arbitrary   arbitrary  (sizes n)
-mFuncTA = liftMF4 mkFunc un un un uns where mkFunc x y z = FuncTA .FuncT x y z
+instance Arbitrary FuncTA where arbitrary = sized1 tall; shrink (FuncTA (FuncT w i es)) = mFuncTA (tShrink w) (tShrink i) (tShrinks es)
+instance Tall      FuncTA where                                                  tall n = mFuncTA  arbitrary   arbitrary  (sizes n)
+mFuncTA = liftMF3 mkFunc un un uns where mkFunc x y = FuncTA .FuncT x y
 
 data ArrayTA = ArrayTA ExpToken deriving (Show)
 instance Unto  ArrayTA ExpToken where to = ArrayTA; un (ArrayTA a) = a
@@ -87,9 +87,9 @@ mObjTA = liftMF3 mkObj un un uns where mkObj x y = ObjTA .ObjT x y
 data VarTA =  VarTA ExpToken deriving (Show)
 instance Unto VarTA ExpToken where to = VarTA; un (VarTA v) = v
 instance Arbitrary VarTA where
-  arbitrary                 = mVarTA  arbitrary   arbitrary
-  shrink (VarTA (VarT p i)) = mVarTA (tShrink p) (tShrink i)
-mVarTA = liftMF2 mkVar un un where mkVar x = VarTA .VarT x
+  arbitrary               = mVarTA  arbitrary
+  shrink (VarTA (VarT i)) = mVarTA (tShrink i)
+mVarTA = liftM (VarTA .VarT .un)
 
 data StrTA =  StrTA ExpToken deriving (Show)
 instance Unto StrTA ExpToken where to = StrTA; un (StrTA s) = s
@@ -146,7 +146,7 @@ instance Arbitrary P where
   arbitrary        = mP (choose validP)  (choose validP)
   shrink (P (l,c)) = mP (shrinkValidP l) (shrinkValidP c)
 mP = liftMF2 mkP id id where mkP x = P.(,) x 
-validP = (1,1000)
+validP = (1,10000)
 shrinkValidP 0 = []
 shrinkValidP x = [x `div` 2, x -1]
 
@@ -183,14 +183,14 @@ uns :: Unto a b => [a] -> [b]
 uns = map un
 
 mProgTA  :: (Applicative m, Monad m) => m P               -> m [FormTA]              -> m ProgTA
-mFormTA  :: (Applicative m, Monad m) => m P               -> m IdTA     -> m ExpTA   -> m FormTA
+mFormTA  :: (Applicative m, Monad m) =>                      m IdTA     -> m ExpTA   -> m FormTA
 mPairTA  :: (Applicative m, Monad m) => m P               -> m IdTA     -> m ExpTA   -> m PairTA
 mIdTA    :: (Applicative m, Monad m) => m P -> m (W,W)    -> m String                -> m IdTA
 mExpTA   :: (Applicative m, Monad m) =>                      m ExpToken              -> m ExpTA
-mFuncTA  :: (Applicative m, Monad m) => m P -> m  W       -> m IdTA     -> m [ExpTA] -> m FuncTA
+mFuncTA  :: (Applicative m, Monad m) =>        m  W       -> m IdTA     -> m [ExpTA] -> m FuncTA
 mArrayTA :: (Applicative m, Monad m) => m P -> m (W,W)    -> m [ExpTA]               -> m ArrayTA
 mObjTA   :: (Applicative m, Monad m) => m P -> m (W,W)    -> m [PairTA]              -> m ObjTA
-mVarTA   :: (Applicative m, Monad m) => m P ->               m IdTA                  -> m VarTA
+mVarTA   :: (Applicative m, Monad m) =>                      m IdTA                  -> m VarTA
 mStrTA   :: (Applicative m, Monad m) => m P -> m (W,W)    -> m String                -> m StrTA
 mNumTA   :: (Applicative m, Monad m) => m P -> m (W,W)    -> m Double   -> m NumType -> m NumTA
 mBoolTA  :: (Applicative m, Monad m) => m P -> m (W,W)    -> m Bool                  -> m BoolTA

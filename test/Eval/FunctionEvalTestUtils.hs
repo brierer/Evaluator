@@ -3,16 +3,19 @@
 module Eval.FunctionEvalTestUtils where
 
 import Prelude hiding                   (any,null)
+import qualified Prelude as P           (null)
+import qualified Data.Set as S          (Set,singleton,findMin,findMax,member,insert)
 
 import Control.Arrow                    (second)
 import Control.Applicative              (Applicative)
-import Control.Monad                    (liftM,liftM2,join)
+import Control.Monad                    (liftM,liftM2,liftM3,join)
+import Control.Monad.State              (State,evalState,put,get)
 import Data.Eval                        (EvalError(..),ExpObj(..),Type(..),TypeValidator)
 import Data.List                        (permutations,(\\))
 import Data.Maybe                       (isJust)
-import Data.Token                       (PairToken(..),IdToken(..),ExpToken(..))
+import Data.Token                       (PairToken(..),IdToken(..),ExpToken(..),Pos)
 import Eval.Function                    (Marshallable(..),any,lit,applyFunc,(<|>),(<!>))
-import Eval.MultiPass                   (mapPair)
+import Eval.MultiPass                   (mapPair,mapMPair)
 import Parser.MonolithicParserTestUtils (Unto(..),Tall(..),IdTA(..),ExpTA(..),ArrayTA(..),ObjTA(..),StrTA(..),NumTA(..),BoolTA(..),NullTA(..),P(..),
                                          sShrink,tShrink,tShrinks,sizes,sized1,liftMF2,liftMF3,liftMF4,uns)
 import Test.Framework                   (Arbitrary(..),Gen,elements,choose)
@@ -168,11 +171,11 @@ instance Arbitrary ObjTS where arbitrary = sized1 tall; shrink (ObjTS e) = mObjT
 instance Tall      ObjTS where                                    tall n =  mObjTS (tall n)
 mObjTS = liftM (ObjTS .simplify.un)
 
-simplify (FuncT p _ _ _)      = NullT  p w2
-simplify (ArrayT p w es)      = ArrayT p w $ map  simplify          es
-simplify (ObjT p w ps)        = ObjT   p w $ map (mapPair simplify) ps
-simplify (VarT _ (IdT p w _)) = NullT  p w
-simplify e                    = e
+simplify (FuncT{})          = NullT p0 w2
+simplify (ArrayT p w es)    = ArrayT p w $ map  simplify          es
+simplify (ObjT p w ps)      = ObjT   p w $ map (mapPair simplify) ps
+simplify (VarT (IdT p w _)) = NullT  p w
+simplify e                  = e
 
 data ExpTF =  ExpTF ExpToken ExpObj IdToken deriving (Show)
 instance Arbitrary ExpTF where arbitrary = sized1 tall; shrink (ExpTF e o i) = mExpTF (tShrink e) (tShrink o) (tShrink i) 
@@ -191,11 +194,11 @@ mObjTF = makeTF ObjTF
 
 makeTF f ea oa ia = do e <- ea; o <- oa; i <- ia; return $ f (simplifyF (un i) $ un e) (un o) (un i)
 
-simplifyF i (FuncT p w _ _)      = FuncT  p w i [] 
-simplifyF i (ArrayT p w es)      = ArrayT p w $ map  (simplifyF i)          es
-simplifyF i (ObjT p w ps)        = ObjT   p w $ map (mapPair $ simplifyF i) ps
-simplifyF _ (VarT _ (IdT p w _)) = NullT  p w
-simplifyF _ e                    = e
+simplifyF i (FuncT w _ _)      = FuncT    w i [] 
+simplifyF i (ArrayT p w es)    = ArrayT p w $ map  (simplifyF i)          es
+simplifyF i (ObjT p w ps)      = ObjT   p w $ map (mapPair $ simplifyF i) ps
+simplifyF _ (VarT (IdT p w _)) = NullT  p w
+simplifyF _ e                  = e
 
 data TokOrObj = Tok ExpToken | Obj ExpObj deriving (Eq,Show)
 instance Marshallable TokOrObj where
@@ -242,8 +245,42 @@ instance Marshallable a => Tall      (ValA a) where
   tall n = do
     ValA s1 v1 <- tall $ n-1
     ValA s2 v2 <- tall $ n-1
-    (s,moo) <- elements [(s1,v1),(s2,v2),(s1++" or "++s2,v1<|>v2)]
-    liftM (uncurry ValA) $ elements $ ("arrayOf<"++s++">",arrayOf moo):leafValidators
+    (s,t) <- elements [(s1,v1),(s2,v2),(s1++" or "++s2,v1<|>v2)]
+    liftM (uncurry ValA) $ elements $ ("arrayOf<"++s++">",arrayOf t):leafValidators
+
+allUniquePos :: [ExpToken] -> [ExpToken]
+allUniquePos = flip evalState (S.singleton (0,0)).mapM moo where
+  moo (FuncT w i es)  = liftM (FuncT w i) $ mapM moo es
+  moo (ArrayT p w es) = do p' <- add p; liftM (ArrayT p' w) $ mapM moo es
+  moo (ObjT   p w ps) = do p' <- add p; liftM (ObjT p' w)   $ mapM (mapMPair moo) ps
+  moo (StrT   p w s)  = do p' <- add p; return $ StrT p' w s
+  moo (NumT p w s n)  = do p' <- add p; return $ NumT p' w s n
+  moo (BoolT  p w b)  = do p' <- add p; return $ BoolT p' w b
+  moo (NullT  p w)    = do p' <- add p; return $ NullT p' w
+
+allUniquePosO :: [ExpObj] -> [ExpObj]
+allUniquePosO = flip evalState (S.singleton (0,0)).mapM moo where
+  moo (TableO p a b)  = do p' <- add p; liftM2 (TableO p') (moo a) (moo b)
+  moo (PlotO p a b c) = do p' <- add p; liftM3 (PlotO p') (moo a) (moo b) (moo c)
+  moo (ArrayO p es)   = do p' <- add p; liftM (ArrayO p') $ mapM moo es
+  moo (ObjO   p ps)   = do p' <- add p; liftM (ObjO p')   $ mapM (\(x,y) -> liftM2 (,) (return x) (moo y)) ps
+  moo (StrO   p s)    = do p' <- add p; return $ StrO p' s
+  moo (NumO p n)      = do p' <- add p; return $ NumO p' n
+  moo (BoolO  p b)    = do p' <- add p; return $ BoolO p' b
+  moo (NullO  p)      = do p' <- add p; return $ NullO p'
+
+add :: Pos -> State (S.Set Pos) Pos
+add p = do 
+  s <- get
+  let p' = if p `S.member` s then notIn s else p
+  put $ S.insert p' s
+  return p'
+
+notIn s = let (x1,y1) = S.findMin s
+              (x2,y2) = S.findMax s
+              xs = [x1..x2+1]
+              ys = [y1..y2+1]
+          in  head $ filter (not.(`S.member`s)) [(x,y) | x <- xs, y <- ys]
 
 leafValidators :: Marshallable a => [(String,TypeValidator a)]
 leafValidators = [("array",array[]),("obj",obj[]),("str",str),("num",num),("bool",bool),("null",null)]
@@ -252,6 +289,7 @@ findWithPosAndType _ _ []                                                = Nothi
 findWithPosAndType p t (e:_)  | getP e == p && getT e == t               = Just e 
                               | isJust (findWithPosAndType p t $ subs e) = Just e
 findWithPosAndType p t (_:es)                                            = findWithPosAndType p t es
+
 
 class Subs a where subs :: a -> [a]
 instance Subs ExpToken where subs (ArrayT _ _ xs) = xs; subs _ = []
@@ -262,7 +300,7 @@ testFunc os fs p n = fromRight $ applyFunc' (mkFuncs os fs) p n []
 fromRight (Right x) = x
 fromRight x         = error $ "FunctionEvalTestUtils::fromRight [Failed pattern match ["++show x++"]]"
 
-mkFunc p n = FuncT p w1 (IdT p w2 n)
+mkFunc p n = FuncT w1 (IdT p w2 n)
 forAll = flip all
 w1 = ""
 w2 = ("","")
@@ -280,9 +318,9 @@ mkEntries ns es os = foldr removeEntry (zip3 (funcNamesNoLit++funcNamesLit) type
 types = [Table,Plot,Array,Object,String,Number,Boolean,Null]
 removeEntry n = filter $ \(m,_,_) -> n /= m
 
-getTall (FuncT _ _ _ es)  = length es
-getTall (ArrayT _ _ es)   = length es
-getTall (ObjT _ _ ps)     = length ps
+getTall (FuncT _ _ es)  = length es
+getTall (ArrayT _ _ es) = length es
+getTall (ObjT _ _ ps)   = length ps
 
 anyCase os es (name,_,Obj e) = Right e == any [] (testFunc os es (getP e) name)
 anyCase os es (name,_,Tok e) = testS e == any [] (testFunc os es (getP e) name)

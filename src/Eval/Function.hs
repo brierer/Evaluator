@@ -42,14 +42,14 @@ instance Marshallable ExpToken where
   bool       (BoolT p _ b)    = return $ BoolO p b;                      bool e      = typeMismatch Boolean e
   null       (NullT p _)      = return $ NullO p;                        null e      = typeMismatch Null    e
   
-  getP (FuncT _  _ (IdT p _ _) _) = p
-  getP (ArrayT p _ _)             = p
-  getP (ObjT p _ _)               = p
-  getP (StrT p _ _)               = p
-  getP (NumT p _ _ _)             = p
-  getP (BoolT p _ _)              = p
-  getP (NullT p _)                = p
-  getP e                          = error $ "Eval.Function::getP<ExpToken> [Failed pattern match ["++show e++"]]"
+  getP (FuncT _ (IdT p _ _) _) = p
+  getP (ArrayT p _ _)          = p
+  getP (ObjT p _ _)            = p
+  getP (StrT p _ _)            = p
+  getP (NumT p _ _ _)          = p
+  getP (BoolT p _ _)           = p
+  getP (NullT p _)             = p
+  getP e                       = error $ "Eval.Function::getP<ExpToken> [Failed pattern match ["++show e++"]]"
   
   getT (ArrayT{})     = Array  
   getT (ObjT{})       = Object 
@@ -117,8 +117,8 @@ infixl 3 <!>
 
 {-| Function validation and application -}
 applyFunc :: [(String,([TypeValidator ExpToken],Func))] -> ExpToken -> Eval ExpObj
-applyFunc fs (FuncT p _ (IdT _ _ i) es) = apply fs p i es
-applyFunc _ e                           = error $ "MultiPass::applyFunc [Failed pattern match ["++show e++"]]"
+applyFunc fs (FuncT _ (IdT p _ i) es) = apply fs p i es
+applyFunc _  e                        = error $ "MultiPass::applyFunc [Failed pattern match ["++show e++"]]"
 
 apply :: [(String,([TypeValidator ExpToken],Func))] -> Pos -> String -> [ExpToken] -> Eval ExpObj
 apply fs p i es = case lookup i fs of 

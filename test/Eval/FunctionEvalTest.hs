@@ -11,10 +11,9 @@ import Data.Token                       (IdToken(..),ExpToken(..))
 import Eval.Function                    (Marshallable(..),any,noLit,noLitType,lit,litType,applyFunc)
 import Eval.FunctionEvalTestUtils       (Is(..),TestToks(..),TestObjs(..),ExpOA(..),TableOA(..),PlotOA(..),ArrayOA(..),ObjOA(..),StrOA(..),NumOA(..),BoolOA(..),NullOA(..),
                                          ExpTS(..),ArrayTS(..),ObjTS(..),ExpTF(..),ArrayTF(..),ObjTF(..),TokOrObj(..),TestIndexesT(..),TestIndexesO(..),ValA(..),
-                                         testFunc,forAll,mkEntries,anyCase,litCase,testS,testF,mkFunc,funcNamesLit,funcNamesNoLit,constM,orCase,findWithPosAndType)
+                                         testFunc,forAll,mkEntries,anyCase,litCase,testS,testF,mkFunc,funcNamesLit,funcNamesNoLit,constM,orCase,findWithPosAndType,allUniquePos,allUniquePosO)
 import Eval.MultiPassEvalTestUtils      (usesFuncE)
 import Parser.MonolithicParserTestUtils (IdTA(..),ExpTA(..),StrTA(..),NumTA(..),BoolTA(..),NullTA(..),P(..),W(..),un,uns)
-
 
 {-| Number of args validation -}
 prop_NbArgs (NonNegative n) (NonNegative m) (IdTA (IdT p w name)) = let (nbParams,nbArgs) = (n `mod` 1000,m `mod` 1000)  in nbParams /= nbArgs ==>
@@ -29,16 +28,18 @@ prop_OrObj (TableOA t) (PlotOA p) (ArrayOA a) (ObjOA o) (StrOA s) (NumOA nb) (Bo
   = orCase [t,p,a,o,s,nb,b,nu] [table[],plot[],array[],obj[],str,num,bool,null] indexes rest Right
 
 prop_ArrayOfLit :: P -> (W,W) -> [ExpTS] -> ValA ExpToken -> Bool
-prop_ArrayOfLit p w ts (ValA s v) = let es = uns ts; arr = ArrayT (un p) (un w) es in case arrayOf v arr of
-  r@(Right _)                        -> r == testS arr
-  l@(Left (TypeMismatch pos _ actT)) -> let Just e = findWithPosAndType pos actT es; ts' = ts \\ [ExpTS e]
-                                        in  l == v e && prop_ArrayOfLit p w ts' (ValA s v)
+prop_ArrayOfLit p w ts (ValA _ v) = caseArrayOf (allUniquePos $ uns ts) where
+  caseArrayOf es = let arr = ArrayT (un p) (un w) es in case arrayOf v arr of
+    r@(Right _)                        -> r == testS arr
+    l@(Left (TypeMismatch pos _ actT)) -> let Just e = findWithPosAndType pos actT es; es' = es \\ [e]
+                                          in  l == v e && caseArrayOf es'
 
 prop_ArrayOfObj :: P -> [ExpOA] -> ValA ExpObj -> Bool
-prop_ArrayOfObj p ts (ValA s v) = let es = uns ts; arr = ArrayO (un p) es in case arrayOf v arr of
-  Right a                            -> a == arr
-  l@(Left (TypeMismatch pos _ actT)) -> let Just e = findWithPosAndType pos actT es; ts' = ts \\ [ExpOA e]
-                                        in  l == v e && prop_ArrayOfObj p ts' (ValA s v)
+prop_ArrayOfObj p ts (ValA _ v) = caseArrayOf (allUniquePosO $ uns ts) where
+  caseArrayOf es = let arr = ArrayO (un p) es in case arrayOf v arr of
+    Right a                            -> a == arr
+    l@(Left (TypeMismatch pos _ actT)) -> let Just e = findWithPosAndType pos actT es; es' = es \\ [e]
+                                          in  l == v e && caseArrayOf es'
 
 -- Any type (can't fail)
 prop_MarshallAnyLit (ExpTS e)                    = testS e == any [] e
@@ -144,15 +145,6 @@ prop_MarshallNullFunc (TestObjs os) (TestToks es@[_,_,_,_,_,n]) = testS n == nul
 prop_MarshallFuncsLit   (ExpTF   e o (IdT _ _ i)) = usesFuncE i e ==> testF fs e == lit   fs e where fs = [(i,([],constM o))]
 prop_MarshallFuncsArray (ArrayTF e o (IdT _ _ i)) = usesFuncE i e ==> testF fs e == array fs e where fs = [(i,([],constM o))]
 prop_MarshallFuncsObj   (ObjTF   e o (IdT _ _ i)) = usesFuncE i e ==> testF fs e == obj   fs e where fs = [(i,([],constM o))]
-
-
-
-
-
-
-
-
-
 
 
 
