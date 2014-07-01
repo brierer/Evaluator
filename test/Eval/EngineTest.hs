@@ -28,41 +28,41 @@ prop_NbArgs3 (P p) esTA = length esTA > 3 ==> let es = uns esTA in
              && Left (InvalidNbOfArgs p name 3 (length es)) == applyFunc' fs p name es)
     ["plotLine"]
 
-prop_ErrorTypeShow  (P p) w1as (ExpTS w1') = let (w1s,w1) = mk w1as in not (null w1s) && not (isArray w1') ==>  
+prop_TypeErrorShow  (P p) w1as (ExpTS w1') = let (w1s,w1) = mk w1as in not (null w1s) && not (isArray w1') ==>  
   arrayOf (table fs <|> plot fs) w1  == applyFunc fs (mkFunc p "show" [w1]) && 
   arrayOf (table fs <|> plot fs) w1' == applyFunc fs (mkFunc p "show" [w1'])
   
-prop_ErrorTypeMulti (P p) w1as (ExpTS w1') = let (w1s,w1) = mk w1as in any (not.isNum) w1s && not (isArray w1') ==>  
+prop_TypeErrorMulti (P p) w1as (ExpTS w1') = let (w1s,w1) = mk w1as in any (not.isNum) w1s && not (isArray w1') ==>  
   arrayOf num w1  == applyFunc fs (mkFunc p "multi" [w1]) && 
   arrayOf num w1' == applyFunc fs (mkFunc p "multi" [w1'])
   
-prop_ErrorTypeMean (P p) w1as (ExpTS w1') = let (w1s,w1) = mk w1as in any (not.isNum) w1s && not (isArray w1') ==>  
+prop_TypeErrorMean (P p) w1as (ExpTS w1') = let (w1s,w1) = mk w1as in any (not.isNum) w1s && not (isArray w1') ==>  
   arrayOf num w1  == applyFunc fs (mkFunc p "mean" [w1]) && 
   arrayOf num w1' == applyFunc fs (mkFunc p "mean" [w1'])
   
-prop_ErrorTypeDesc (P p) w1as (ExpTS w1') = let (w1s,w1) = mk w1as in any (not.isNum) w1s && not (isArray w1') ==>  
+prop_TypeErrorDesc (P p) w1as (ExpTS w1') = let (w1s,w1) = mk w1as in any (not.isNum) w1s && not (isArray w1') ==>  
   arrayOf num w1  == applyFunc fs (mkFunc p "descriptive" [w1]) && 
   arrayOf num w1' == applyFunc fs (mkFunc p "descriptive" [w1'])
 
-prop_ErrorTypeTable (P p) g1ass (ObjTS g2) w1ass (ExpTS w1') (ExpTS w2) = 
+prop_TypeErrorTable (P p) g1ass (ObjTS g2) w1ass (ExpTS w1') (ExpTS w2) = 
   let (_,g1) = mk g1ass; (w1ss,w1) = mk w1ass; in any (not.isArray) w1ss && not (isArray w1') && not (isObj w2) ==>
     arrayOf (array fs) w1  == applyFunc fs (mkFunc p "table" [w1 ,g2]) &&
     arrayOf (array fs) w1' == applyFunc fs (mkFunc p "table" [w1',w2]) &&
     obj fs w2              == applyFunc fs (mkFunc p "table" [g1 ,w2])
 
-prop_ErrorTypeNTimes (P p) (NumTA _ g1) (NumTA _ g2) (ExpTS w1) (ExpTS w2) = not (isNum w1) && not (isNum w2) ==>
+prop_TypeErrorNTimes (P p) (NumTA _ g1) (NumTA _ g2) (ExpTS w1) (ExpTS w2) = not (isNum w1) && not (isNum w2) ==>
   num w1 == applyFunc fs (mkFunc p "nTimes" [w1,g2]) &&
   num w1 == applyFunc fs (mkFunc p "nTimes" [w1,w2]) &&
   num w2 == applyFunc fs (mkFunc p "nTimes" [g1,w2]) 
 
-prop_ErrorTypeTake (P p) (NumTA _ g1) (ArrayTS g2) (TableOA g2r) (ExpTS w1) (ExpTS w2) = not (isNum w1) && not (isArray w2) ==>
+prop_TypeErrorTake (P p) (NumTA _ g1) (ArrayTS g2) (TableOA g2r) (ExpTS w1) (ExpTS w2) = not (isNum w1) && not (isArray w2) ==>
   let (fs',g2') = addFunc fs "testFuncTable" g2r in 
    num w1                      == applyFunc fs' (mkFunc p "take" [w1,g2])  &&
    num w1                      == applyFunc fs' (mkFunc p "take" [w1,g2']) &&
    num w1                      == applyFunc fs' (mkFunc p "take" [w1,w2])  &&
   (table fs' <|> array fs') w2 == applyFunc fs' (mkFunc p "take" [g1,w2])
 
-prop_ErrorTypeSort (P p) (NumTA _ g1) g2as (TableOA g2r) (ExpTS w1) w2as (ExpTS w2') = 
+prop_TypeErrorSort (P p) (NumTA _ g1) g2as (TableOA g2r) (ExpTS w1) w2as (ExpTS w2') = 
   let (_,g2) = mk g2as; (w2s,w2) = mk w2as; (fs',g2') = addFunc fs "testFuncTable" g2r in not (isNum w1) && any (not.isArray) w2s && not (isArray w2') ==>
      num w1                                == applyFunc fs' (mkFunc p "sort" [w1,g2]) &&
      num w1                                == applyFunc fs' (mkFunc p "sort" [w1,g2']) &&
@@ -71,7 +71,7 @@ prop_ErrorTypeSort (P p) (NumTA _ g1) g2as (TableOA g2r) (ExpTS w1) w2as (ExpTS 
     (table fs' <|> arrayOf (array fs)) w2  == applyFunc fs' (mkFunc p "sort" [g1,w2]) &&
     (table fs' <|> arrayOf (array fs)) w2' == applyFunc fs' (mkFunc p "sort" [g1,w2'])
 
-prop_ErrorTypeCol (P p) (NumTA _ g1) g2ass (TableOA g2r) (ExpTS w1) w2as (ExpTS w2') = 
+prop_TypeErrorCol (P p) (NumTA _ g1) g2ass (TableOA g2r) (ExpTS w1) w2as (ExpTS w2') = 
   let (_,g2) = mk g2ass; (w2s,w2) = mk w2as; (fs',g2') = addFunc fs "testFuncTable" g2r in not (isNum w1) && any (not.isArray) w2s && not (isArray w2') ==>
      num w1                                 == applyFunc fs (mkFunc p "col" [w1,g2]) &&
      num w1                                 == applyFunc fs (mkFunc p "col" [w1,g2']) &&
@@ -80,7 +80,7 @@ prop_ErrorTypeCol (P p) (NumTA _ g1) g2ass (TableOA g2r) (ExpTS w1) w2as (ExpTS 
     (table fs' <|> arrayOf (array fs')) w2  == applyFunc fs (mkFunc p "col" [g1,w2]) &&
     (table fs' <|> arrayOf (array fs')) w2' == applyFunc fs (mkFunc p "col" [g1,w2'])
 
-prop_ErrorTypePlotLine (P p) g1as g2as (ObjTS g3) w1as (ExpTS w1') w2as (ExpTS w2') (ExpTS w3) = 
+prop_TypeErrorPlotLine (P p) g1as g2as (ObjTS g3) w1as (ExpTS w1') w2as (ExpTS w2') (ExpTS w3) = 
   let (_,g1) = mk g1as; (_,g2) = mk g2as; (w1s,w1) = mk w1as; (w2s,w2) = mk w2as 
   in any (not.isNum) w1s && not (isArray w1') && any (not.isNum) w2s && not (isArray w2') && not (isObj w3) ==>
     arrayOf num w1  == applyFunc fs (mkFunc p "plotLine" [w1 ,g2 ,g3]) &&
@@ -102,18 +102,18 @@ prop_NbArgs1 :: P -> [ExpTA] ->  Property
 prop_NbArgs2 :: P -> [ExpTA] ->  Property 
 prop_NbArgs3 :: P -> [ExpTA] ->  Property 
 
-prop_ErrorTypeShow  :: P -> [ExpTS] -> ExpTS -> Property
-prop_ErrorTypeMulti :: P -> [ExpTS] -> ExpTS -> Property
-prop_ErrorTypeMean  :: P -> [ExpTS] -> ExpTS -> Property
-prop_ErrorTypeDesc  :: P -> [ExpTS] -> ExpTS -> Property
+prop_TypeErrorShow  :: P -> [ExpTS] -> ExpTS -> Property
+prop_TypeErrorMulti :: P -> [ExpTS] -> ExpTS -> Property
+prop_TypeErrorMean  :: P -> [ExpTS] -> ExpTS -> Property
+prop_TypeErrorDesc  :: P -> [ExpTS] -> ExpTS -> Property
 
-prop_ErrorTypeTable  :: P -> [ArrayTS] ->   ObjTS   -> [ExpTS] ->  ExpTS  ->  ExpTS           -> Property
-prop_ErrorTypeNTimes :: P ->  NumTA    ->   NumTA   ->  ExpTS  ->  ExpTS                      -> Property
-prop_ErrorTypeTake   :: P ->  NumTA    ->  ArrayTS  -> TableOA ->  ExpTS  ->  ExpTS           -> Property
-prop_ErrorTypeSort   :: P ->  NumTA    -> [ArrayTS] -> TableOA ->  ExpTS  -> [ExpTS] -> ExpTS -> Property
-prop_ErrorTypeCol    :: P ->  NumTA    -> [ArrayTS] -> TableOA ->  ExpTS  -> [ExpTS] -> ExpTS -> Property
+prop_TypeErrorTable  :: P -> [ArrayTS] ->   ObjTS   -> [ExpTS] ->  ExpTS  ->  ExpTS           -> Property
+prop_TypeErrorNTimes :: P ->  NumTA    ->   NumTA   ->  ExpTS  ->  ExpTS                      -> Property
+prop_TypeErrorTake   :: P ->  NumTA    ->  ArrayTS  -> TableOA ->  ExpTS  ->  ExpTS           -> Property
+prop_TypeErrorSort   :: P ->  NumTA    -> [ArrayTS] -> TableOA ->  ExpTS  -> [ExpTS] -> ExpTS -> Property
+prop_TypeErrorCol    :: P ->  NumTA    -> [ArrayTS] -> TableOA ->  ExpTS  -> [ExpTS] -> ExpTS -> Property
 
-prop_ErrorTypePlotLine :: P -> [NumTA] -> [NumTA]   -> ObjTS   -> [ExpTS] -> ExpTS -> [ExpTS] -> ExpTS -> ExpTS -> Property
+prop_TypeErrorPlotLine :: P -> [NumTA] -> [NumTA]   -> ObjTS   -> [ExpTS] -> ExpTS -> [ExpTS] -> ExpTS -> ExpTS -> Property
 
 {-|
 unlines $  [ "show = show([tservice,tsalaire,trente])" , "tservice = table([[service]],{col:[\"service\"]})" , "tsalaire = table([salaires],{col:[\"salaire\"]})" , "trente = table([rente],{col:[\"rente\"]})" , "rente = multi([0.02,moyensalaire,service])" , "moyensalaire = mean(salaires)" , "salaires = [55000,60000,45000]" , "service = 35" ]
