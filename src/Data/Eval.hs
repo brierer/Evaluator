@@ -5,13 +5,16 @@ module Data.Eval
 , Eval
 , Type (..)
 , ExpObj(..)
+, EvalFunc
 , FuncEntry
-, TypeValidator
-, Func
+, TypeValFunc
+, TypeValidator(..)
+, Func(..)
 ) where
 
 import qualified Data.Map as M (Map)
 
+import Control.Monad.State     (StateT)
 import Data.Token              (ExpToken,Pos)
 
 data EvalError = MultipleDefinitions Pos String
@@ -28,7 +31,7 @@ type State = (Table,Table)
 type Table = M.Map String (ExpToken,Pos)
 type Eval = Either EvalError
 
-data Type = Table | Plot | FunCall | Array | Object | String | Number | Boolean | Null 
+data Type = Table | Plot | FunCall | Arr | Obj | Str | Num | Bool | Null 
           | Type `Or` Type 
             deriving (Eq,Show)
 
@@ -42,6 +45,17 @@ data ExpObj = TableO  Pos ExpObj ExpObj        -- Pos -> Array -> Object
             | NullO   Pos
               deriving (Eq,Show)
 
-type FuncEntry a = (String,([TypeValidator a],Func))
-type TypeValidator a = a -> Eval ExpObj
-type Func = [ExpObj] -> Eval ExpObj
+type EvalFunc a = StateT [FuncEntry a] Eval
+type FuncEntry a = (String,([TypeValidator a],Func a))
+type TypeValFunc a = a -> EvalFunc a ExpObj
+
+newtype TypeValidator a = TypeVal { valFunc :: TypeValFunc a }
+newtype Func a = Func ([ExpObj] -> EvalFunc a ExpObj)
+
+
+
+
+
+
+
+
