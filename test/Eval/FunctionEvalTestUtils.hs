@@ -9,12 +9,12 @@ import qualified Data.Set as S          (Set,singleton,findMin,findMax,member,in
 import Control.Arrow                    (second)
 import Control.Applicative              (Applicative)
 import Control.Monad                    (liftM,liftM2,liftM3,join)
-import Control.Monad.State              (State,evalState,put,get)
+import Control.Monad.State              (State,evalStateT,evalState,put,get)
 import Data.Eval                        (EvalError(..),ExpObj(..),Type(..),Eval,Func(..),FuncEntry,EvalFunc,TypeValidator(..))
 import Data.List                        (permutations,(\\))
 import Data.Maybe                       (isJust)
 import Data.Token                       (PairToken(..),IdToken(..),ExpToken(..),Pos)
-import Eval.Function                    (Marshallable(..),any,lit,applyFunc,(<|>),(<!>),withFuncs)
+import Eval.Function                    (Marshallable(..),arrayOf,array,obj,str,num,bool,null,any,lit,(<|>),(<!>),withFuncs)
 import Eval.MultiPass                   (mapPair,mapMPair)
 import Parser.MonolithicParserTestUtils (Unto(..),Tall(..),IdTA(..),ExpTA(..),ArrayTA(..),ObjTA(..),StrTA(..),NumTA(..),BoolTA(..),NullTA(..),P(..),
                                          sShrink,tShrink,tShrinks,sizes,sized1,liftMF2,liftMF3,liftMF4,uns)
@@ -177,11 +177,6 @@ simplify (ObjT p w ps)      = ObjT   p w $ map (mapPair simplify) ps
 simplify (VarT (IdT p w _)) = NullT  p w
 simplify e                  = e
 
-data ExpTF =  ExpTF ExpToken ExpObj IdToken deriving (Show)
-instance Arbitrary ExpTF where arbitrary = sized1 tall; shrink (ExpTF e o i) = mExpTF (tShrink e) (tShrink o) (tShrink i) 
-instance Tall      ExpTF where                                        tall n = mExpTF (tall n)    (tall n)     arbitrary
-mExpTF = makeTF ExpTF 
-
 data ArrayTF =  ArrayTF ExpToken ExpObj IdToken deriving (Show)
 instance Arbitrary ArrayTF where arbitrary = sized1 tall; shrink (ArrayTF e o i) = mArrayTF (tShrink e) (tShrink o) (tShrink i) 
 instance Tall      ArrayTF where                                          tall n = mArrayTF (tall n)    (tall n)     arbitrary
@@ -202,18 +197,9 @@ simplifyF _ e                  = e
 
 data TokOrObj = MkTok ExpToken | MkObj ExpObj deriving (Eq,Show)
 instance Marshallable TokOrObj where
-  table    = error "Eval.FunctionEvalTestUtils::table<TOkOrObj>    [Should not be called]"
-  plot     = error "Eval.FunctionEvalTestUtils::plot<TOkOrObj>     [Should not be called]"
-  funCall  = error "Eval.FunctionEvalTestUtils::plot<TOkOrObj>     [Should not be called]"
-  arrayOf  = error "Eval.FunctionEvalTestUtils::funCall<TOkOrObj>  [Should not be called]"
-  obj      = error "Eval.FunctionEvalTestUtils::obj<TOkOrObj>      [Should not be called]"
-  str      = error "Eval.FunctionEvalTestUtils::str<TOkOrObj>      [Should not be called]"
-  num      = error "Eval.FunctionEvalTestUtils::num<TOkOrObj>      [Should not be called]"
-  bool     = error "Eval.FunctionEvalTestUtils::bool<TOkOrObj>     [Should not be called]"
-  null     = error "Eval.FunctionEvalTestUtils::null<TOkOrObj>     [Should not be called]"
-  getT     = error "Eval.FunctionEvalTestUtils::getT<TOkOrObj>     [Should not be called]"
-
-  getP (MkTok x) = getP x; getP (MkObj x) = getP x
+  marshall (MkTok t) = marshall t; marshall (MkObj o) = marshall o
+  getPos   (MkTok t) = getPos t;     getPos (MkObj o) = getPos o
+  getType  (MkTok t) = getType t;   getType (MkObj o) = getType o
 
 data TestIndexesT = TestIndexesT [Int] [Int] deriving (Show)
 data TestIndexesO = TestIndexesO [Int] [Int] deriving (Show)
@@ -228,20 +214,20 @@ arbIndexes is f = do
     
 shrinkIndexes is rest f | length is <= 2 = [] | otherwise = [f (is \\ [i]) (i:rest) | i <- is]
 
-orCase :: Marshallable a => [a] -> [TypeValidator a] -> [Int] -> [Int] -> (a -> Eval ExpObj) -> Bool
+orCase :: Marshallable a => [a] -> [TypeValidator] -> [Int] -> [Int] -> (a -> Eval ExpObj) -> Bool
 orCase es vs indexes rest f = 
   let ps = zip es vs
       toOr   = map (ps!!) indexes
       wrongs = map (fst.(ps!!)) rest
       validator    = foldl1 (<|>) (map snd toOr) <!> expectedType
-      expectedType = foldl1  Or   (map (getT.fst) toOr)  
+      expectedType = foldl1  Or   (map (getType.fst) toOr)  
   in  forAll toOr   (\(e,v) -> f e == withFuncs [] v e) &&
-      forAll wrongs (\e -> Left (TypeMismatch (getP e) expectedType (getT e)) == withFuncs [] validator e)
+      forAll wrongs (\e -> Left (TypeMismatch (getPos e) expectedType (getType e)) == withFuncs [] validator e)
       
-data ValA a = ValA String (TypeValidator a)
+data ValA a = ValA String TypeValidator
 instance Show (ValA a) where show (ValA s _) = "ValA " ++ s
-instance Marshallable a => Arbitrary (ValA a) where arbitrary = sized1 tall; shrink _  = []
-instance Marshallable a => Tall      (ValA a) where
+instance Arbitrary (ValA a) where arbitrary = sized1 tall; shrink _  = []
+instance Tall      (ValA a) where
   tall 0 = liftM (uncurry ValA) $ elements leafValidators
   tall n = do
     ValA s1 v1 <- tall $ n-1
@@ -283,11 +269,11 @@ notIn s = let (x1,y1) = S.findMin s
               ys = [y1..y2+1]
           in  head $ filter (not.(`S.member`s)) [(x,y) | x <- xs, y <- ys]
 
-leafValidators :: Marshallable a => [(String,TypeValidator a)]
+leafValidators :: [(String,TypeValidator)]
 leafValidators = [("array",array),("obj",obj),("str",str),("num",num),("bool",bool),("null",null)]
 
 findWithPosAndType _ _ []                                                = Nothing
-findWithPosAndType p t (e:_)  | getP e == p && getT e == t               = Just e 
+findWithPosAndType p t (e:_)  | getPos e == p && getType e == t               = Just e 
                               | isJust (findWithPosAndType p t $ subs e) = Just e
 findWithPosAndType p t (_:es)                                            = findWithPosAndType p t es
 
@@ -296,11 +282,11 @@ class Subs a where subs :: a -> [a]
 instance Subs ExpToken where subs (ArrayT _ _ xs) = xs; subs _ = []
 instance Subs ExpObj   where subs (ArrayO _   xs) = xs; subs _ = []
 
-applyFunc' :: [FuncEntry ExpToken] -> Pos -> String -> [ExpToken] -> Eval ExpObj
-applyFunc' fs p n es = withFuncs fs applyFunc (mkFunc p n es)
+applyFunc :: [FuncEntry] -> Pos -> String -> [ExpToken] -> Eval ExpObj
+applyFunc fs p n es = withFuncs fs any (mkFunc p n es)
 
 testFunc :: [ExpObj] -> [ExpToken] -> Pos -> String -> ExpObj
-testFunc os es p n = fromRight $ applyFunc' (mkFuncs os es) p n []
+testFunc os es p n = fromRight $ applyFunc (mkFuncs os es) p n []
 
 fromRight :: Show a => Eval a -> a
 fromRight (Right x) = x
@@ -309,21 +295,17 @@ fromRight x         = error $ "FunctionEvalTestUtils::fromRight [Failed pattern 
 mkFunc :: Pos -> String -> [ExpToken] -> ExpToken
 mkFunc p n = FuncT w1 (IdT p w2 n)
 
+funcNamesLit   = ["arrayTestF","objTestF","strTestF","numTestF","boolTestF","nullTestF"]
+funcNamesNoLit = ["tableTestF","plotTestF"]
+mkFuncs :: [ExpObj] -> [ExpToken] -> [FuncEntry]
+mkFuncs os es = zipWith f funcNamesNoLit os ++ zipWith g funcNamesLit es
+  where f name e = (name,([],Func $ \_ _ -> return e))
+        g name e = (name,([],Func $ \_ _ -> testE e))
+
 forAll = flip all
 w1 = ""
 w2 = ("","")
 p0 = (0 :: Int,0 :: Int)
-constM = const.return
-
-funcNamesLit   = ["arrayTestF","objTestF","strTestF","numTestF","boolTestF","nullTestF"]
-funcNamesNoLit = ["tableTestF","plotTestF"]
-
-mkFuncs :: [ExpObj] -> [ExpToken] -> [FuncEntry ExpToken]
-mkFuncs os es = zipWith f funcNamesNoLit os ++ zipWith g funcNamesLit es
-  where f :: String -> ExpObj -> (String,([TypeValidator ExpToken],Func ExpToken))
-        f name e = (name,([],Func $ constM e))
-        g :: String -> ExpToken -> (String,([TypeValidator ExpToken],Func ExpToken))
-        g name e = (name,([],Func $ const $ testE e))
 
 mkEntries ns es os = foldr removeEntry (zip3 (funcNamesNoLit++funcNamesLit) types (map MkObj os++ map MkTok es)) ns
 types = [Table,Plot,Arr,Obj,Str,Num,Bool,Null]
@@ -333,23 +315,22 @@ getTall (FuncT _ _ es)  = length es
 getTall (ArrayT _ _ es) = length es
 getTall (ObjT _ _ ps)   = length ps
 
-anyCase os es (name,_,MkObj e) = Right e == withFuncs [] any (testFunc os es (getP e) name)
-anyCase os es (name,_,MkTok e) = testS e == withFuncs [] any (testFunc os es (getP e) name)
+anyCase os es (name,_,MkObj e) = Right e == withFuncs [] any (testFunc os es (getPos e) name)
+anyCase os es (name,_,MkTok e) = testS e == withFuncs [] any (testFunc os es (getPos e) name)
                                             
-litCase os es (name,_,MkObj e) = Right e == withFuncs [] lit (testFunc os es (getP e) name)
-litCase os es (name,_,MkTok e) = testS e == withFuncs [] lit (testFunc os es (getP e) name)
+litCase os es (name,_,MkObj e) = Right e == withFuncs [] lit (testFunc os es (getPos e) name)
+litCase os es (name,_,MkTok e) = testS e == withFuncs [] lit (testFunc os es (getPos e) name)
 
 toTupleF (PairT _ (IdT _ _ x) y) = liftM2 (,) (return x) (testE y)
 
-
 testS :: ExpToken -> Eval ExpObj
-testS = withFuncs [] $ TypeVal testE
+testS = testF []
 
-testF :: [FuncEntry ExpToken] -> ExpToken -> Eval ExpObj
-testF fs = withFuncs fs $ TypeVal testE
+testF :: [FuncEntry] -> ExpToken -> Eval ExpObj
+testF fs = flip evalStateT fs .testE
 
-testE :: ExpToken -> EvalFunc ExpToken ExpObj
-testE f@(FuncT{})     = valFunc applyFunc f
+testE :: ExpToken -> EvalFunc ExpObj
+testE (FuncT _ (IdT p _ i) es) = get >>= \fs -> case lookup i fs of Just (_,Func f) -> mapM testE es >>= f p
 testE (ArrayT p _ es) = liftM (ArrayO p) $ mapM testE es
 testE (ObjT p _ ps)   = liftM (ObjO p)   $ mapM toTupleF ps
 testE (StrT p _ s)    = return $ StrO p s
@@ -376,7 +357,6 @@ mExpTS    :: (Applicative m, Monad m) => m ExpTA   -> m ExpTS
 mArrayTS  :: (Applicative m, Monad m) => m ArrayTA -> m ArrayTS
 mObjTS    :: (Applicative m, Monad m) => m ObjTA   -> m ObjTS
 
-mExpTF    :: (Applicative m, Monad m) => m ExpTA   -> m ExpOA -> m IdTA -> m ExpTF
 mArrayTF  :: (Applicative m, Monad m) => m ArrayTA -> m ExpOA -> m IdTA -> m ArrayTF
 mObjTF    :: (Applicative m, Monad m) => m ObjTA   -> m ExpOA -> m IdTA -> m ObjTF
 

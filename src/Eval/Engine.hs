@@ -14,9 +14,9 @@ module Eval.Engine
 import Prelude hiding (exp,null)
 
 import Data.Eval           (FuncEntry,Func)
-import Eval.Function       (Marshallable,arrayOf,table,plot,array,obj,num,(<|>))
+import Eval.Function       (arrayOf,table,plot,array,obj,num,(<|>))
 
-funcs :: Marshallable a => [FuncEntry a]
+funcs :: [FuncEntry]
 funcs =   -- 1 arg functions
         [ ("show",       ([arrayOf $ table <|> plot                          ], showF))
         , ("multi",      ([arrayOf num                                       ], multiF))
@@ -33,16 +33,16 @@ funcs =   -- 1 arg functions
         ]
 
 {-| Funcs -}
-showF      :: Marshallable a => Func a 
-multiF     :: Marshallable a => Func a 
-meanF      :: Marshallable a => Func a 
-descF      :: Marshallable a => Func a 
-tableF     :: Marshallable a => Func a 
-nTimesF    :: Marshallable a => Func a 
-takeF      :: Marshallable a => Func a 
-sortF      :: Marshallable a => Func a 
-colF       :: Marshallable a => Func a 
-plotLineF  :: Marshallable a => Func a 
+showF      :: Func 
+multiF     :: Func 
+meanF      :: Func 
+descF      :: Func 
+tableF     :: Func 
+nTimesF    :: Func 
+takeF      :: Func 
+sortF      :: Func 
+colF       :: Func 
+plotLineF  :: Func 
 
 showF      = error "Eval.Function::showF      [Not Implemented]"
 multiF     = error "Eval.Function::multiF     [Not Implemented]"

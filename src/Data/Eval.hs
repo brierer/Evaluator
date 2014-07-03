@@ -7,7 +7,6 @@ module Data.Eval
 , ExpObj(..)
 , EvalFunc
 , FuncEntry
-, TypeValFunc
 , TypeValidator(..)
 , Func(..)
 ) where
@@ -45,12 +44,11 @@ data ExpObj = TableO  Pos ExpObj ExpObj        -- Pos -> Array -> Object
             | NullO   Pos
               deriving (Eq,Show)
 
-type EvalFunc a = StateT [FuncEntry a] Eval
-type FuncEntry a = (String,([TypeValidator a],Func a))
-type TypeValFunc a = a -> EvalFunc a ExpObj
+type EvalFunc = StateT [FuncEntry] Eval
+type FuncEntry = (String,([TypeValidator],Func))
 
-newtype TypeValidator a = TypeVal { valFunc :: TypeValFunc a }
-newtype Func a = Func ([ExpObj] -> EvalFunc a ExpObj)
+newtype TypeValidator = TypeVal { runValidation :: ExpObj -> EvalFunc ExpObj }
+newtype Func = Func (Pos -> [ExpObj] -> EvalFunc ExpObj)
 
 
 
