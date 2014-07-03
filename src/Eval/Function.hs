@@ -79,14 +79,14 @@ mismatch t = TypeVal $ \e -> lift $ Left $ TypeMismatch (getPos e) t (getType e)
 arrayOf :: TypeValidator -> TypeValidator
 arrayOf v = TypeVal (runValidation (match Arr) >=> \(ArrayO p es) -> liftM (ArrayO p) $ mapM (runValidation v) es)
 
-table     :: TypeValidator
-plot      :: TypeValidator
-array     :: TypeValidator
-obj       :: TypeValidator
-str       :: TypeValidator
-num       :: TypeValidator
-bool      :: TypeValidator
-null      :: TypeValidator
+table :: TypeValidator
+plot  :: TypeValidator
+array :: TypeValidator
+obj   :: TypeValidator
+str   :: TypeValidator
+num   :: TypeValidator
+bool  :: TypeValidator
+null  :: TypeValidator
 
 table = match Table
 plot  = match Plot
@@ -97,9 +97,9 @@ num   = match Num
 bool  = match Bool
 null  = match Null
 
-any       :: TypeValidator
-lit       :: TypeValidator
-noLit     :: TypeValidator
+any   :: TypeValidator
+lit   :: TypeValidator
+noLit :: TypeValidator
 
 any   = table <|> plot <|> array <|> obj <|> str <|> num <|> bool <|> null <!> anyType
 noLit = table <|> plot                                                     <!> noLitType

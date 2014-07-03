@@ -10,7 +10,7 @@ import Control.Arrow                    (second)
 import Control.Applicative              (Applicative)
 import Control.Monad                    (liftM,liftM2,liftM3,join)
 import Control.Monad.State              (State,evalStateT,evalState,put,get)
-import Data.Eval                        (EvalError(..),ExpObj(..),Type(..),Eval,Func(..),FuncEntry,EvalFunc,TypeValidator(..))
+import Data.Eval                        (EvalError(..),ExpObj(..),Type(..),Func(..),TypeValidator(..))
 import Data.List                        (permutations,(\\))
 import Data.Maybe                       (isJust)
 import Data.Token                       (PairToken(..),IdToken(..),ExpToken(..),Pos)
@@ -214,7 +214,6 @@ arbIndexes is f = do
     
 shrinkIndexes is rest f | length is <= 2 = [] | otherwise = [f (is \\ [i]) (i:rest) | i <- is]
 
-orCase :: Marshallable a => [a] -> [TypeValidator] -> [Int] -> [Int] -> (a -> Eval ExpObj) -> Bool
 orCase es vs indexes rest f = 
   let ps = zip es vs
       toOr   = map (ps!!) indexes
@@ -235,7 +234,6 @@ instance Tall      (ValA a) where
     (s,t) <- elements [(s1,v1),(s2,v2),(s1++" or "++s2,v1<|>v2)]
     liftM (uncurry ValA) $ elements $ ("arrayOf<"++s++">",arrayOf t):leafValidators
 
-allUniquePos :: [ExpToken] -> [ExpToken]
 allUniquePos = flip evalState (S.singleton (0,0)).mapM moo where
   moo (FuncT w i es)  = liftM (FuncT w i) $ mapM moo es
   moo (ArrayT p w es) = do p' <- add p; liftM (ArrayT p' w) $ mapM moo es
@@ -245,7 +243,6 @@ allUniquePos = flip evalState (S.singleton (0,0)).mapM moo where
   moo (BoolT  p w b)  = do p' <- add p; return $ BoolT p' w b
   moo (NullT  p w)    = do p' <- add p; return $ NullT p' w
 
-allUniquePosO :: [ExpObj] -> [ExpObj]
 allUniquePosO = flip evalState (S.singleton (0,0)).mapM moo where
   moo (TableO p a b)  = do p' <- add p; liftM2 (TableO p') (moo a) (moo b)
   moo (PlotO p a b c) = do p' <- add p; liftM3 (PlotO p') (moo a) (moo b) (moo c)
@@ -269,11 +266,10 @@ notIn s = let (x1,y1) = S.findMin s
               ys = [y1..y2+1]
           in  head $ filter (not.(`S.member`s)) [(x,y) | x <- xs, y <- ys]
 
-leafValidators :: [(String,TypeValidator)]
 leafValidators = [("array",array),("obj",obj),("str",str),("num",num),("bool",bool),("null",null)]
 
 findWithPosAndType _ _ []                                                = Nothing
-findWithPosAndType p t (e:_)  | getPos e == p && getType e == t               = Just e 
+findWithPosAndType p t (e:_)  | getPos e == p && getType e == t          = Just e 
                               | isJust (findWithPosAndType p t $ subs e) = Just e
 findWithPosAndType p t (_:es)                                            = findWithPosAndType p t es
 
@@ -282,22 +278,17 @@ class Subs a where subs :: a -> [a]
 instance Subs ExpToken where subs (ArrayT _ _ xs) = xs; subs _ = []
 instance Subs ExpObj   where subs (ArrayO _   xs) = xs; subs _ = []
 
-applyFunc :: [FuncEntry] -> Pos -> String -> [ExpToken] -> Eval ExpObj
 applyFunc fs p n es = withFuncs fs any (mkFunc p n es)
 
-testFunc :: [ExpObj] -> [ExpToken] -> Pos -> String -> ExpObj
 testFunc os es p n = fromRight $ applyFunc (mkFuncs os es) p n []
 
-fromRight :: Show a => Eval a -> a
 fromRight (Right x) = x
 fromRight x         = error $ "FunctionEvalTestUtils::fromRight [Failed pattern match ["++show x++"]]"
 
-mkFunc :: Pos -> String -> [ExpToken] -> ExpToken
 mkFunc p n = FuncT w1 (IdT p w2 n)
 
 funcNamesLit   = ["arrayTestF","objTestF","strTestF","numTestF","boolTestF","nullTestF"]
 funcNamesNoLit = ["tableTestF","plotTestF"]
-mkFuncs :: [ExpObj] -> [ExpToken] -> [FuncEntry]
 mkFuncs os es = zipWith f funcNamesNoLit os ++ zipWith g funcNamesLit es
   where f name e = (name,([],Func $ \_ _ -> return e))
         g name e = (name,([],Func $ \_ _ -> testE e))
@@ -323,13 +314,9 @@ litCase os es (name,_,MkTok e) = testS e == withFuncs [] lit (testFunc os es (ge
 
 toTupleF (PairT _ (IdT _ _ x) y) = liftM2 (,) (return x) (testE y)
 
-testS :: ExpToken -> Eval ExpObj
 testS = testF []
-
-testF :: [FuncEntry] -> ExpToken -> Eval ExpObj
 testF fs = flip evalStateT fs .testE
 
-testE :: ExpToken -> EvalFunc ExpObj
 testE (FuncT _ (IdT p _ i) es) = get >>= \fs -> case lookup i fs of Just (_,Func f) -> mapM testE es >>= f p
 testE (ArrayT p _ es) = liftM (ArrayO p) $ mapM testE es
 testE (ObjT p _ ps)   = liftM (ObjO p)   $ mapM toTupleF ps
