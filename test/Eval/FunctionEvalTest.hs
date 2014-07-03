@@ -1,7 +1,6 @@
 {-# OPTIONS_GHC -F -pgmF htfpp -fno-warn-incomplete-patterns #-}
 module Eval.FunctionEvalTest where
 
-import Test.Framework hiding            (forAll)
 import Prelude        hiding            (any,null)
                                         
 import Control.Monad                    (liftM)                                        
@@ -14,6 +13,7 @@ import Eval.FunctionEvalTestUtils       (Is(..),TestToks(..),TestObjs(..),ExpOA(
                                          testFunc,forAll,mkEntries,anyCase,litCase,testS,testF,mkFunc,funcNamesLit,funcNamesNoLit,orCase,findWithPosAndType,allUniquePos,allUniquePosO)
 import Eval.MultiPassEvalTestUtils      (usesFuncE)
 import Parser.MonolithicParserTestUtils (IdTA(..),StrTA(..),NumTA(..),BoolTA(..),NullTA(..),P(..),W(..),un,uns)
+import Test.Framework                   (TestSuite,NonNegative(..),makeTestSuite,makeQuickCheckTest,makeLoc,qcAssertion,(==>))
 
 {-| Number of args validation -}
 prop_NbArgs (NonNegative n) (NonNegative m) (IdTA (IdT p w name)) = let (nbParams,nbArgs) = (n `mod` 1000,m `mod` 1000)  in nbParams /= nbArgs ==>

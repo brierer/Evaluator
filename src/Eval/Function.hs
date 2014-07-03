@@ -30,7 +30,6 @@ instance Marshallable ExpToken where
   marshall (NullT p _)              = return $ NullO p
   marshall e                        = error $ "Eval.Function::marshall<ExpToken> [Unexpected pattern ["++show e++"]]"
 
-  getPos (FuncT _ (IdT p _ _) _) = p
   getPos (ArrayT p _ _)          = p
   getPos (ObjT p _ _)            = p
   getPos (StrT p _ _)            = p
@@ -39,7 +38,6 @@ instance Marshallable ExpToken where
   getPos (NullT p _)             = p
   getPos e                       = error $ "Eval.Function::getPos<ExpToken> [Unexpected pattern ["++show e++"]]"
 
-  getType (FuncT{})  = FunCall
   getType (ArrayT{}) = Arr
   getType (ObjT{})   = Obj
   getType (StrT{})   = Str

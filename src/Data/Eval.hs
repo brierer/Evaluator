@@ -24,6 +24,7 @@ data EvalError = MultipleDefinitions Pos String
                | NoShow
                | InvalidNbOfArgs Pos String Int Int
                | TypeMismatch Pos Type Type
+               | IllegalEmptyArray Pos String
                  deriving (Eq,Show)
 
 type State = (Table,Table)

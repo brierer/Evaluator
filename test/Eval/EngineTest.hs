@@ -1,15 +1,18 @@
 {-# OPTIONS_GHC -F -pgmF htfpp #-}
 module Eval.EngineTest where
 
-import Test.Framework hiding               (forAll)
 import qualified Eval.EngineTestUtils as E (fs)
 
-import Data.Eval                           (EvalError(..))
+import Control.Monad.State                 (evalStateT)
+import Data.Eval                           (EvalError(..),ExpObj(..))
+import Data.List                           (genericLength)
 import Data.Token                          (ExpToken(..))
-import Eval.EngineTestUtils                (addFunc,mk,oneArrayOfNum,success,toArray)
+import Eval.Engine                         (funcs,showF,multiF,meanF)
+import Eval.EngineTestUtils                (addFunc,addFunc',mk,mkO,oneArrayOfNum,success,toArray,tablesAndPlots,ws2)
 import Eval.Function                       (arrayOf,table,plot,array,obj,num,(<|>),withFuncs)
 import Eval.FunctionEvalTestUtils          (Is(..),ExpOA(..),TableOA(..),NumOA(..),ExpTS(..),ArrayTS(..),ObjTS(..),applyFunc)
-import Parser.MonolithicParserTestUtils    (P(..),ExpTA(..),NumTA(..),uns)
+import Parser.MonolithicParserTestUtils    (P(..),ExpTA(..),NumTA(..),uns,NumType(..))
+import Test.Framework                      (TestSuite,NonEmptyList(..),Property,makeTestSuite,makeQuickCheckTest,makeLoc,qcAssertion,(==>),makeUnitTest,assertEqual_,makeLoc)
 
 prop_NbArgs1 (P p) esTA = length esTA > 1 ==> let es = uns esTA in
     all (\name -> Left (InvalidNbOfArgs p name 1 0)           == applyFunc E.fs p name ([] :: [ExpToken])
@@ -72,8 +75,8 @@ prop_TypeMismatchTake (P p) (NumTA _ g1) (ArrayTS g2) (TableOA g2r) (ExpTS w1) (
   withFuncs fs  num              w1 == applyFunc fs p "take" [w1,g2'] &&
   withFuncs fs  num              w1 == applyFunc fs p "take" [w1,w2]  &&
   withFuncs fs (table <|> array) w2 == applyFunc fs p "take" [g1,w2]  &&
-   success "take"                   == applyFunc fs p "take" [g1,g2]  &&
-   success "take"                   == applyFunc fs p "take" [g1,g2']
+  success "take"                    == applyFunc fs p "take" [g1,g2]  &&
+  success "take"                    == applyFunc fs p "take" [g1,g2']
 
 prop_TypeMismatchSort (P p) (NumTA _ g1) g2as (TableOA g2r) (ExpTS w1) w2as (ExpTS w2') =
   let (_,g2) = mk g2as; (w2s,w2) = mk w2as; (fs,g2') = addFunc "table" g2r in not (isNum w1) && any (not.isArray) w2s && not (isArray w2') ==>
@@ -83,8 +86,8 @@ prop_TypeMismatchSort (P p) (NumTA _ g1) g2as (TableOA g2r) (ExpTS w1) w2as (Exp
     withFuncs fs  num                      w1  == applyFunc fs p "sort" [w1,w2'] &&
     withFuncs fs (table <|> arrayOf array) w2  == applyFunc fs p "sort" [g1,w2]  &&
     withFuncs fs (table <|> arrayOf array) w2' == applyFunc fs p "sort" [g1,w2'] &&
-     success "sort"                            == applyFunc fs p "sort" [g1,g2]  &&
-     success "sort"                            == applyFunc fs p "sort" [g1,g2']
+    success "sort"                             == applyFunc fs p "sort" [g1,g2]  &&
+    success "sort"                             == applyFunc fs p "sort" [g1,g2']
 
 prop_TypeMismatchCol (P p) (NumTA _ g1) g2ass (TableOA g2r) (ExpTS w1) w2as (ExpTS w2') =
   let (_,g2) = mk g2ass; (w2s,w2) = mk w2as; (fs,g2') = addFunc "table" g2r in not (isNum w1) && any (not.isArray) w2s && not (isArray w2') ==>
@@ -94,8 +97,8 @@ prop_TypeMismatchCol (P p) (NumTA _ g1) g2ass (TableOA g2r) (ExpTS w1) w2as (Exp
     withFuncs fs  num                      w1  == applyFunc fs p "col" [w1,w2'] &&
     withFuncs fs (table <|> arrayOf array) w2  == applyFunc fs p "col" [g1,w2]  &&
     withFuncs fs (table <|> arrayOf array) w2' == applyFunc fs p "col" [g1,w2'] &&
-     success "col"                             == applyFunc fs p "col" [g1,g2]  &&
-     success "col"                             == applyFunc fs p "col" [g1,g2']
+    success "col"                              == applyFunc fs p "col" [g1,g2]  &&
+    success "col"                              == applyFunc fs p "col" [g1,g2']
 
 prop_TypeMismatchPlotLine (P p) g1as g2as (ObjTS g3) w1as (ExpTS w1') w2as (ExpTS w2') (ExpTS w3) =
   let (_,g1) = mk g1as; (_,g2) = mk g2as; (w1s,w1) = mk w1as; (w2s,w2) = mk w2as
@@ -115,62 +118,46 @@ prop_TypeMismatchPlotLine (P p) g1as g2as (ObjTS g3) w1as (ExpTS w1') w2as (ExpT
     withFuncs E.fs  obj          w3     == applyFunc E.fs p "plotLine" [g1 ,g2 ,w3] &&
     success "plotLine"                  == applyFunc E.fs p "plotLine" [g1 ,g2 ,g3]
 
+prop_ReturnValueShow (P p) a1ras' = let (fs,a1) = addFunc' "tablesAndPlots" a1r; (_,a1r) = mkO a1rs; a1rs = tablesAndPlots a1ras'; expected = Right (ObjO p [("result",a1r)])
+                                    in  expected == applyFunc fs p "show" [a1] && expected == evalStateT (showF p [a1r]) []
+
+prop_ReturnValueMulti (P p) a1as = let a1s = uns a1as; a1rs = map (\(NumT q _ _ x) -> NumO q x) a1s
+                                       a1 = ArrayT p ("","") a1s; a1r = ArrayO p a1rs
+                                       expected = Right $ NumO p $ product $ map (\(NumO _ x)->x) a1rs
+                                   in  expected == applyFunc funcs p "multi" [a1] && expected == evalStateT (multiF p [a1r]) []
+
+prop_ReturnValueMean (P pn) (P pa) (NonEmpty a1as) = 
+  let a1s = uns a1as; a1rs = map (\(NumT q _ _ x) -> NumO q x) a1s; 
+      a1 = ArrayT pa ws2 a1s; a1r = ArrayO pa a1rs
+      w1 = ArrayT pa ws2 [];  w1r = ArrayO pa []; 
+      expected = Right $ NumO pn $ product (map (\(NumO _ x)->x) a1rs) / genericLength a1rs
+      expectedEmpty = Left (IllegalEmptyArray pa "mean")
+  in  expected      == applyFunc funcs pn "mean" [a1]  && 
+      expected      == evalStateT (meanF pn [a1r]) [] &&
+      expectedEmpty == applyFunc funcs pn "mean" [w1]  && 
+      expectedEmpty == evalStateT (meanF pa [w1r]) []
+
+-- prop_ReturnValueDesc
+
+prop_ReturnValueTable = True
+
 {-| Mandatory type signatures -}
 prop_NbArgs1 :: P -> [ExpTA] ->  Property
 prop_NbArgs2 :: P -> [ExpTA] ->  Property
 prop_NbArgs3 :: P -> [ExpTA] ->  Property
 
-prop_TypeMismatchShow  :: P ->  ExpOA  -> [ExpTS] -> ExpTS -> Property
-prop_TypeMismatchMulti :: P -> [NumOA] -> [ExpTS] -> ExpTS -> Property
-prop_TypeMismatchMean  :: P -> [NumOA] -> [ExpTS] -> ExpTS -> Property
-prop_TypeMismatchDesc  :: P -> [NumOA] -> [ExpTS] -> ExpTS -> Property
+prop_TypeMismatchShow     :: P ->  ExpOA    -> [ExpTS]   ->  ExpTS                                                        -> Property
+prop_TypeMismatchMulti    :: P -> [NumOA]   -> [ExpTS]   ->  ExpTS                                                        -> Property
+prop_TypeMismatchMean     :: P -> [NumOA]   -> [ExpTS]   ->  ExpTS                                                        -> Property
+prop_TypeMismatchDesc     :: P -> [NumOA]   -> [ExpTS]   ->  ExpTS                                                        -> Property
+prop_TypeMismatchTable    :: P -> [ArrayTS] ->  ObjTS    -> [ExpTS]  ->  ExpTS    ->  ExpTS                               -> Property
+prop_TypeMismatchNTimes   :: P ->  NumTA    ->  NumTA    ->  ExpTS   ->  ExpTS                                            -> Property
+prop_TypeMismatchTake     :: P ->  NumTA    ->  ArrayTS  ->  TableOA ->  ExpTS    ->  ExpTS                               -> Property
+prop_TypeMismatchSort     :: P ->  NumTA    -> [ArrayTS] ->  TableOA ->  ExpTS    -> [ExpTS] ->  ExpTS                    -> Property
+prop_TypeMismatchCol      :: P ->  NumTA    -> [ArrayTS] ->  TableOA ->  ExpTS    -> [ExpTS] ->  ExpTS                    -> Property
+prop_TypeMismatchPlotLine :: P -> [NumTA]   -> [NumTA]   ->  ObjTS   -> [ExpTS]   ->  ExpTS  -> [ExpTS] -> ExpTS -> ExpTS -> Property
 
-prop_TypeMismatchTable  :: P -> [ArrayTS] ->   ObjTS   -> [ExpTS] ->  ExpTS  ->  ExpTS           -> Property
-prop_TypeMismatchNTimes :: P ->  NumTA    ->   NumTA   ->  ExpTS  ->  ExpTS                      -> Property
-prop_TypeMismatchTake   :: P ->  NumTA    ->  ArrayTS  -> TableOA ->  ExpTS  ->  ExpTS           -> Property
-prop_TypeMismatchSort   :: P ->  NumTA    -> [ArrayTS] -> TableOA ->  ExpTS  -> [ExpTS] -> ExpTS -> Property
-prop_TypeMismatchCol    :: P ->  NumTA    -> [ArrayTS] -> TableOA ->  ExpTS  -> [ExpTS] -> ExpTS -> Property
-
-prop_TypeMismatchPlotLine :: P -> [NumTA] -> [NumTA]   -> ObjTS   -> [ExpTS] -> ExpTS -> [ExpTS] -> ExpTS -> ExpTS -> Property
-
-{-|
-unlines $  [ "show = show([tservice,tsalaire,trente])" , "tservice = table([[service]],{col:[\"service\"]})" , "tsalaire = table([salaires],{col:[\"salaire\"]})" , "trente = table([rente],{col:[\"rente\"]})" , "rente = multi([0.02,moyensalaire,service])" , "moyensalaire = mean(salaires)" , "salaires = [55000,60000,45000]" , "service = 35" ]
-
-
-show = show([tablegoal,table(get,{col:["Depense","Septembre","Octobre"]})])
-tablegoal = table(goal,{col:["Depense","objectif"]})
-goal = [["Loyer","Epicerie","Resto","Alcool","Electricite","Ecole"],[510,200,100,50,40,166]]
-get = [["Loyer","Epicerie","Resto","Alcool","Electricite","Ecole"],
-[510,75,105,7,0,0],
-[510,117,75,0,47,6]]
-
-show = show([plotLine(x,y,{title:"MesNotes",color:"pink"}),table([x,y],{col:["X","Note"]})])
-moyenne = [[mean(y)]]
-x = [1,2,3,4,5,6,7]
-y = [0.25,0.72,0.82,0.53,0.75,0.8,0.86]
-
-show = show([x])
-x = table(desc,{})
-data = nTimes(1,1000000)
-desc = descriptive(data)
-
-show = show([table([country,gdp],{col:["pays","GDP"]}),[[mean(gdp)]],dsfdsf])
-gdp = [-2,2.4,7.7,"","",-7.9,"","",0.7,1,2.4,2.9,"","","","","",2.6]
-country = ["US","UK","Sweden","Spain","Portugal",
-"NewZealand",
-"Netherlands","Norway","Japan","Italy",
-"Ireland","Greece","Germany","France","Finland",
-"Denmark","Canada","Belgium","Austria","Australia"]
-dsfdsf = table([[2,2],[2,2]],{})
-
-
-show = show([table(means,{col:["Name"]}),table(noteTop,{col:["Nom","Note"]})])
-means = [[mean(col(1,noteTop)),"z"]]
-noteTop = take(10,noteSorted)
-noteSorted = sortTable(1,note)
-note = [name,noteExam]
-name = ["Lili","Nicole","Steve","George","Bob","Leonardo","Raphael","Carey","Naomi","Catherine","Julia",
-"Carolina","Madonna","Sherron","Diana"]
-noteExam = [99,41,55,22,37,75,19,74,73,85,63,60,82,54,14]
-
--}
+prop_ReturnValueShow  :: P      -> [ExpOA]             -> Bool
+prop_ReturnValueMulti :: P      -> [NumTA]             -> Bool
+prop_ReturnValueMean  :: P -> P ->  NonEmptyList NumTA -> Bool
+--prop_ReturnValueDesc  :: P -> P ->  NonEmptyList NumTA -> Bool
