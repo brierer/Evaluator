@@ -3,6 +3,7 @@ module Eval.EngineTestUtils where
 import qualified Eval.FunctionEvalTestUtils as FU (w2)
 
 import Control.Applicative                        ((<$>),(<*>))
+import Control.Monad                              (liftM)
 import Control.Monad.Trans                        (lift)
 import Data.Eval                                  (EvalError(..),ExpObj(..),Func(..))
 import Data.Token                                 (IdToken(..),ExpToken(..))
@@ -34,7 +35,7 @@ tablesAndPlots :: [ExpOA] -> [ExpOA]
 tablesAndPlots xs = let ys = uns xs :: [ExpObj] in  map to (filter ((||) <$> isTable <*> isPlot) ys)
 
 emptyArray (ArrayT _ _ es) = null es
-emptyArray e               = error $ "Eval.EngineTestUtils [Unexpected pattern ["++show e++"]]" 
+emptyArray e               = error $ "Eval.EngineTestUtils::emptyArray [Unexpected pattern ["++show e++"]]" 
 
 emptySortColCase name pa pt n g2ass w2'ass = 
   let (g2ss,g2) = mk' g2ass; (_,w2) = mk pa ([] :: [ExpTS]); (_,w2') = mk' (w2'ass ++ [to w2]); in any (not.emptyArray) g2ss ==>
@@ -43,4 +44,8 @@ emptySortColCase name pa pt n g2ass w2'ass =
     success name          == applyFunc fs pt name [n, g2 ]
 
 mkMultiMean a1as pa = let a1s = uns a1as; a1rs = map (\(NumT q _ _ x) -> NumO q x) a1s; a1 = ArrayT pa ("","") a1s; a1r = ArrayO pa a1rs in (a1,a1rs,a1r)
-    
+
+unprecise :: Monad m => m ExpObj -> m ExpObj
+unprecise = liftM moo where 
+  moo (NumO p x) = NumO p $ fromIntegral (floor $ 1000000.0 * x :: Integer) / 1000000.0
+  moo e          = error $ "Eval.EngineTestUtils::unprecise [Unexpected pattern ["++show e++"]]"

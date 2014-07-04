@@ -8,14 +8,11 @@ import Data.Eval                           (EvalError(..),ExpObj(..))
 import Data.List                           (genericLength)
 import Data.Token                          (ExpToken(..))
 import Eval.Engine                         (funcs,showF,multiF,meanF)
-import Eval.EngineTestUtils                (addFunc,addFunc',mk,mk',mkO',oneArrayOfNum,success,toArray,tablesAndPlots,emptyArray,emptySortColCase,mkMultiMean)
+import Eval.EngineTestUtils                (addFunc,addFunc',mk,mk',mkO',oneArrayOfNum,success,toArray,tablesAndPlots,emptyArray,emptySortColCase,mkMultiMean,unprecise)
 import Eval.Function                       (table,plot,array,obj,num,arrayOf,nonEmpty,(<|>),withFuncs)
 import Eval.FunctionEvalTestUtils          (Is(..),ExpOA(..),TableOA(..),NumOA(..),ExpTS(..),ArrayTS(..),ObjTS(..),applyFunc)
 import Parser.MonolithicParserTestUtils    (P(..),ExpTA(..),NumTA(..),to,uns)
 import Test.Framework                      (TestSuite,Property,makeTestSuite,makeQuickCheckTest,makeLoc,qcAssertion,(==>))
-
-import Parser.MonolithicParserTestUtils
-import Test.Framework
 
 prop_NbArgs1 (P p) esTA = length esTA > 1 ==> let es = uns esTA in
     all (\name -> Left (InvalidNbOfArgs p name 1 0)           == applyFunc E.fs p name ([] :: [ExpToken])
@@ -158,8 +155,8 @@ prop_ReturnValueMulti (P pn) (P pa) a1as = not (null a1as) ==>
 
 prop_ReturnValueMean  (P pn) (P pa) a1as = not (null a1as) ==> 
   let (a1,a1rs,a1r) = mkMultiMean a1as pa; expected = Right $ NumO pn $ sum (map (\(NumO _ x)->x) a1rs) / genericLength a1rs in  not (null a1as) ==>
-      expected == applyFunc funcs pn "mean" [a1]  && 
-      expected == evalStateT (meanF pn [a1r]) []
+      unprecise expected == unprecise (applyFunc funcs pn "mean" [a1])  && 
+      unprecise expected == unprecise (evalStateT (meanF pn [a1r]) [])
 
 {-| Mandatory type signatures -}
 prop_NbArgs1 :: P -> [ExpTA] ->  Property
