@@ -3,7 +3,6 @@ module Eval.EngineTestUtils where
 import qualified Eval.FunctionEvalTestUtils as FU (w2)
 
 import Control.Applicative                        ((<$>),(<*>))
-import Control.Monad.State                        (evalStateT)
 import Control.Monad.Trans                        (lift)
 import Data.Eval                                  (EvalError(..),ExpObj(..),Func(..))
 import Data.Token                                 (IdToken(..),ExpToken(..))
@@ -11,8 +10,6 @@ import Eval.Engine                                (funcs)
 import Eval.FunctionEvalTestUtils                 (ExpOA,ExpTS,isTable,isPlot,p0, applyFunc)
 import Parser.MonolithicParserTestUtils           (Unto,to,uns)
 import Test.Framework                             ((==>))
-
-ws2 = FU.w2
 
 fs = flip map funcs $ \(n,(typeValidators,_)) -> (n,(typeValidators, Func $ \_ _ -> lift $ success n))
 
@@ -45,10 +42,5 @@ emptySortColCase name pa pt n g2ass w2'ass =
     Left (IllegalEmpty pa) == applyFunc fs pt name [n, w2'] &&
     success name          == applyFunc fs pt name [n, g2 ]
 
-multiMeanReturnValueCase name func pn pa a1as f = 
-  let a1s = uns a1as; a1rs = map (\(NumT q _ _ x) -> NumO q x) a1s; 
-      a1 = ArrayT pa ws2 a1s; a1r = ArrayO pa a1rs
-      expected = Right $ NumO pn $ f a1rs $ product (map (\(NumO _ x)->x) a1rs)
-  in  not (null a1as) ==>
-      expected == applyFunc funcs pn name [a1]  && 
-      expected == evalStateT (func pn [a1r]) []
+mkMultiMean a1as pa = let a1s = uns a1as; a1rs = map (\(NumT q _ _ x) -> NumO q x) a1s; a1 = ArrayT pa ("","") a1s; a1r = ArrayO pa a1rs in (a1,a1rs,a1r)
+    

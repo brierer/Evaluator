@@ -7,12 +7,15 @@ import Control.Monad.State                 (evalStateT)
 import Data.Eval                           (EvalError(..),ExpObj(..))
 import Data.List                           (genericLength)
 import Data.Token                          (ExpToken(..))
-import Eval.Engine                         (showF,multiF,meanF)
-import Eval.EngineTestUtils                (addFunc,addFunc',mk,mk',mkO',oneArrayOfNum,success,toArray,tablesAndPlots,emptyArray,emptySortColCase,multiMeanReturnValueCase)
+import Eval.Engine                         (funcs,showF,multiF,meanF)
+import Eval.EngineTestUtils                (addFunc,addFunc',mk,mk',mkO',oneArrayOfNum,success,toArray,tablesAndPlots,emptyArray,emptySortColCase,mkMultiMean)
 import Eval.Function                       (table,plot,array,obj,num,arrayOf,nonEmpty,(<|>),withFuncs)
 import Eval.FunctionEvalTestUtils          (Is(..),ExpOA(..),TableOA(..),NumOA(..),ExpTS(..),ArrayTS(..),ObjTS(..),applyFunc)
 import Parser.MonolithicParserTestUtils    (P(..),ExpTA(..),NumTA(..),to,uns)
 import Test.Framework                      (TestSuite,Property,makeTestSuite,makeQuickCheckTest,makeLoc,qcAssertion,(==>))
+
+import Parser.MonolithicParserTestUtils
+import Test.Framework
 
 prop_NbArgs1 (P p) esTA = length esTA > 1 ==> let es = uns esTA in
     all (\name -> Left (InvalidNbOfArgs p name 1 0)           == applyFunc E.fs p name ([] :: [ExpToken])
@@ -148,8 +151,15 @@ prop_EmptyArgCol  (P pt) (P pa) (NumTA _ n) = emptySortColCase "col"  pa pt n
 prop_ReturnValueShow (P p) a1ras' = let (fs,a1) = addFunc' "tablesAndPlots" a1r; (_,a1r) = mkO' a1rs; a1rs = tablesAndPlots a1ras'; expected = Right (ObjO p [("result",a1r)])
                                     in  True ==> expected == applyFunc fs p "show" [a1] && expected == evalStateT (showF p [a1r]) []
 
-prop_ReturnValueMulti (P pn) (P pa) a1as = not (null a1as) ==> multiMeanReturnValueCase "multi" multiF pn pa a1as (const id)
-prop_ReturnValueMean  (P pn) (P pa) a1as = not (null a1as) ==> multiMeanReturnValueCase "mean"  meanF  pn pa a1as (\ns -> (/genericLength ns))
+prop_ReturnValueMulti (P pn) (P pa) a1as = not (null a1as) ==> 
+  let (a1,a1rs,a1r) = mkMultiMean a1as pa; expected = Right $ NumO pn $ product $ map (\(NumO _ x)->x) a1rs in  not (null a1as) ==>
+      expected == applyFunc funcs pn "multi" [a1]  && 
+      expected == evalStateT (multiF pn [a1r]) []
+
+prop_ReturnValueMean  (P pn) (P pa) a1as = not (null a1as) ==> 
+  let (a1,a1rs,a1r) = mkMultiMean a1as pa; expected = Right $ NumO pn $ sum (map (\(NumO _ x)->x) a1rs) / genericLength a1rs in  not (null a1as) ==>
+      expected == applyFunc funcs pn "mean" [a1]  && 
+      expected == evalStateT (meanF pn [a1r]) []
 
 {-| Mandatory type signatures -}
 prop_NbArgs1 :: P -> [ExpTA] ->  Property
