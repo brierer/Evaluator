@@ -158,6 +158,8 @@ prop_ReturnValueMean  (P pn) (P pa) a1as = not (null a1as) ==>
       unprecise expected == unprecise (applyFunc funcs pn "mean" [a1])  && 
       unprecise expected == unprecise (evalStateT (meanF pn [a1r]) [])
 
+prop_ReturnValueDesc = False; -- Implemented this test!
+
 {-| Mandatory type signatures -}
 prop_NbArgs1 :: P -> [ExpTA] ->  Property
 prop_NbArgs2 :: P -> [ExpTA] ->  Property
