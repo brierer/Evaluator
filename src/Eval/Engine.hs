@@ -14,7 +14,7 @@ module Eval.Engine
 import Prelude hiding (exp,null)
 
 import Data.Eval      (ExpObj(..),EvalFunc,FuncEntry,Func(..))
---import Data.List      (genericLength)
+import Data.List      (genericLength)
 import Data.Token     (Pos)
 import Eval.Function  (table,plot,array,obj,num,arrayOf,nonEmpty,(<|>))
 
@@ -46,13 +46,10 @@ sortF      :: Pos -> [ExpObj] -> EvalFunc ExpObj
 colF       :: Pos -> [ExpObj] -> EvalFunc ExpObj 
 plotLineF  :: Pos -> [ExpObj] -> EvalFunc ExpObj 
 
---showF  p [x]           = return $ ObjO p [("result",x)];                                         showF  _ xs = error $ "Engine::showF  [Unexpected pattern ["++show xs++"]]"
---multiF p [ArrayO q ns] = return $ NumO p $ product $ getNums ns;                                 multiF _ xs = error $ "Engine::multiF [Unexpected pattern ["++show xs++"]]"
---meanF  p [ArrayO q ns] = return $ NumO p $ let vs = getNums ns in product vs / genericLength vs; meanF  _ xs = error $ "Engine::meanF  [Unexpected pattern ["++show xs++"]]"
 
-showF        = error "Eval.Function::showF      [Not Implemented]"
-multiF       = error "Eval.Function::multiF     [Not Implemented]"
-meanF        = error "Eval.Function::meanF      [Not Implemented]"
+showF  p [x]           = return $ ObjO p [("result",x)];                                         showF  _ xs = error $ "Engine::showF  [Unexpected pattern ["++show xs++"]]"
+multiF p [ArrayO _ ns] = return $ NumO p $ product $ getNums ns;                                 multiF _ xs = error $ "Engine::multiF [Unexpected pattern ["++show xs++"]]"
+meanF  p [ArrayO _ ns] = return $ NumO p $ let vs = getNums ns in product vs / genericLength vs; meanF  _ xs = error $ "Engine::meanF  [Unexpected pattern ["++show xs++"]]"
 descF        = error "Eval.Function::descF      [Not Implemented]"
 tableF       = error "Eval.Function::tableF     [Not Implemented]"
 nTimesF      = error "Eval.Function::ntimesF    [Not Implemented]"
@@ -61,8 +58,8 @@ sortF        = error "Eval.Function::sortF      [Not Implemented]"
 colF         = error "Eval.Function::colF       [Not Implemented]"
 plotLineF    = error "Eval.Function::plotLineF  [Not Implemented]"
 
---getNums :: [ExpObj] -> [Double]
---getNums = map (\(NumO _ x)-> x)
+getNums :: [ExpObj] -> [Double]
+getNums = map (\(NumO _ x)-> x)
 
 
 

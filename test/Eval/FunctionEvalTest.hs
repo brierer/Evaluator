@@ -14,7 +14,7 @@ import Eval.FunctionEvalTestUtils       (Is(..),TestToks(..),TestObjs(..),ExpOA(
                                          ExpTS(..),ArrayTS(..),ObjTS(..),ArrayTF(..),ObjTF(..),TokOrObj(..),TestIndexesT(..),TestIndexesO(..),ValA(..),ArgErrorA(..),
                                          testFunc,forAll,mkEntries,anyCase,litCase,testS,testF,mkFunc,funcNamesLit,funcNamesNoLit,orCase,findWithPosAndType,allUniquePos,allUniquePosO)
 import Eval.MultiPassEvalTestUtils      (usesFuncE,w2,p0)
-import Parser.MonolithicParserTestUtils (IdTA(..),StrTA(..),NumTA(..),BoolTA(..),NullTA(..),P(..),W(..),un,uns)
+import Parser.MonolithicParserTestUtils (IdTA(..),StrTA(..),NumTA(..),BoolTA(..),NullTA(..),P(..),un,uns)
 import Test.Framework                   (TestSuite,NonNegative(..),makeTestSuite,makeQuickCheckTest,makeLoc,qcAssertion,(==>))
 
 {-| Number of args validation -}

@@ -7,12 +7,12 @@ import Control.Monad.State                 (evalStateT)
 import Data.Eval                           (EvalError(..),ExpObj(..))
 import Data.List                           (genericLength)
 import Data.Token                          (ExpToken(..))
-import Eval.Engine                         (funcs,showF,multiF,meanF)
-import Eval.EngineTestUtils                (addFunc,addFunc',mk,mk',oneArrayOfNum,success,toArray,tablesAndPlots,ws2,emptyArray,emptySortColCase)
-import Eval.Function                       (getType,table,plot,array,obj,num,arrayOf,nonEmpty,(<|>),withFuncs)
+import Eval.Engine                         (showF,multiF,meanF)
+import Eval.EngineTestUtils                (addFunc,addFunc',mk,mk',mkO',oneArrayOfNum,success,toArray,tablesAndPlots,emptyArray,emptySortColCase,multiMeanReturnValueCase)
+import Eval.Function                       (table,plot,array,obj,num,arrayOf,nonEmpty,(<|>),withFuncs)
 import Eval.FunctionEvalTestUtils          (Is(..),ExpOA(..),TableOA(..),NumOA(..),ExpTS(..),ArrayTS(..),ObjTS(..),applyFunc)
-import Parser.MonolithicParserTestUtils    (P(..),ExpTA(..),NumTA(..),to,uns,NumType(..))
-import Test.Framework                      (TestSuite,NonEmptyList(..),Property,makeTestSuite,makeQuickCheckTest,makeLoc,qcAssertion,(==>),makeUnitTest,assertEqual_,makeLoc)
+import Parser.MonolithicParserTestUtils    (P(..),ExpTA(..),NumTA(..),to,uns)
+import Test.Framework                      (TestSuite,Property,makeTestSuite,makeQuickCheckTest,makeLoc,qcAssertion,(==>))
 
 prop_NbArgs1 (P p) esTA = length esTA > 1 ==> let es = uns esTA in
     all (\name -> Left (InvalidNbOfArgs p name 1 0)           == applyFunc E.fs p name ([] :: [ExpToken])
@@ -145,27 +145,11 @@ prop_EmptyArgTable (P pt) (P pa) g1ass w1'ass (ObjTS o) =
 prop_EmptyArgSort (P pt) (P pa) (NumTA _ n) = emptySortColCase "sort" pa pt n 
 prop_EmptyArgCol  (P pt) (P pa) (NumTA _ n) = emptySortColCase "col"  pa pt n
   
---prop_ReturnValueShow (P p) a1ras' = let (fs,a1) = addFunc' "tablesAndPlots" a1r; (_,a1r) = mkO a1rs; a1rs = tablesAndPlots a1ras'; expected = Right (ObjO p [("result",a1r)])
---                                    in  expected == applyFunc fs p "show" [a1] && expected == evalStateT (showF p [a1r]) []
---
---prop_ReturnValueMulti (P pn) (P pa) a1as = let a1s = uns a1as; a1rs = map (\(NumT q _ _ x) -> NumO q x) a1s
---                                               a1 = ArrayT p ("","") a1s; a1r = ArrayO p a1rs
---                                               expected = Right $ NumO p $ product $ map (\(NumO _ x)->x) a1rs
---                                               expectedEmpty = Left (IllegalEmptyArray pa "multi")
---                                           in  expected      == applyFunc funcs p "multi" [a1] && 
---                                               expected      == evalStateT (multiF p [a1r]) [] &&
---                                               expectedEmpty == applyFunc funcs pn "multi" [w1]  &&
---                                               expectedEmpty == evalStateT (meanF pa [w1r]) []
---
---prop_ReturnValueMean (P pn) (P pa) (NonEmpty a1as) = let a1s = uns a1as; a1rs = map (\(NumT q _ _ x) -> NumO q x) a1s; 
---                                                         a1 = ArrayT pa ws2 a1s; a1r = ArrayO pa a1rs
---                                                         w1 = ArrayT pa ws2 [];  w1r = ArrayO pa []; 
---                                                         expected = Right $ NumO pn $ product (map (\(NumO _ x)->x) a1rs) / genericLength a1rs
---                                                         expectedEmpty = Left (IllegalEmptyArray pa "mean")
---                                                     in  expected      == applyFunc funcs pn "mean" [a1]  && 
---                                                         expected      == evalStateT (meanF pn [a1r]) [] &&
---                                                         expectedEmpty == applyFunc funcs pn "mean" [w1]  && 
---                                                         expectedEmpty == evalStateT (meanF pa [w1r]) []
+prop_ReturnValueShow (P p) a1ras' = let (fs,a1) = addFunc' "tablesAndPlots" a1r; (_,a1r) = mkO' a1rs; a1rs = tablesAndPlots a1ras'; expected = Right (ObjO p [("result",a1r)])
+                                    in  True ==> expected == applyFunc fs p "show" [a1] && expected == evalStateT (showF p [a1r]) []
+
+prop_ReturnValueMulti (P pn) (P pa) a1as = not (null a1as) ==> multiMeanReturnValueCase "multi" multiF pn pa a1as (const id)
+prop_ReturnValueMean  (P pn) (P pa) a1as = not (null a1as) ==> multiMeanReturnValueCase "mean"  meanF  pn pa a1as (\ns -> (/genericLength ns))
 
 {-| Mandatory type signatures -}
 prop_NbArgs1 :: P -> [ExpTA] ->  Property
@@ -190,9 +174,9 @@ prop_EmptyArgTable :: P -> P -> [ArrayTS] -> [ArrayTS] -> ObjTS -> Property
 prop_EmptyArgSort  :: P -> P -> NumTA -> [ArrayTS] -> [ArrayTS] -> Property
 prop_EmptyArgCol   :: P -> P -> NumTA -> [ArrayTS] -> [ArrayTS] -> Property
 
---prop_ReturnValueShow  :: P      -> [ExpOA]             -> Bool
---prop_ReturnValueMulti :: P      -> [NumTA]             -> Bool
---prop_ReturnValueMean  :: P -> P ->  NonEmptyList NumTA -> Bool
+prop_ReturnValueShow  :: P      -> [ExpOA] -> Property
+prop_ReturnValueMulti :: P -> P -> [NumTA] -> Property
+prop_ReturnValueMean  :: P -> P -> [NumTA] -> Property
 
 {-|
 show = show([tservice,tsalaire,trente])
