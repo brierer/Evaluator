@@ -1,19 +1,22 @@
 module Eval.Function
 ( Marshallable(..)
-, arrayOf
 , table, plot, array, obj, str, num, bool, null
 , any,noLit,lit
 , anyType, noLitType,litType
+, arrayOf, nonEmpty, args
 , (<|>), (<!>)
 , withFuncs
+, evalError
 ) where
 
-import Prelude hiding      (any,null)
+import Prelude hiding         (any,null)
 
-import Control.Monad.State (evalStateT,get,lift)
-import Control.Monad       (liftM,liftM2,zipWithM,when,(>=>))
-import Data.Eval           (Type(..),ExpObj(..),EvalError(..),Eval,FuncEntry,EvalFunc,TypeValidator(..),Func(..))
-import Data.Token          (PairToken(..),IdToken(..),ExpToken(..),Pos)
+import qualified Prelude as P (any,null)
+
+import Control.Monad.State    (evalStateT,get,lift)
+import Control.Monad          (liftM,liftM2,zipWithM,when,(>=>))
+import Data.Eval              (EvalError(..),Type(..),ExpObj(..),EvalError(..),Eval,FuncEntry,EvalFunc,TypeValidator(..),Func(..))
+import Data.Token             (PairToken(..),IdToken(..),ExpToken(..),Pos)
 
 class Marshallable a where
   marshall :: a -> EvalFunc ExpObj
@@ -49,33 +52,31 @@ instance Marshallable ExpToken where
 instance Marshallable ExpObj where
   marshall = return
 
-  getPos (TableO p _ _)  = p
-  getPos (PlotO p _ _ _) = p
-  getPos (ArrayO p _)    = p
-  getPos (ObjO p _)      = p
-  getPos (StrO p _)      = p
-  getPos (NumO p _)      = p
-  getPos (BoolO p _)     = p
-  getPos (NullO p)       = p
+  getPos (TableO p _ _) = p
+  getPos (PlotO  p _ _) = p
+  getPos (ArrayO p _)   = p
+  getPos (ObjO p _)     = p
+  getPos (StrO p _)     = p
+  getPos (NumO p _)     = p
+  getPos (BoolO p _)    = p
+  getPos (NullO p)      = p
 
-  getType (TableO{})  = Table
-  getType (PlotO{})   = Plot
-  getType (ArrayO{})  = Arr
-  getType (ObjO{})    = Obj
-  getType (StrO{})    = Str
-  getType (NumO{})    = Num
-  getType (BoolO{})   = Bool
-  getType (NullO{})   = Null
+  getType (TableO{}) = Table
+  getType (PlotO{})  = Plot
+  getType (ArrayO{}) = Arr
+  getType (ObjO{})   = Obj
+  getType (StrO{})   = Str
+  getType (NumO{})   = Num
+  getType (BoolO{})  = Bool
+  getType (NullO{})  = Null
 
 {-| Type validators -}
 match :: Type -> TypeValidator
 match t = TypeVal $ \e -> if t == getType e  then return e else runValidation (mismatch t) e
 
 mismatch :: Type -> TypeValidator
-mismatch t = TypeVal $ \e -> lift $ Left $ TypeMismatch (getPos e) t (getType e)
+mismatch t = TypeVal $ \e -> evalError $ TypeMismatch (getPos e) t (getType e)
 
-arrayOf :: TypeValidator -> TypeValidator
-arrayOf v = TypeVal (runValidation (match Arr) >=> \(ArrayO p es) -> liftM (ArrayO p) $ mapM (runValidation v) es)
 
 table :: TypeValidator
 plot  :: TypeValidator
@@ -111,6 +112,22 @@ anyType   = foldl1 Or [noLitType,litType]
 noLitType = foldl1 Or [Table,Plot]
 litType   = foldl1 Or [Arr,Obj,Str,Num,Bool,Null]
 
+arrayOf :: TypeValidator -> TypeValidator
+arrayOf v = TypeVal (runValidation (match Arr) >=> \(ArrayO p es) -> liftM (ArrayO p) $ mapM (runValidation v) es)
+
+nonEmpty :: TypeValidator -> TypeValidator
+nonEmpty v = let raise = evalError .IllegalEmpty in TypeVal $ runValidation v >=> \ x -> case x of
+  TableO p [] _ -> raise p; TableO p xs _ -> if not (P.any (not . P.null) xs) then raise p else return x 
+  PlotO  p [] _ -> raise p; 
+  ArrayO p [] -> raise p; 
+  ObjO   p [] -> raise p; 
+  StrO   p [] -> raise p; 
+  _ -> return x
+
+args :: FuncEntry -> FuncEntry
+args (n,(vs,f)) = (n,(zipWith arg [0..] vs,f)) where 
+  arg i (TypeVal v) = TypeVal $ \x -> do st <- get; case evalStateT (v x) st of Left e -> evalError $ ArgError i n e; r -> lift r
+
 (<|>) :: TypeValidator -> TypeValidator -> TypeValidator
 (<|>) (TypeVal a) (TypeVal b) = TypeVal $ \x -> do st <- get; case evalStateT (a x) st of Right r -> return r; Left _ -> b x
 infixl 3 <|>
@@ -130,6 +147,9 @@ applyFunc p i es = get >>= \fs -> case lookup i fs of
                         mapM marshall es >>= zipWithM runValidation vs >>= f p
 
 validArgCount :: Pos -> String -> Int -> Int -> EvalFunc ()
-validArgCount p i lv le = when (lv /= le) $ lift $ Left $ InvalidNbOfArgs p i lv le
+validArgCount p i lv le = when (lv /= le) $ evalError $ InvalidNbOfArgs p i lv le
+
+evalError :: EvalError -> EvalFunc a
+evalError = lift.Left
 
 

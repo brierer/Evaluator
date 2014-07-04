@@ -23,20 +23,21 @@ data EvalError = MultipleDefinitions Pos String
                | NonTopLevelShow Pos
                | NoShow
                | InvalidNbOfArgs Pos String Int Int
+               | ArgError Int String EvalError
                | TypeMismatch Pos Type Type
-               | IllegalEmptyArray Pos String
+               | IllegalEmpty Pos
                  deriving (Eq,Show)
 
 type State = (Table,Table)
 type Table = M.Map String (ExpToken,Pos)
 type Eval = Either EvalError
 
-data Type = Table | Plot | FunCall | Arr | Obj | Str | Num | Bool | Null 
-          | Type `Or` Type 
+data Type = Table | Plot | FunCall | Arr | Obj | Str | Num | Bool | Null
+          | Type `Or` Type
             deriving (Eq,Show)
 
-data ExpObj = TableO  Pos ExpObj ExpObj        -- Pos -> Array -> Object
-            | PlotO   Pos ExpObj ExpObj ExpObj -- Pos -> Array -> Array -> Object
+data ExpObj = TableO  Pos [[ExpObj]]        ExpObj -- Pos -> Cols  -> Opts
+            | PlotO   Pos [(ExpObj,ExpObj)] ExpObj -- Pos -> Pairs -> Opts 
             | ArrayO  Pos [ExpObj]
             | ObjO    Pos [(String,ExpObj)]
             | StrO    Pos String

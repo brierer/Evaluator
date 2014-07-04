@@ -1,24 +1,43 @@
-{-# LANGUAGE MultiParamTypeClasses, FlexibleInstances #-}
+{-# LANGUAGE FlexibleInstances     #-}
+{-# LANGUAGE MultiParamTypeClasses #-}
 {-# OPTIONS_GHC -fno-warn-incomplete-patterns #-}
 module Eval.FunctionEvalTestUtils where
 
-import Prelude hiding                   (any,null)
-import qualified Prelude as P           (null)
-import qualified Data.Set as S          (Set,singleton,findMin,findMax,member,insert)
+import           Prelude                          hiding (any, null)
 
-import Control.Arrow                    (second)
-import Control.Applicative              (Applicative)
-import Control.Monad                    (liftM,liftM2,liftM3,join)
-import Control.Monad.State              (State,evalStateT,evalState,put,get)
-import Data.Eval                        (EvalError(..),ExpObj(..),Type(..),Func(..),TypeValidator(..))
-import Data.List                        (permutations,(\\))
-import Data.Maybe                       (isJust)
-import Data.Token                       (PairToken(..),IdToken(..),ExpToken(..),Pos)
-import Eval.Function                    (Marshallable(..),arrayOf,array,obj,str,num,bool,null,any,lit,(<|>),(<!>),withFuncs)
-import Eval.MultiPass                   (mapPair,mapMPair)
-import Parser.MonolithicParserTestUtils (Unto(..),Tall(..),IdTA(..),ExpTA(..),ArrayTA(..),ObjTA(..),StrTA(..),NumTA(..),BoolTA(..),NullTA(..),P(..),
-                                         sShrink,tShrink,tShrinks,sizes,sized1,liftMF2,liftMF3,liftMF4,uns)
-import Test.Framework                   (Arbitrary(..),Gen,elements,choose)
+import qualified Data.Set                         as S (Set, findMax, findMin,
+                                                        insert, member,
+                                                        singleton)
+import qualified Prelude                          as P (null)
+
+import           Control.Applicative              (Applicative)
+import           Control.Arrow                    (second)
+import           Control.Monad                    (join, liftM, liftM2)
+import           Control.Monad.State              (State, evalState, evalStateT,
+                                                   get, put)
+import           Data.Eval                        (EvalError (..), ExpObj (..),
+                                                   Func (..), Type (..),
+                                                   TypeValidator (..))
+import           Data.List                        (permutations, (\\))
+import           Data.Maybe                       (isJust)
+import           Data.Token                       (ExpToken (..), IdToken (..),
+                                                   PairToken (..), Pos)
+import           Eval.Function                    (Marshallable (..), any,
+                                                   array, arrayOf, bool, lit,
+                                                   null, num, obj, str,
+                                                   withFuncs, (<!>), (<|>))
+import           Eval.MultiPass                   (mapMPair, mapPair)
+import           Parser.MonolithicParserTestUtils (ArrayTA (..), BoolTA (..),
+                                                   ExpTA (..), IdTA (..),
+                                                   NullTA (..), NumTA (..),
+                                                   ObjTA (..), P (..),
+                                                   StrTA (..), Tall (..),
+                                                   Unto (..), liftMF2, liftMF3,
+                                                   sListOf, sShrink, sized1,
+                                                   sizes, tShrink, tShrinks,
+                                                   uns)
+import           Test.Framework                   (Arbitrary (..), Gen, choose,
+                                                   elements)
 
 class Is a where
   isFunc     :: a -> Bool
@@ -101,26 +120,30 @@ shrinkO x@(NullO{})   = liftM un $ sShrink (to x :: NullOA)
 
 data TableOA = TableOA ExpObj deriving (Show)
 instance Unto  TableOA ExpObj where to = TableOA; un (TableOA t) = t
-instance Arbitrary TableOA where arbitrary = sized1 tall; shrink (TableOA (TableO p a o)) = mTableOA (tShrink p) (tShrink a) (tShrink o)
-instance Tall TableOA      where                                                   tall n =  mTableOA  arbitrary  (tall n)    (tall n)
-mTableOA = liftMF3 mkTable un un un where mkTable x y = TableOA .TableO x y
+instance Arbitrary TableOA where arbitrary = sized1 tall; shrink (TableOA (TableO p ess o)) = mTableOA (tShrink p) (shrink $ map (map to) ess)  (tShrink o)
+instance Tall TableOA      where                                                     tall n = mTableOA  arbitrary  (sListOf $ sListOf $ tall n) (tall n)
+mTableOA = liftMF3 mkTable un (equalize.map (map un)) un where mkTable x y = TableOA .TableO x y
+
+equalize xss = let n = minimum $ map length xss in map (take n) xss
 
 data PlotOA = PlotOA ExpObj deriving (Show)
 instance Unto PlotOA ExpObj where to = PlotOA; un (PlotOA p) = p
-instance Arbitrary PlotOA where arbitrary = sized1 tall; shrink (PlotOA (PlotO p xs ys ps)) = mPlotOA (tShrink p) (tShrink xs)   (tShrink ys)   (tShrink ps)
-instance Tall      PlotOA where                                                      tall n =  mPlotOA  arbitrary  (tall n)       (tall n)       (tall n)
-mPlotOA = liftMF4 mkPlot un un un un where mkPlot x y z = PlotOA .PlotO x y z
+instance Arbitrary PlotOA where arbitrary = sized1 tall; shrink (PlotOA (PlotO p ps o)) = mPlotOA (tShrink p) (tShrinks ps)      (tShrink o)
+instance Tall      PlotOA where                                                  tall n = mPlotOA  arbitrary  (sListOf $ tall n) (tall n)
+mPlotOA = liftMF3 mkPlot un uns un where mkPlot x y = PlotOA .PlotO x y
+instance Unto (ExpOA,ExpOA) (ExpObj,ExpObj) where un (x,y) = (un x, un y); to (x,y) = (to x, to y)
+instance Tall (ExpOA,ExpOA) where tall n =  liftM2 (,) (tall n) (tall n)
 
 data ArrayOA = ArrayOA ExpObj deriving (Show)
 instance Unto  ArrayOA ExpObj where to = ArrayOA; un (ArrayOA a) = a
 instance Arbitrary ArrayOA where arbitrary = sized1 tall; shrink (ArrayOA (ArrayO p es)) = mArrayOA (tShrink p) (tShrinks es)
-instance Tall      ArrayOA where                                                  tall n =  mArrayOA  arbitrary  (sizes n)
+instance Tall      ArrayOA where                                                  tall n = mArrayOA  arbitrary  (sizes n)
 mArrayOA = liftMF2 mkArray un uns where mkArray x = ArrayOA .ArrayO x
 
 data ObjOA =  ObjOA ExpObj deriving (Show)
 instance Unto ObjOA ExpObj where to = ObjOA; un (ObjOA o) = o
 instance Arbitrary ObjOA where arbitrary = sized1 tall; shrink (ObjOA (ObjO p ps)) = mObjOA (tShrink p) (tShrinks ps)
-instance Tall      ObjOA where                                              tall n =  mObjOA  arbitrary  (sizes n)
+instance Tall      ObjOA where                                              tall n = mObjOA  arbitrary  (sizes n)
 mObjOA = liftMF2 mkObj un (map (second un)) where mkObj x = ObjOA .ObjO x
 instance Unto (String,ExpOA) (String,ExpObj) where un = second un; to = second to
 instance Tall (String,ExpOA) where tall n =  liftM2 (,) arbitrary (tall n)
@@ -178,18 +201,18 @@ simplify (VarT (IdT p w _)) = NullT  p w
 simplify e                  = e
 
 data ArrayTF =  ArrayTF ExpToken ExpObj IdToken deriving (Show)
-instance Arbitrary ArrayTF where arbitrary = sized1 tall; shrink (ArrayTF e o i) = mArrayTF (tShrink e) (tShrink o) (tShrink i) 
+instance Arbitrary ArrayTF where arbitrary = sized1 tall; shrink (ArrayTF e o i) = mArrayTF (tShrink e) (tShrink o) (tShrink i)
 instance Tall      ArrayTF where                                          tall n = mArrayTF (tall n)    (tall n)     arbitrary
-mArrayTF = makeTF ArrayTF 
+mArrayTF = makeTF ArrayTF
 
 data ObjTF =  ObjTF ExpToken ExpObj IdToken deriving (Show)
-instance Arbitrary ObjTF where arbitrary = sized1 tall; shrink (ObjTF e o i) = mObjTF (tShrink e) (tShrink o) (tShrink i) 
+instance Arbitrary ObjTF where arbitrary = sized1 tall; shrink (ObjTF e o i) = mObjTF (tShrink e) (tShrink o) (tShrink i)
 instance Tall      ObjTF where                                        tall n = mObjTF (tall n)    (tall n)     arbitrary
 mObjTF = makeTF ObjTF
 
 makeTF f ea oa ia = do e <- ea; o <- oa; i <- ia; return $ f (simplifyF (un i) $ un e) (un o) (un i)
 
-simplifyF i (FuncT w _ _)      = FuncT    w i [] 
+simplifyF i (FuncT w _ _)      = FuncT    w i []
 simplifyF i (ArrayT p w es)    = ArrayT p w $ map  (simplifyF i)          es
 simplifyF i (ObjT p w ps)      = ObjT   p w $ map (mapPair $ simplifyF i) ps
 simplifyF _ (VarT (IdT p w _)) = NullT  p w
@@ -205,24 +228,24 @@ data TestIndexesT = TestIndexesT [Int] [Int] deriving (Show)
 data TestIndexesO = TestIndexesO [Int] [Int] deriving (Show)
 instance Arbitrary TestIndexesT where arbitrary = arbIndexes (permutations [0..5]) TestIndexesT; shrink (TestIndexesT is rest) = shrinkIndexes is rest TestIndexesT
 instance Arbitrary TestIndexesO where arbitrary = arbIndexes (permutations [0..7]) TestIndexesO; shrink (TestIndexesO is rest) = shrinkIndexes is rest TestIndexesO
-  
+
 arbIndexes is f = do
     i <- choose (0,length is-1)
     j <- choose (2,4)
     let (indexes,rest) = splitAt j (is !! i)
     return $ f indexes rest
-    
+
 shrinkIndexes is rest f | length is <= 2 = [] | otherwise = [f (is \\ [i]) (i:rest) | i <- is]
 
-orCase es vs indexes rest f = 
+orCase es vs indexes rest f =
   let ps = zip es vs
       toOr   = map (ps!!) indexes
       wrongs = map (fst.(ps!!)) rest
       validator    = foldl1 (<|>) (map snd toOr) <!> expectedType
-      expectedType = foldl1  Or   (map (getType.fst) toOr)  
+      expectedType = foldl1  Or   (map (getType.fst) toOr)
   in  forAll toOr   (\(e,v) -> f e == withFuncs [] v e) &&
       forAll wrongs (\e -> Left (TypeMismatch (getPos e) expectedType (getType e)) == withFuncs [] validator e)
-      
+
 data ValA a = ValA String TypeValidator
 instance Show (ValA a) where show (ValA s _) = "ValA " ++ s
 instance Arbitrary (ValA a) where arbitrary = sized1 tall; shrink _  = []
@@ -234,6 +257,18 @@ instance Tall      (ValA a) where
     (s,t) <- elements [(s1,v1),(s2,v2),(s1++" or "++s2,v1<|>v2)]
     liftM (uncurry ValA) $ elements $ ("arrayOf<"++s++">",arrayOf t):leafValidators
 
+data ArgErrorA = ArgErrorA EvalError deriving (Show)
+instance Arbitrary ArgErrorA where
+  shrink _ = []
+  arbitrary = do
+    b <- arbitrary
+    P pos <- arbitrary
+    liftM ArgErrorA $ if b then do
+      t1 <- elements types
+      t2 <- elements types
+      return $ TypeMismatch pos t1 t2
+     else return $ IllegalEmpty pos
+
 allUniquePos = flip evalState (S.singleton (0,0)).mapM moo where
   moo (FuncT w i es)  = liftM (FuncT w i) $ mapM moo es
   moo (ArrayT p w es) = do p' <- add p; liftM (ArrayT p' w) $ mapM moo es
@@ -244,17 +279,17 @@ allUniquePos = flip evalState (S.singleton (0,0)).mapM moo where
   moo (NullT  p w)    = do p' <- add p; return $ NullT p' w
 
 allUniquePosO = flip evalState (S.singleton (0,0)).mapM moo where
-  moo (TableO p a b)  = do p' <- add p; liftM2 (TableO p') (moo a) (moo b)
-  moo (PlotO p a b c) = do p' <- add p; liftM3 (PlotO p') (moo a) (moo b) (moo c)
-  moo (ArrayO p es)   = do p' <- add p; liftM (ArrayO p') $ mapM moo es
-  moo (ObjO   p ps)   = do p' <- add p; liftM (ObjO p')   $ mapM (\(x,y) -> liftM2 (,) (return x) (moo y)) ps
-  moo (StrO   p s)    = do p' <- add p; return $ StrO p' s
-  moo (NumO p n)      = do p' <- add p; return $ NumO p' n
-  moo (BoolO  p b)    = do p' <- add p; return $ BoolO p' b
-  moo (NullO  p)      = do p' <- add p; return $ NullO p'
+  moo (TableO p a b) = do p' <- add p; liftM2 (TableO p') (mapM (mapM moo) a) (moo b)
+  moo (PlotO  p a b) = do p' <- add p; liftM2 (PlotO p')  (mapM (\(x,y) -> liftM2 (,) (moo x) (moo y)) a) (moo b)
+  moo (ArrayO p es)  = do p' <- add p; liftM (ArrayO p')  (mapM moo es)
+  moo (ObjO   p ps)  = do p' <- add p; liftM (ObjO p')    (mapM (\(x,y) -> liftM2 (,) (return x) (moo y)) ps)
+  moo (StrO   p s)   = do p' <- add p; return $ StrO p' s
+  moo (NumO p n)     = do p' <- add p; return $ NumO p' n
+  moo (BoolO  p b)   = do p' <- add p; return $ BoolO p' b
+  moo (NullO  p)     = do p' <- add p; return $ NullO p'
 
 add :: Pos -> State (S.Set Pos) Pos
-add p = do 
+add p = do
   s <- get
   let p' = if p `S.member` s then notIn s else p
   put $ S.insert p' s
@@ -269,7 +304,7 @@ notIn s = let (x1,y1) = S.findMin s
 leafValidators = [("array",array),("obj",obj),("str",str),("num",num),("bool",bool),("null",null)]
 
 findWithPosAndType _ _ []                                                = Nothing
-findWithPosAndType p t (e:_)  | getPos e == p && getType e == t          = Just e 
+findWithPosAndType p t (e:_)  | getPos e == p && getType e == t          = Just e
                               | isJust (findWithPosAndType p t $ subs e) = Just e
 findWithPosAndType p t (_:es)                                            = findWithPosAndType p t es
 
@@ -308,7 +343,7 @@ getTall (ObjT _ _ ps)   = length ps
 
 anyCase os es (name,_,MkObj e) = Right e == withFuncs [] any (testFunc os es (getPos e) name)
 anyCase os es (name,_,MkTok e) = testS e == withFuncs [] any (testFunc os es (getPos e) name)
-                                            
+
 litCase os es (name,_,MkObj e) = Right e == withFuncs [] lit (testFunc os es (getPos e) name)
 litCase os es (name,_,MkTok e) = testS e == withFuncs [] lit (testFunc os es (getPos e) name)
 
@@ -331,8 +366,8 @@ mTestToks :: (Applicative m, Monad m) => m ArrayTS -> m ObjTS -> m StrTA -> m Nu
 mTestObjs :: (Applicative m, Monad m) => m TableOA -> m PlotOA                                              -> m TestObjs
 
 mExpOA    :: (Applicative m, Monad m) => m ExpObj                                  -> m ExpOA
-mTableOA  :: (Applicative m, Monad m) => m P -> m ArrayOA  -> m ObjOA              -> m TableOA
-mPlotOA   :: (Applicative m, Monad m) => m P -> m ArrayOA  -> m ArrayOA -> m ObjOA -> m PlotOA
+mTableOA  :: (Applicative m, Monad m) => m P -> m [[ExpOA]]       -> m ObjOA       -> m TableOA
+mPlotOA   :: (Applicative m, Monad m) => m P -> m [(ExpOA,ExpOA)] -> m ObjOA       -> m PlotOA
 mArrayOA  :: (Applicative m, Monad m) => m P -> m [ExpOA]                          -> m ArrayOA
 mObjOA    :: (Applicative m, Monad m) => m P -> m [(String,ExpOA)]                 -> m ObjOA
 mStrOA    :: (Applicative m, Monad m) => m P -> m String                           -> m StrOA
