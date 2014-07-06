@@ -262,7 +262,7 @@ derefAll (FormT n v:fs) = let moo1 = FormT n (derefOne fs v):derefAll fs
                           in  if any hasVarF moo1 then derefAll moo1 else moo1
 
 hasVarF (FormT _ e)    = hasVar e
-hasVarP (PairT _ _ e)  = hasVar e
+hasVarP (PairT _ e)    = hasVar e
 hasVar (FuncT _ _ es)  = any hasVar es
 hasVar (ArrayT _ _ es) = any hasVar es
 hasVar (ObjT _ _ ps)   = any hasVarP ps
@@ -274,7 +274,7 @@ derefOne fs (ArrayT p w es)    = ArrayT p w $ map (derefOne fs) es
 derefOne fs (ObjT p w ps)      = ObjT p w   $ map (derefP fs) ps
 derefOne fs (VarT (IdT _ _ m)) = fromMaybe (error $ "Couldn't find var ["++m++"] in prog ["++show fs++"]") $ lookup m $ map toTuple fs
 derefOne _  e                  = e
-derefP   fs (PairT p n e)      = PairT p n $ derefOne fs e
+derefP   fs (PairT n e)        = PairT n $ derefOne fs e
 
 nullGuard xs ifNull action = if null xs then return ifNull else action
 

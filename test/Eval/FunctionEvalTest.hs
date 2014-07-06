@@ -7,41 +7,27 @@ import qualified Prelude as P           (any,null)
                                         
 import Control.Monad                    (liftM)                                        
 import Data.Eval                        (EvalError(..),ExpObj(..),Type(..),Func(..),TypeValidator(..))
-import Data.List                        ((\\))
 import Data.Token                       (IdToken(..),ExpToken(..))
-import Eval.Function                    (Marshallable(..),table,plot,array,obj,str,num,bool,null,any,noLit,noLitType,lit,litType,arrayOf,nonEmpty,args,withFuncs,evalError)
-import Eval.FunctionEvalTestUtils       (Is(..),TestToks(..),TestObjs(..),ExpOA(..),TableOA(..),PlotOA(..),ArrayOA(..),ObjOA(..),StrOA(..),NumOA(..),BoolOA(..),NullOA(..),
+import Eval.Function                    (Marshallable(..),table,plot,array,obj,str,num,bool,null,any,noLit,noLitType,lit,litType,nonEmpty,args,withFuncs,evalError)
+import Eval.FunctionEvalTestUtils       (Is(..),InvalidArgsNb(..),TestToks(..),TestObjs(..),ExpOA(..),TableOA(..),PlotOA(..),ArrayOA(..),ObjOA(..),StrOA(..),NumOA(..),BoolOA(..),NullOA(..),
                                          ExpTS(..),ArrayTS(..),ObjTS(..),ArrayTF(..),ObjTF(..),TokOrObj(..),TestIndexesT(..),TestIndexesO(..),ValA(..),ArgErrorA(..),
-                                         testFunc,forAll,mkEntries,anyCase,litCase,testS,testF,mkFunc,funcNamesLit,funcNamesNoLit,orCase,findWithPosAndType,allUniquePos,allUniquePosO)
+                                         testFunc,forAll,mkEntries,anyCase,litCase,testS,testF,mkFunc,funcNamesLit,funcNamesNoLit,orCase,caseArrayOf)
 import Eval.MultiPassEvalTestUtils      (usesFuncE,w2,p0)
-import Parser.MonolithicParserTestUtils (IdTA(..),StrTA(..),NumTA(..),BoolTA(..),NullTA(..),P(..),un,uns)
+import Parser.MonolithicParserTestUtils (StrTA(..),NumTA(..),BoolTA(..),NullTA(..),P(..))
 import Test.Framework                   (TestSuite,NonNegative(..),makeTestSuite,makeQuickCheckTest,makeLoc,qcAssertion,(==>))
 
 {-| Number of args validation -}
-prop_NbArgs (NonNegative n) (NonNegative m) (IdTA (IdT p w name)) = let (nbParams,nbArgs) = (n `mod` 1000,m `mod` 1000)  in nbParams /= nbArgs ==>
-  let fs = [(name,(replicate nbParams null,Func $ \_ _ -> return $ NullO p))]
-  in  Left (InvalidNbOfArgs p name nbParams nbArgs) == withFuncs fs any (mkFunc p name $ replicate nbArgs   $ NullT p w) &&
-      Right (NullO p)                               == withFuncs fs any (mkFunc p name $ replicate nbParams $ NullT p w)
-
+prop_NbArgs (InvalidArgsNb nbParams nbArgs p name goodFunc badFunc fs) = Left (InvalidNbOfArgs p name nbParams nbArgs) == withFuncs fs any badFunc && Right (NullO p) == withFuncs fs any goodFunc
+  
 {-| Combinators -}
 -- Or
-prop_OrLit (TestToks es) (TestIndexesT indexes rest) = orCase es [array,obj,str,num,bool,null] indexes rest testS
-prop_OrObj (TableOA t) (PlotOA p) (ArrayOA a) (ObjOA o) (StrOA s) (NumOA nb) (BoolOA b) (NullOA nu) (TestIndexesO indexes rest)
-  = orCase [t,p,a,o,s,nb,b,nu] [table,plot,array,obj,str,num,bool,null] indexes rest Right
+prop_OrLit (TestIndexesT es  indexes rest) = orCase es [           array,obj,str,num,bool,null] indexes rest testS
+prop_OrObj (TestIndexesO os  indexes rest) = orCase os [table,plot,array,obj,str,num,bool,null] indexes rest Right
 
 prop_ArrayOfLit :: P -> [ExpTS] -> ValA ExpToken -> Bool
-prop_ArrayOfLit p ts (ValA _ v) = caseArrayOf (allUniquePos $ uns ts) where
-  caseArrayOf es = let arr = ArrayT (un p) w2 es in case withFuncs [] (arrayOf v) arr of
-    r@(Right _)                        -> r == testS arr
-    l@(Left (TypeMismatch pos _ actT)) -> let Just e = findWithPosAndType pos actT es; es' = es \\ [e]
-                                          in  l == withFuncs [] v e && caseArrayOf es'
-
 prop_ArrayOfObj :: P -> [ExpOA] -> ValA ExpObj   -> Bool
-prop_ArrayOfObj p ts (ValA _ v) = caseArrayOf (allUniquePosO $ uns ts) where
-  caseArrayOf es = let arr = ArrayO (un p) es in case withFuncs [] (arrayOf v) arr of
-    Right a                            -> a == arr
-    l@(Left (TypeMismatch pos _ actT)) -> let Just e = findWithPosAndType pos actT es; es' = es \\ [e]
-                                          in  l == withFuncs [] v e && caseArrayOf es'
+prop_ArrayOfLit p ts (ValA _ v) = caseArrayOf p v ts testS $ flip ArrayT w2
+prop_ArrayOfObj p ts (ValA _ v) = caseArrayOf p v ts Right ArrayO
 
 prop_NonEmptyLit (TestToks [a@(ArrayT pa wa es), o@(ObjT po wo pairs), s@(StrT ps ws v), nb, b, nu]) = 
   let f = withFuncs [] (nonEmpty any) in not (P.null es) && not (P.null pairs) && not (P.null v) ==>

@@ -3,41 +3,23 @@
 {-# OPTIONS_GHC -fno-warn-incomplete-patterns #-}
 module Eval.FunctionEvalTestUtils where
 
-import           Prelude                          hiding (any, null)
+import Prelude hiding                   (any,null)
 
-import qualified Data.Set                         as S (Set, findMax, findMin,
-                                                        insert, member,
-                                                        singleton)
-import qualified Prelude                          as P (null)
+import qualified Data.Set as S          (Set,findMax,findMin,insert,member,singleton)
+import qualified Prelude as P           (null)
 
-import           Control.Applicative              (Applicative)
-import           Control.Arrow                    (second)
-import           Control.Monad                    (join, liftM, liftM2)
-import           Control.Monad.State              (State, evalState, evalStateT,
-                                                   get, put)
-import           Data.Eval                        (EvalError (..), ExpObj (..),
-                                                   Func (..), Type (..),
-                                                   TypeValidator (..))
-import           Data.List                        (permutations, (\\))
-import           Data.Maybe                       (isJust)
-import           Data.Token                       (ExpToken (..), IdToken (..),
-                                                   PairToken (..), Pos)
-import           Eval.Function                    (Marshallable (..), any,
-                                                   array, arrayOf, bool, lit,
-                                                   null, num, obj, str,
-                                                   withFuncs, (<!>), (<|>))
-import           Eval.MultiPass                   (mapMPair, mapPair)
-import           Parser.MonolithicParserTestUtils (ArrayTA (..), BoolTA (..),
-                                                   ExpTA (..), IdTA (..),
-                                                   NullTA (..), NumTA (..),
-                                                   ObjTA (..), P (..),
-                                                   StrTA (..), Tall (..),
-                                                   Unto (..), liftMF2, liftMF3,
-                                                   sListOf, sShrink, sized1,
-                                                   sizes, tShrink, tShrinks,
-                                                   uns)
-import           Test.Framework                   (Arbitrary (..), Gen, choose,
-                                                   elements)
+import Control.Applicative              (Applicative)
+import Control.Arrow                    (second)
+import Control.Monad                    (join,liftM,liftM2)
+import Control.Monad.State              (State,evalState,evalStateT,get,put)
+import Data.Eval                        (EvalError (..),ExpObj (..),Func (..),Type (..),TypeValidator (..),FuncEntry)
+import Data.List                        (permutations,(\\))
+import Data.Maybe                       (isJust)
+import Data.Token                       (ExpToken (..),IdToken (..),PairToken (..),Pos)
+import Eval.Function                    (Marshallable (..),any,array,arrayOf,bool,lit,null,num,obj,str,withFuncs,(<!>),(<|>))
+import Eval.MultiPass                   (mapMPair,mapPair)
+import Parser.MonolithicParserTestUtils (ArrayTA (..),BoolTA (..),ExpTA (..),IdTA (..),NullTA (..),NumTA (..),ObjTA (..),P (..),StrTA (..),Tall (..),Unto (..),liftMF2,liftMF3,sListOf,sShrink,sized1,sizes,tShrink,tShrinks,uns)
+import Test.Framework                   (Arbitrary (..),Gen,NonNegative(..),choose,elements)
 
 class Is a where
   isFunc     :: a -> Bool
@@ -77,6 +59,19 @@ instance Is ExpObj where
   isNum    (NumO{})    = True; isNum _    = False
   isBool   (BoolO{})   = True; isBool _   = False
   isNull   (NullO{})   = True; isNull _   = False
+
+data InvalidArgsNb = InvalidArgsNb Int Int Pos String ExpToken ExpToken [FuncEntry]
+instance Show InvalidArgsNb where show (InvalidArgsNb n m p i g b fs) = unlines ["InvalidArgsNb",show n,show m,show p,show i,show g,show b,show $ map fst fs]
+instance Arbitrary InvalidArgsNb where
+  arbitrary = do
+    NonNegative n <- arbitrary
+    NonNegative m <- arbitrary
+    let (nbParams,m') = (n `mod` 1000, m `mod` 1000)
+    let nbArgs = if nbParams == m' then m' + 1 else m'
+    IdT p w name <- liftM un (arbitrary :: Gen IdTA)
+    let badFunc  = mkFunc p name $ replicate nbArgs   $ NullT p w
+        goodFunc = mkFunc p name $ replicate nbParams $ NullT p w
+    return $ InvalidArgsNb nbParams nbArgs p name goodFunc badFunc [(name,(replicate nbParams null,Func $ \_ _ -> return $ NullO p))]
 
 data TestToks = TestToks [ExpToken] deriving (Show)
 instance Arbitrary TestToks where
@@ -224,10 +219,35 @@ instance Marshallable TokOrObj where
   getPos   (MkTok t) = getPos t;     getPos (MkObj o) = getPos o
   getType  (MkTok t) = getType t;   getType (MkObj o) = getType o
 
-data TestIndexesT = TestIndexesT [Int] [Int] deriving (Show)
-data TestIndexesO = TestIndexesO [Int] [Int] deriving (Show)
-instance Arbitrary TestIndexesT where arbitrary = arbIndexes (permutations [0..5]) TestIndexesT; shrink (TestIndexesT is rest) = shrinkIndexes is rest TestIndexesT
-instance Arbitrary TestIndexesO where arbitrary = arbIndexes (permutations [0..7]) TestIndexesO; shrink (TestIndexesO is rest) = shrinkIndexes is rest TestIndexesO
+data TestIndexesT = TestIndexesT [ExpToken] [Int] [Int] deriving (Show)
+data TestIndexesO = TestIndexesO [ExpObj]   [Int] [Int] deriving (Show)
+instance Arbitrary TestIndexesT where 
+  arbitrary = do
+    TestToks es <- arbitrary
+    arbIndexes (permutations [0..5]) (TestIndexesT es)
+  shrink (TestIndexesT es is rest) = do
+    TestToks es' <- shrink $ TestToks es
+    shrinkIndexes is rest (TestIndexesT es')
+  
+instance Arbitrary TestIndexesO where 
+  arbitrary = do
+    TestObjs os <- arbitrary
+    ArrayOA a <- arbitrary
+    ObjOA o <- arbitrary
+    StrOA s <- arbitrary
+    NumOA nb <- arbitrary
+    BoolOA b <- arbitrary
+    NullOA nu <- arbitrary
+    arbIndexes (permutations [0..7]) (TestIndexesO$ os ++ [a,o,s,nb,b,nu])
+  shrink (TestIndexesO [t,p,a,o,s,nb,b,nu] is rest) = do
+    TestObjs os <- shrink $ TestObjs [t,p]
+    ArrayOA a' <- shrink $ ArrayOA a
+    ObjOA o' <- shrink $ ObjOA o
+    StrOA s' <- shrink $ StrOA s
+    NumOA nb' <- shrink $ NumOA nb
+    BoolOA b' <- shrink $ BoolOA b
+    NullOA nu' <- shrink $ NullOA nu
+    shrinkIndexes is rest (TestIndexesO $ os ++ [a',o',s',nb',b',nu'])
 
 arbIndexes is f = do
     i <- choose (0,length is-1)
@@ -269,24 +289,30 @@ instance Arbitrary ArgErrorA where
       return $ TypeMismatch pos t1 t2
      else return $ IllegalEmpty pos
 
-allUniquePos = flip evalState (S.singleton (0,0)).mapM moo where
-  moo (FuncT w i es)  = liftM (FuncT w i) $ mapM moo es
-  moo (ArrayT p w es) = do p' <- add p; liftM (ArrayT p' w) $ mapM moo es
-  moo (ObjT   p w ps) = do p' <- add p; liftM (ObjT p' w)   $ mapM (mapMPair moo) ps
-  moo (StrT   p w s)  = do p' <- add p; return $ StrT p' w s
-  moo (NumT p w s n)  = do p' <- add p; return $ NumT p' w s n
-  moo (BoolT  p w b)  = do p' <- add p; return $ BoolT p' w b
-  moo (NullT  p w)    = do p' <- add p; return $ NullT p' w
 
-allUniquePosO = flip evalState (S.singleton (0,0)).mapM moo where
-  moo (TableO p a b) = do p' <- add p; liftM2 (TableO p') (mapM (mapM moo) a) (moo b)
-  moo (PlotO  p a b) = do p' <- add p; liftM2 (PlotO p')  (mapM (\(x,y) -> liftM2 (,) (moo x) (moo y)) a) (moo b)
-  moo (ArrayO p es)  = do p' <- add p; liftM (ArrayO p')  (mapM moo es)
-  moo (ObjO   p ps)  = do p' <- add p; liftM (ObjO p')    (mapM (\(x,y) -> liftM2 (,) (return x) (moo y)) ps)
-  moo (StrO   p s)   = do p' <- add p; return $ StrO p' s
-  moo (NumO p n)     = do p' <- add p; return $ NumO p' n
-  moo (BoolO  p b)   = do p' <- add p; return $ BoolO p' b
-  moo (NullO  p)     = do p' <- add p; return $ NullO p'
+class AllUniquePos a where 
+  allUniquePos :: [a] -> [a]
+  allUniquePos = flip evalState (S.singleton (0,0)).mapM ensureUnique
+  
+  ensureUnique :: a -> State (S.Set Pos) a 
+instance AllUniquePos ExpToken where
+    ensureUnique (FuncT w i es)  = liftM (FuncT w i) $ mapM ensureUnique es
+    ensureUnique (ArrayT p w es) = do p' <- add p; liftM (ArrayT p' w) $ mapM ensureUnique es
+    ensureUnique (ObjT   p w ps) = do p' <- add p; liftM (ObjT p' w)   $ mapM (mapMPair ensureUnique) ps
+    ensureUnique (StrT   p w s)  = do p' <- add p; return $ StrT p' w s
+    ensureUnique (NumT p w s n)  = do p' <- add p; return $ NumT p' w s n
+    ensureUnique (BoolT  p w b)  = do p' <- add p; return $ BoolT p' w b
+    ensureUnique (NullT  p w)    = do p' <- add p; return $ NullT p' w
+
+instance AllUniquePos ExpObj where
+  ensureUnique (TableO p a b) = do p' <- add p; liftM2 (TableO p') (mapM (mapM ensureUnique) a) (ensureUnique b)
+  ensureUnique (PlotO  p a b) = do p' <- add p; liftM2 (PlotO p')  (mapM (\(x,y) -> liftM2 (,) (ensureUnique x) (ensureUnique y)) a) (ensureUnique b)
+  ensureUnique (ArrayO p es)  = do p' <- add p; liftM (ArrayO p')  (mapM ensureUnique es)
+  ensureUnique (ObjO   p ps)  = do p' <- add p; liftM (ObjO p')    (mapM (\(x,y) -> liftM2 (,) (return x) (ensureUnique y)) ps)
+  ensureUnique (StrO   p s)   = do p' <- add p; return $ StrO p' s
+  ensureUnique (NumO p n)     = do p' <- add p; return $ NumO p' n
+  ensureUnique (BoolO  p b)   = do p' <- add p; return $ BoolO p' b
+  ensureUnique (NullO  p)     = do p' <- add p; return $ NullO p'
 
 add :: Pos -> State (S.Set Pos) Pos
 add p = do
@@ -303,15 +329,21 @@ notIn s = let (x1,y1) = S.findMin s
 
 leafValidators = [("array",array),("obj",obj),("str",str),("num",num),("bool",bool),("null",null)]
 
-findWithPosAndType _ _ []                                                = Nothing
-findWithPosAndType p t (e:_)  | getPos e == p && getType e == t          = Just e
-                              | isJust (findWithPosAndType p t $ subs e) = Just e
-findWithPosAndType p t (_:es)                                            = findWithPosAndType p t es
+caseArrayOf p v ts mkExpectedArray mkArray = f $ allUniquePos $ uns ts where
+  f es = let arr = mkArray (un p) es in case withFuncs [] (arrayOf v) arr of
+    r@(Right _)                        -> r == mkExpectedArray arr
+    l@(Left (TypeMismatch pos _ actT)) -> let Just e = findWithPosAndType pos actT es;  in  l == withFuncs [] v e && f (es \\ [e])
 
 
-class Subs a where subs :: a -> [a]
-instance Subs ExpToken where subs (ArrayT _ _ xs) = xs; subs _ = []
-instance Subs ExpObj   where subs (ArrayO _   xs) = xs; subs _ = []
+findWithPosAndType _ _ []                                                       = Nothing
+findWithPosAndType p t (e:_)  | getPos e == p && getType e == t                 = Just e
+                              | isJust (findWithPosAndType p t $ arsrayElems e) = Just e
+findWithPosAndType p t (_:es)                                                   = findWithPosAndType p t es
+
+
+class ArrayElems a where arsrayElems :: a -> [a]
+instance ArrayElems ExpToken where arsrayElems (ArrayT _ _ xs) = xs; arsrayElems _ = []
+instance ArrayElems ExpObj   where arsrayElems (ArrayO _   xs) = xs; arsrayElems _ = []
 
 applyFunc fs p n es = withFuncs fs any (mkFunc p n es)
 
@@ -347,7 +379,7 @@ anyCase os es (name,_,MkTok e) = testS e == withFuncs [] any (testFunc os es (ge
 litCase os es (name,_,MkObj e) = Right e == withFuncs [] lit (testFunc os es (getPos e) name)
 litCase os es (name,_,MkTok e) = testS e == withFuncs [] lit (testFunc os es (getPos e) name)
 
-toTupleF (PairT _ (IdT _ _ x) y) = liftM2 (,) (return x) (testE y)
+toTupleF (PairT (IdT _ _ x) y) = liftM2 (,) (return x) (testE y)
 
 testS = testF []
 testF fs = flip evalStateT fs .testE

@@ -10,7 +10,7 @@ module Eval.MultiPass
 
 import qualified Data.Map as M (empty,lookup,insert,null,toList,keys,delete,elems)
 
-import Control.Monad           (foldM,liftM,liftM3)
+import Control.Monad           (foldM,liftM,liftM2)
 import Data.Token              (ProgToken(..),FormToken(..),PairToken(..),IdToken(..),ExpToken(..),Pos)
 import Data.Eval               (EvalError(..),Eval,State,Table)
 
@@ -80,11 +80,11 @@ formVal :: FormToken -> ExpToken
 formVal (FormT _ x) = x
 
 pairVal :: PairToken -> ExpToken
-pairVal (PairT _ _ x) = x
+pairVal (PairT _ x) = x
 
 mapPair :: (ExpToken -> ExpToken) -> PairToken -> PairToken
-mapPair f (PairT p x y) = PairT p x (f y)
+mapPair f (PairT x y) = PairT x (f y)
 
 mapMPair :: Monad m => (ExpToken -> m ExpToken) -> PairToken -> m PairToken
-mapMPair f (PairT p x y) = liftM3 PairT (return p) (return x) (f y)
+mapMPair f (PairT x y) = liftM2 PairT (return x) (f y)
 

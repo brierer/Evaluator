@@ -27,9 +27,9 @@ mFormTA = liftMF2 mkForm un un where mkForm x = FormTA .FormT x
 
 data PairTA = PairTA PairToken deriving (Show)
 instance Unto PairTA PairToken where to = PairTA; un (PairTA p) = p
-instance Arbitrary PairTA where arbitrary = sized1 tall; shrink (PairTA (PairT p i v)) = mPairTA (tShrink p) (tShrink i) (tShrink v)
-instance Tall      PairTA where                                                 tall n =  mPairTA  arbitrary   arbitrary  (tall n) 
-mPairTA = liftMF3 mkPair un un un where mkPair x y = PairTA .PairT x y
+instance Arbitrary PairTA where arbitrary = sized1 tall; shrink (PairTA (PairT i v)) = mPairTA (tShrink i) (tShrink v)
+instance Tall      PairTA where                                               tall n = mPairTA  arbitrary  (tall n) 
+mPairTA = liftMF2 mkPair un un where mkPair x = PairTA .PairT x
 
 data IdTA =   IdTA IdToken deriving (Show)
 instance Unto IdTA IdToken where to = IdTA; un (IdTA s) = s
@@ -184,7 +184,7 @@ uns = map un
 
 mProgTA  :: (Applicative m, Monad m) => m P               -> m [FormTA]              -> m ProgTA
 mFormTA  :: (Applicative m, Monad m) =>                      m IdTA     -> m ExpTA   -> m FormTA
-mPairTA  :: (Applicative m, Monad m) => m P               -> m IdTA     -> m ExpTA   -> m PairTA
+mPairTA  :: (Applicative m, Monad m) =>                      m IdTA     -> m ExpTA   -> m PairTA
 mIdTA    :: (Applicative m, Monad m) => m P -> m (W,W)    -> m String                -> m IdTA
 mExpTA   :: (Applicative m, Monad m) =>                      m ExpToken              -> m ExpTA
 mFuncTA  :: (Applicative m, Monad m) =>        m  W       -> m IdTA     -> m [ExpTA] -> m FuncTA

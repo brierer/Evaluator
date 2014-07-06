@@ -26,7 +26,7 @@ class Marshallable a where
 instance Marshallable ExpToken where
   marshall (FuncT _ (IdT p _ i) es) = applyFunc p i es
   marshall (ArrayT p _ es)          = liftM (ArrayO p) $ mapM marshall es
-  marshall (ObjT p _ ps)            = liftM (ObjO p)   $ mapM f        ps where f (PairT _ (IdT _ _ x) y) = liftM2 (,) (return x) (marshall y)
+  marshall (ObjT p _ ps)            = liftM (ObjO p)   $ mapM f        ps where f (PairT (IdT _ _ x) y) = liftM2 (,) (return x) (marshall y)
   marshall (StrT p _ s)             = return $ StrO p s
   marshall (NumT p _ _ n)           = return $ NumO p n
   marshall (BoolT p _ b)            = return $ BoolO p b

@@ -24,9 +24,10 @@ data EvalError = MultipleDefinitions Pos String
                | NoShow
                | InvalidNbOfArgs Pos String Int Int
                | ArgError Int String EvalError
-               | TypeMismatch Pos Type Type
+               | TypeMismatch Pos Type Type 
                | IllegalEmpty Pos
                  deriving (Eq,Show)
+
 
 type State = (Table,Table)
 type Table = M.Map String (ExpToken,Pos)

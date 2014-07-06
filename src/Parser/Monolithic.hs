@@ -63,7 +63,7 @@ progT = do p <- pos; liftM (ProgT p) $ formT `sepBy` char ';'
 formT = do (_,i,_,e) <- seq4 (pos, idT, char '=', expT); return $ FormT i e
 
 -- pairT -> idT ':' expT
-pairT = do (p,i,_,e) <- seq4 (pos, idT, char ':', expT); return $ PairT p i e
+pairT = do (_,i,_,e) <- seq4 (pos, idT, char ':', expT); return $ PairT i e
 
 -- idT -> alpha [alpha | digit]*
 idT = let alpha = ['a'..'z'] ++ ['A'..'Z']
@@ -142,8 +142,8 @@ seq6 (a,b,c,d,e,f) = (,,,,,) <$> a <*> b <*> c <*> d <*> e <*> f
 {-| Unparse the derivation tree, exactly as it was parsed -}
 class Unparse a where unparse :: a -> String
 instance Unparse ProgToken where unparse (ProgT _ fs)      = unparses' ";" fs
-instance Unparse FormToken where unparse (FormT   s e)     = unparse s ++ "=" ++ unparse e
-instance Unparse PairToken where unparse (PairT _ s e)     = unparse s ++ ":" ++ unparse e
+instance Unparse FormToken where unparse (FormT s e)       = unparse s ++ "=" ++ unparse e
+instance Unparse PairToken where unparse (PairT s e)       = unparse s ++ ":" ++ unparse e
 instance Unparse ExpToken  where unparse                   = unparseExp
 instance Unparse IdToken   where unparse (IdT _ (wb,wa) s) = wb ++ s ++ wa 
 

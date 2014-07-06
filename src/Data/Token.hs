@@ -8,10 +8,10 @@ module Data.Token
 , IntegerS
 ) where
 
-data ProgToken = ProgT Pos [FormToken]       deriving (Show)
-data FormToken = FormT      IdToken ExpToken deriving (Show)
-data PairToken = PairT Pos  IdToken ExpToken deriving (Show)
-data IdToken   = IdT   Pos  W2 String        deriving (Show)
+data ProgToken = ProgT Pos [FormToken]       deriving (   Show)
+data FormToken = FormT      IdToken ExpToken deriving (Eq,Show)
+data PairToken = PairT      IdToken ExpToken deriving (Eq,Show)
+data IdToken   = IdT   Pos  W2 String        deriving (   Show)
 
 data ExpToken = FuncT      W1  IdToken [ExpToken]
               | ArrayT Pos W2 [ExpToken]
@@ -25,8 +25,6 @@ data ExpToken = FuncT      W1  IdToken [ExpToken]
 
 {-| Ignore position in Eq instance -}
 instance Eq ProgToken where (ProgT _ a1)    == (ProgT _ a2)    =  a1     ==  a2
-instance Eq FormToken where (FormT   a1 b1) == (FormT   a2 b2) = (a1,b1) == (a2,b2)
-instance Eq PairToken where (PairT _ a1 b1) == (PairT _ a2 b2) = (a1,b1) == (a2,b2)
 instance Eq IdToken   where (IdT   _ a1 b1) == (IdT _   a2 b2) = (a1,b1) == (a2,b2)
 instance Eq ExpToken where
   (FuncT _     b1 c1) == (FuncT _     b2 c2) = (   b1,c1) == (   b2,c2)
