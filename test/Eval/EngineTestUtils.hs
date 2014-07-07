@@ -6,9 +6,10 @@ import Control.Applicative                        ((<$>),(<*>))
 import Control.Monad                              (liftM)
 import Control.Monad.Trans                        (lift)
 import Data.Eval                                  (EvalError(..),ExpObj(..),Func(..))
-import Data.Token                                 (IdToken(..),ExpToken(..))
+import Data.List                                  (nub)
+import Data.Token                                 (PairToken(..),IdToken(..),ExpToken(..))
 import Eval.Engine                                (funcs)
-import Eval.FunctionEvalTestUtils                 (ExpOA,ExpTS,isTable,isPlot,p0, applyFunc)
+import Eval.FunctionEvalTestUtils                 (ExpOA,ExpTS,isTable,isPlot,p0,ws2,applyFunc)
 import Parser.MonolithicParserTestUtils           (Unto,to,uns)
 import Test.Framework                             ((==>))
 
@@ -43,9 +44,30 @@ emptySortColCase name pa pt n g2ass w2'ass =
     Left (IllegalEmpty pa) == applyFunc fs pt name [n, w2'] &&
     success name          == applyFunc fs pt name [n, g2 ]
 
-mkMultiMean a1as pa = let a1s = uns a1as; a1rs = map (\(NumT q _ _ x) -> NumO q x) a1s; a1 = ArrayT pa ("","") a1s; a1r = ArrayO pa a1rs in (a1,a1rs,a1r)
+tableColumsLengthCase w1ps a2 = 
+  let arrays = map (\(p,es)-> (p,ArrayT p ws2 es)) w1ps; ls = map (length.snd) w1ps; l = head ls in any (not.null.snd) w1ps ==> 
+  case applyFunc funcs p0 "table" [ArrayT p0 ws2 $ map snd arrays,a2] of
+    Left (TableHeaderLengthMismatch p expected actual) -> let Just (ArrayT pa _ es) = lookup p arrays in pa == p && l == expected && length es == actual
+    Right _                                            -> [l] == nub ls
+    e                                                  -> error $ "EngineTestUtils::tableColsCase [Unexpected pattern ["++show e++"]]"
+    
+tableHeaderLengthCase pf g1ss g2s = 
+  let g1 = ArrayT p0 ws2 $ map (ArrayT p0 ws2) $ equalize g1ss
+      w2 = ObjT   p0 ws2 [PairT (IdT p0 ws2 "col") $ ArrayT p0 ws2 g2s]
+      (l1,l2) = (length g1ss,length g2s)
+  in any (not.null) g1ss && not (null g2s) && l1 `notElem` [0,l2] ==> 
+  Left (TableHeaderLengthMismatch pf l1 l2) == applyFunc funcs pf "table" [g1,w2] 
+    
+equalize g1ss = map (take l) g1ss where l = minimum $ map length g1ss
+    
+mkMultiMeanReturn a1as pa = let a1s = uns a1as; a1rs = map (\(NumT q _ _ x) -> NumO q x) a1s; a1 = ArrayT pa ("","") a1s; a1r = ArrayO pa a1rs in (a1,a1rs,a1r)
 
 unprecise :: Monad m => m ExpObj -> m ExpObj
 unprecise = liftM moo where 
   moo (NumO p x) = NumO p $ fromIntegral (floor $ 1000000.0 * x :: Integer) / 1000000.0
   moo e          = error $ "Eval.EngineTestUtils::unprecise [Unexpected pattern ["++show e++"]]"
+  
+  
+  
+  
+  

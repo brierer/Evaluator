@@ -3,15 +3,17 @@ module Eval.EngineTest where
 
 import qualified Eval.EngineTestUtils as E (fs)
 
+import Control.Arrow                       ((***))
 import Control.Monad.State                 (evalStateT)
 import Data.Eval                           (EvalError(..),ExpObj(..))
 import Data.List                           (genericLength)
 import Data.Token                          (ExpToken(..))
 import Eval.Engine                         (funcs,showF,multiF,meanF)
-import Eval.EngineTestUtils                (addFunc,addFunc',mk,mk',mkO',oneArrayOfNum,success,toArray,tablesAndPlots,emptyArray,emptySortColCase,mkMultiMean,unprecise)
+import Eval.EngineTestUtils                (addFunc,addFunc',mk,mk',mkO',oneArrayOfNum,success,toArray,tablesAndPlots,emptyArray,emptySortColCase,
+                                            tableColumsLengthCase,tableHeaderLengthCase,mkMultiMeanReturn,unprecise)
 import Eval.Function                       (table,plot,array,obj,num,arrayOf,nonEmpty,(<|>),withFuncs)
 import Eval.FunctionEvalTestUtils          (Is(..),ExpOA(..),TableOA(..),NumOA(..),ExpTS(..),ArrayTS(..),ObjTS(..),applyFunc)
-import Parser.MonolithicParserTestUtils    (P(..),ExpTA(..),NumTA(..),to,uns)
+import Parser.MonolithicParserTestUtils    (P(..),ExpTA(..),NumTA(..),to,un,uns)
 import Test.Framework                      (TestSuite,Property,makeTestSuite,makeQuickCheckTest,makeLoc,qcAssertion,(==>))
 
 prop_NbArgs1 (P p) esTA = length esTA > 1 ==> let es = uns esTA in
@@ -120,41 +122,44 @@ prop_TypeMismatchPlotLine (P p) g1as g2as (ObjTS g3) w1as (ExpTS w1') w2as (ExpT
     withFuncs E.fs  obj          w3     == applyFunc E.fs p "plotLine" [g1 ,g2 ,w3] &&
     success "plotLine"                  == applyFunc E.fs p "plotLine" [g1 ,g2 ,g3]
 
-prop_EmptyArgMulti (P pn) (P pa) g1as = not (null g1as) ==>
+prop_EmptyArgMulti (P pf) (P pa) g1as = not (null g1as) ==>
   let (_,g1) = mk' g1as; (_,w1) = mk pa ([] :: [NumTA])
-  in  Left (IllegalEmpty pa)                     == applyFunc E.fs pn "multi" [w1] &&
-      withFuncs E.fs (nonEmpty $ arrayOf num) w1 == applyFunc E.fs pn "multi" [w1] &&
-      success "multi"                            == applyFunc E.fs pn "multi" [g1]
+  in  Left (IllegalEmpty pa)                     == applyFunc E.fs pf "multi" [w1] &&
+      withFuncs E.fs (nonEmpty $ arrayOf num) w1 == applyFunc E.fs pf "multi" [w1] &&
+      success "multi"                            == applyFunc E.fs pf "multi" [g1]
 
-prop_EmptyArgMean (P pn) (P pa) g1as = not (null g1as) ==>
+prop_EmptyArgMean (P pf) (P pa) g1as = not (null g1as) ==>
   let (_,g1) = mk' g1as; (_,w1) = mk pa ([] :: [NumTA])
-  in  Left (IllegalEmpty pa) == applyFunc E.fs pn "mean" [w1] &&
-      success "mean"         == applyFunc E.fs pn "mean" [g1]
+  in  Left (IllegalEmpty pa) == applyFunc E.fs pf "mean" [w1] &&
+      success "mean"         == applyFunc E.fs pf "mean" [g1]
 
-prop_EmptyArgDesc (P pn) (P pa) g1as = not (null g1as) ==>
+prop_EmptyArgDesc (P pf) (P pa) g1as = not (null g1as) ==>
   let (_,g1) = mk' g1as; (_,w1) = mk pa ([] :: [NumTA])
-  in  Left (IllegalEmpty pa) == applyFunc E.fs pn "descriptive" [w1] &&
-      success "descriptive"  == applyFunc E.fs pn "descriptive" [g1]
+  in  Left (IllegalEmpty pa) == applyFunc E.fs pf "descriptive" [w1] &&
+      success "descriptive"  == applyFunc E.fs pf "descriptive" [g1]
 
-prop_EmptyArgTable (P pt) (P pa) g1ass w1'ass (ObjTS o) =
+prop_EmptyArgTable (P pf) (P pa) g1ass w1'ass (ObjTS o) =
   let (g1ss,g1) = mk' g1ass; (_,w1) = mk pa ([] :: [ExpTS]); (_,w1') = mk' (w1'ass ++ [to w1]); in any (not.emptyArray) g1ss ==>
-    Left (IllegalEmpty pa) == applyFunc E.fs pt "table" [w1 , o] &&
-    Left (IllegalEmpty pa) == applyFunc E.fs pt "table" [w1', o] &&
-    success "table"        == applyFunc E.fs pt "table" [g1 , o]
+    Left (IllegalEmpty pa) == applyFunc E.fs pf "table" [w1 , o] &&
+    Left (IllegalEmpty pa) == applyFunc E.fs pf "table" [w1', o] &&
+    success "table"        == applyFunc E.fs pf "table" [g1 , o]
 
-prop_EmptyArgSort (P pt) (P pa) (NumTA _ n) = emptySortColCase "sort" pa pt n
-prop_EmptyArgCol  (P pt) (P pa) (NumTA _ n) = emptySortColCase "col"  pa pt n
+prop_EmptyArgSort (P pf) (P pa) (NumTA _ n) = emptySortColCase "sort" pa pf n
+prop_EmptyArgCol  (P pf) (P pa) (NumTA _ n) = emptySortColCase "col"  pa pf n
+
+prop_TableColumsLengthMismatch   w1aps a2a  = tableColumsLengthCase        (map (un *** uns) w1aps) $ un a2a
+prop_TableHeaderLengthMismatch p g1ass g2as = tableHeaderLengthCase (un p) (map uns g1ass)           (uns g2as)
 
 prop_ReturnValueShow (P p) a1ras' = let (fs,a1) = addFunc' "tablesAndPlots" a1r; (_,a1r) = mkO' a1rs; a1rs = tablesAndPlots a1ras'; expected = Right (ObjO p [("result",a1r)])
                                     in  True ==> expected == applyFunc fs p "show" [a1] && expected == evalStateT (showF p [a1r]) []
 
 prop_ReturnValueMulti (P pn) (P pa) a1as = not (null a1as) ==>
-  let (a1,a1rs,a1r) = mkMultiMean a1as pa; expected = Right $ NumO pn $ product $ map (\(NumO _ x)->x) a1rs in  not (null a1as) ==>
+  let (a1,a1rs,a1r) = mkMultiMeanReturn a1as pa; expected = Right $ NumO pn $ product $ map (\(NumO _ x)->x) a1rs in  not (null a1as) ==>
       expected == applyFunc funcs pn "multi" [a1]  &&
       expected == evalStateT (multiF pn [a1r]) []
 
 prop_ReturnValueMean  (P pn) (P pa) a1as = not (null a1as) ==>
-  let (a1,a1rs,a1r) = mkMultiMean a1as pa; expected = Right $ NumO pn $ sum (map (\(NumO _ x)->x) a1rs) / genericLength a1rs in  not (null a1as) ==>
+  let (a1,a1rs,a1r) = mkMultiMeanReturn a1as pa; expected = Right $ NumO pn $ sum (map (\(NumO _ x)->x) a1rs) / genericLength a1rs in  not (null a1as) ==>
       unprecise expected == unprecise (applyFunc funcs pn "mean" [a1])  &&
       unprecise expected == unprecise (evalStateT (meanF pn [a1r]) [])
 
@@ -180,6 +185,11 @@ prop_EmptyArgDesc  :: P -> P -> [NumTA]                         -> Property
 prop_EmptyArgTable :: P -> P -> [ArrayTS] -> [ArrayTS] -> ObjTS -> Property
 prop_EmptyArgSort  :: P -> P -> NumTA -> [ArrayTS] -> [ArrayTS] -> Property
 prop_EmptyArgCol   :: P -> P -> NumTA -> [ArrayTS] -> [ArrayTS] -> Property
+
+prop_TableColumsLengthMismatch :: [(P,[ExpTS])]  ->  ObjTS  -> Property
+--prop_TableUnexpectedOption     
+prop_TableHeaderLengthMismatch :: P -> [[ExpTS]] -> [ExpTS] -> Property
+
 
 prop_ReturnValueShow  :: P      -> [ExpOA] -> Property
 prop_ReturnValueMulti :: P -> P -> [NumTA] -> Property

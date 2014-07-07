@@ -363,6 +363,7 @@ mkFuncs os es = zipWith f funcNamesNoLit os ++ zipWith g funcNamesLit es
 forAll = flip all
 w1 = ""
 w2 = ("","")
+ws2 = w2
 p0 = (0 :: Int,0 :: Int)
 
 mkEntries ns es os = foldr removeEntry (zip3 (funcNamesNoLit++funcNamesLit) types (map MkObj os++ map MkTok es)) ns

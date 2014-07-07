@@ -26,6 +26,7 @@ data EvalError = MultipleDefinitions Pos String
                | ArgError Int String EvalError
                | TypeMismatch Pos Type Type 
                | IllegalEmpty Pos
+               | TableHeaderLengthMismatch Pos Int Int
                  deriving (Eq,Show)
 
 
