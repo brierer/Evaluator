@@ -17,9 +17,13 @@ import qualified Prelude as P (sum)
                          
 import Data.Eval         (ExpObj(..),EvalFunc,FuncEntry,Func(..))
 import Data.Token        (Pos)
-import Data.Vector       (Vector,fromList,toList,length)
+import Data.Vector       (Vector,fromList
+--,toList,length
+  )
 import Eval.Function     (table,plot,array,obj,num,arrayOf,nonEmpty,(<|>))
-import Statistics.Sample (mean,variance,skewness,kurtosis)
+import Statistics.Sample (mean
+--,variance,skewness,kurtosis
+  )
 
 funcs :: [FuncEntry]
 funcs = -- 1 arg functions
@@ -53,7 +57,7 @@ plotLineF  :: Pos -> [ExpObj] -> EvalFunc ExpObj
 showF  p [x]           = return $ ObjO p [("result",x)];         showF  _ xs = error $ "Engine::showF  [Unexpected pattern ["++show xs++"]]"
 multiF p [ArrayO _ ns] = return $ NumO p $ product $ getNums ns; multiF _ xs = error $ "Engine::multiF [Unexpected pattern ["++show xs++"]]"
 meanF  p [ArrayO _ ns] = return $ NumO p $ mean $ toStatList ns; meanF  _ xs = error $ "Engine::meanF  [Unexpected pattern ["++show xs++"]]"
-descF  p [ArrayO _ ns] = tableF p [mkDescArg1 p ns,ObjO p []];   descF  _ xs = error $ "Engine::descF  [Unexpected pattern ["++show xs++"]]"
+descF        = error "Eval.Function::descF      [Not Implemented]"--p [ArrayO _ ns] = tableF p [mkDescArg1 p ns,ObjO p []];   descF  _ xs = error $ "Engine::descF  [Unexpected pattern ["++show xs++"]]"
 
 tableF       = error "Eval.Function::tableF     [Not Implemented]"
 nTimesF      = error "Eval.Function::ntimesF    [Not Implemented]"
@@ -69,16 +73,16 @@ toStatList = fromList.getNums
 getNums :: [ExpObj] -> [Double]
 getNums = map (\(NumO _ x)->x)
 
-count :: Vector a -> Double
-count = fromIntegral . Data.Vector.length
-
-sum :: Vector Double -> Double
-sum = P.sum.toList
-
-mkDescArg1 :: Pos -> [ExpObj] -> ExpObj
-mkDescArg1 p ns = ArrayO p [ArrayO p $ map (StrO p.fst) desc, ArrayO p $ map (NumO p.snd) desc ]
-  where desc = zip ["count","sum","mean","variance","skewness","kurtosis"] $ map ($ toStatList ns) 
-                   [ count , sum , mean , variance , skewness , kurtosis]
+--count :: Vector a -> Double
+--count = fromIntegral . Data.Vector.length
+--
+--sum :: Vector Double -> Double
+--sum = P.sum.toList
+--
+--mkDescArg1 :: Pos -> [ExpObj] -> ExpObj
+--mkDescArg1 p ns = ArrayO p [ArrayO p $ map (StrO p.fst) desc, ArrayO p $ map (NumO p.snd) desc ]
+--  where desc = zip ["count","sum","mean","variance","skewness","kurtosis"] $ map ($ toStatList ns) 
+--                   [ count , sum , mean , variance , skewness , kurtosis]
       
       
 

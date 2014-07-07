@@ -47,7 +47,7 @@ prop_TypeMismatchMulti (P p) g1ras w1as (ExpTS w1') =
 prop_TypeMismatchMean (P p) g1ras w1as (ExpTS w1') =
   let (fs,g1,w1s,w1) = oneArrayOfNum g1ras w1as in not (null g1ras) && any (not.isNum) w1s && not (isArray w1') ==>
     withFuncs fs (arrayOf num) w1  == applyFunc fs p "mean" [w1]  &&
-    withFuncs fs (arrayOf num) w1' == applyFunc fs p "mean" [w1'] &&  
+    withFuncs fs (arrayOf num) w1' == applyFunc fs p "mean" [w1'] &&
     success "mean"                 == applyFunc fs p "mean" [g1]
 
 prop_TypeMismatchDesc (P p) g1ras w1as (ExpTS w1') =
@@ -121,19 +121,19 @@ prop_TypeMismatchPlotLine (P p) g1as g2as (ObjTS g3) w1as (ExpTS w1') w2as (ExpT
     success "plotLine"                  == applyFunc E.fs p "plotLine" [g1 ,g2 ,g3]
 
 prop_EmptyArgMulti (P pn) (P pa) g1as = not (null g1as) ==>
-  let (_,g1) = mk' g1as; (_,w1) = mk pa ([] :: [NumTA]) 
-  in  Left (IllegalEmpty pa)                     == applyFunc E.fs pn "multi" [w1] && 
+  let (_,g1) = mk' g1as; (_,w1) = mk pa ([] :: [NumTA])
+  in  Left (IllegalEmpty pa)                     == applyFunc E.fs pn "multi" [w1] &&
       withFuncs E.fs (nonEmpty $ arrayOf num) w1 == applyFunc E.fs pn "multi" [w1] &&
       success "multi"                            == applyFunc E.fs pn "multi" [g1]
-      
+
 prop_EmptyArgMean (P pn) (P pa) g1as = not (null g1as) ==>
-  let (_,g1) = mk' g1as; (_,w1) = mk pa ([] :: [NumTA]) 
-  in  Left (IllegalEmpty pa) == applyFunc E.fs pn "mean" [w1] && 
+  let (_,g1) = mk' g1as; (_,w1) = mk pa ([] :: [NumTA])
+  in  Left (IllegalEmpty pa) == applyFunc E.fs pn "mean" [w1] &&
       success "mean"         == applyFunc E.fs pn "mean" [g1]
-      
+
 prop_EmptyArgDesc (P pn) (P pa) g1as = not (null g1as) ==>
-  let (_,g1) = mk' g1as; (_,w1) = mk pa ([] :: [NumTA]) 
-  in  Left (IllegalEmpty pa) == applyFunc E.fs pn "descriptive" [w1] && 
+  let (_,g1) = mk' g1as; (_,w1) = mk pa ([] :: [NumTA])
+  in  Left (IllegalEmpty pa) == applyFunc E.fs pn "descriptive" [w1] &&
       success "descriptive"  == applyFunc E.fs pn "descriptive" [g1]
 
 prop_EmptyArgTable (P pt) (P pa) g1ass w1'ass (ObjTS o) =
@@ -141,21 +141,21 @@ prop_EmptyArgTable (P pt) (P pa) g1ass w1'ass (ObjTS o) =
     Left (IllegalEmpty pa) == applyFunc E.fs pt "table" [w1 , o] &&
     Left (IllegalEmpty pa) == applyFunc E.fs pt "table" [w1', o] &&
     success "table"        == applyFunc E.fs pt "table" [g1 , o]
-    
-prop_EmptyArgSort (P pt) (P pa) (NumTA _ n) = emptySortColCase "sort" pa pt n 
+
+prop_EmptyArgSort (P pt) (P pa) (NumTA _ n) = emptySortColCase "sort" pa pt n
 prop_EmptyArgCol  (P pt) (P pa) (NumTA _ n) = emptySortColCase "col"  pa pt n
-  
+
 prop_ReturnValueShow (P p) a1ras' = let (fs,a1) = addFunc' "tablesAndPlots" a1r; (_,a1r) = mkO' a1rs; a1rs = tablesAndPlots a1ras'; expected = Right (ObjO p [("result",a1r)])
                                     in  True ==> expected == applyFunc fs p "show" [a1] && expected == evalStateT (showF p [a1r]) []
 
-prop_ReturnValueMulti (P pn) (P pa) a1as = not (null a1as) ==> 
+prop_ReturnValueMulti (P pn) (P pa) a1as = not (null a1as) ==>
   let (a1,a1rs,a1r) = mkMultiMean a1as pa; expected = Right $ NumO pn $ product $ map (\(NumO _ x)->x) a1rs in  not (null a1as) ==>
-      expected == applyFunc funcs pn "multi" [a1]  && 
+      expected == applyFunc funcs pn "multi" [a1]  &&
       expected == evalStateT (multiF pn [a1r]) []
 
-prop_ReturnValueMean  (P pn) (P pa) a1as = not (null a1as) ==> 
+prop_ReturnValueMean  (P pn) (P pa) a1as = not (null a1as) ==>
   let (a1,a1rs,a1r) = mkMultiMean a1as pa; expected = Right $ NumO pn $ sum (map (\(NumO _ x)->x) a1rs) / genericLength a1rs in  not (null a1as) ==>
-      unprecise expected == unprecise (applyFunc funcs pn "mean" [a1])  && 
+      unprecise expected == unprecise (applyFunc funcs pn "mean" [a1])  &&
       unprecise expected == unprecise (evalStateT (meanF pn [a1r]) [])
 
 {-| Mandatory type signatures -}
