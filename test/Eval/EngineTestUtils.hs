@@ -10,8 +10,8 @@ import Data.List                                  (nub)
 import Data.Token                                 (PairToken(..),IdToken(..),ExpToken(..))
 import Eval.Engine                                (funcs)
 import Eval.FunctionEvalTestUtils                 (ExpOA,ExpTS,isTable,isPlot,p0,ws2,applyFunc)
-import Parser.MonolithicParserTestUtils           (Unto,to,uns)
-import Test.Framework                             ((==>))
+import Parser.MonolithicParserTestUtils           (Tall(..),Unto,to,uns,tShrinks,sListOf,sized1)
+import Test.Framework                             (Arbitrary(..),(==>))
 
 fs = flip map funcs $ \(n,(typeValidators,_)) -> (n,(typeValidators, Func $ \_ _ -> lift $ success n))
 
@@ -67,7 +67,22 @@ unprecise = liftM moo where
   moo (NumO p x) = NumO p $ fromIntegral (floor $ 1000000.0 * x :: Integer) / 1000000.0
   moo e          = error $ "Eval.EngineTestUtils::unprecise [Unexpected pattern ["++show e++"]]"
   
+data TableValidArgs = TableValidArgs [[ExpToken]] [ExpToken] deriving (Show)
+instance Arbitrary TableValidArgs where arbitrary = sized1 tall; shrink (TableValidArgs ess es) = mTableValidArgs (shrink $ map (map to) ess)  (tShrinks es)
+instance Tall      TableValidArgs where                                                  tall n = mTableValidArgs (sListOf $ sListOf $ tall n) (sListOf $ tall n)
+mTableValidArgs tssa tsa = do tss <- tssa; ts <- tsa; let l = minimum [length tss, length ts] in return $ TableValidArgs (equalize $ map uns $ take l tss) $ uns $ take l ts 
+
+mkTableValidArgs pf g1ss g2s useHeader = 
+  let expectedHeader = concat [map unsafeMarshall g2s                       | useHeader]
+      inputHeader    =        [PairT (IdT p0 ws2 "col") $ ArrayT p0 ws2 g2s | useHeader] 
+      g1 = ArrayT p0 ws2 $ map (ArrayT p0 ws2) g1ss
+      g2 = ObjT p0 ws2 inputHeader  
+      expected       = Right (TableO pf (map (map unsafeMarshall) g1ss) expectedHeader)
+  in (g1,g2,expected)
+
+unsafeMarshall :: ExpToken -> ExpObj  
+unsafeMarshall = undefined
   
-  
-  
+{-| Monomorphism restriction -}
+mTableValidArgs :: Monad m => m [[ExpTS]] -> m [ExpTS] -> m TableValidArgs 
   

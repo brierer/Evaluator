@@ -115,9 +115,9 @@ shrinkO x@(NullO{})   = liftM un $ sShrink (to x :: NullOA)
 
 data TableOA = TableOA ExpObj deriving (Show)
 instance Unto  TableOA ExpObj where to = TableOA; un (TableOA t) = t
-instance Arbitrary TableOA where arbitrary = sized1 tall; shrink (TableOA (TableO p ess o)) = mTableOA (tShrink p) (shrink $ map (map to) ess)  (tShrink o)
-instance Tall TableOA      where                                                     tall n = mTableOA  arbitrary  (sListOf $ sListOf $ tall n) (tall n)
-mTableOA = liftMF3 mkTable un (equalize.map (map un)) un where mkTable x y = TableOA .TableO x y
+instance Arbitrary TableOA where arbitrary = sized1 tall; shrink (TableOA (TableO p ess es)) = mTableOA (tShrink p) (shrink $ map (map to) ess)  (tShrinks es)
+instance Tall TableOA      where                                                      tall n = mTableOA  arbitrary  (sListOf $ sListOf $ tall n) (sListOf $ tall n)
+mTableOA = liftMF3 mkTable un (equalize.map (map un)) uns where mkTable x y = TableOA .TableO x y
 
 equalize xss = let n = minimum $ map length xss in map (take n) xss
 
@@ -305,7 +305,7 @@ instance AllUniquePos ExpToken where
     ensureUnique (NullT  p w)    = do p' <- add p; return $ NullT p' w
 
 instance AllUniquePos ExpObj where
-  ensureUnique (TableO p a b) = do p' <- add p; liftM2 (TableO p') (mapM (mapM ensureUnique) a) (ensureUnique b)
+  ensureUnique (TableO p a b) = do p' <- add p; liftM2 (TableO p') (mapM (mapM ensureUnique) a) (mapM ensureUnique b)
   ensureUnique (PlotO  p a b) = do p' <- add p; liftM2 (PlotO p')  (mapM (\(x,y) -> liftM2 (,) (ensureUnique x) (ensureUnique y)) a) (ensureUnique b)
   ensureUnique (ArrayO p es)  = do p' <- add p; liftM (ArrayO p')  (mapM ensureUnique es)
   ensureUnique (ObjO   p ps)  = do p' <- add p; liftM (ObjO p')    (mapM (\(x,y) -> liftM2 (,) (return x) (ensureUnique y)) ps)
@@ -399,8 +399,8 @@ mTestToks :: (Applicative m, Monad m) => m ArrayTS -> m ObjTS -> m StrTA -> m Nu
 mTestObjs :: (Applicative m, Monad m) => m TableOA -> m PlotOA                                              -> m TestObjs
 
 mExpOA    :: (Applicative m, Monad m) => m ExpObj                                  -> m ExpOA
-mTableOA  :: (Applicative m, Monad m) => m P -> m [[ExpOA]]       -> m ObjOA       -> m TableOA
-mPlotOA   :: (Applicative m, Monad m) => m P -> m [(ExpOA,ExpOA)] -> m ObjOA       -> m PlotOA
+mTableOA  :: (Applicative m, Monad m) => m P -> m [[ExpOA]]       -> m [ExpOA]     -> m TableOA
+mPlotOA   :: (Applicative m, Monad m) => m P -> m [(ExpOA,ExpOA)] -> m  ObjOA      -> m PlotOA
 mArrayOA  :: (Applicative m, Monad m) => m P -> m [ExpOA]                          -> m ArrayOA
 mObjOA    :: (Applicative m, Monad m) => m P -> m [(String,ExpOA)]                 -> m ObjOA
 mStrOA    :: (Applicative m, Monad m) => m P -> m String                           -> m StrOA

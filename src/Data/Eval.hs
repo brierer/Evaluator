@@ -38,8 +38,8 @@ data Type = Table | Plot | FunCall | Arr | Obj | Str | Num | Bool | Null
           | Type `Or` Type
             deriving (Eq,Show)
 
-data ExpObj = TableO  Pos [[ExpObj]]        ExpObj -- Pos -> Cols  -> Opts
-            | PlotO   Pos [(ExpObj,ExpObj)] ExpObj -- Pos -> Pairs -> Opts 
+data ExpObj = TableO  Pos [[ExpObj]]        [ExpObj] -- Pos -> Data cols  -> Header cols
+            | PlotO   Pos [(ExpObj,ExpObj)]  ExpObj  -- Pos -> Pairs -> Opts 
             | ArrayO  Pos [ExpObj]
             | ObjO    Pos [(String,ExpObj)]
             | StrO    Pos String

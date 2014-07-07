@@ -8,9 +8,9 @@ import Control.Monad.State                 (evalStateT)
 import Data.Eval                           (EvalError(..),ExpObj(..))
 import Data.List                           (genericLength)
 import Data.Token                          (ExpToken(..))
-import Eval.Engine                         (funcs,showF,multiF,meanF)
-import Eval.EngineTestUtils                (addFunc,addFunc',mk,mk',mkO',oneArrayOfNum,success,toArray,tablesAndPlots,emptyArray,emptySortColCase,
-                                            tableColumsLengthCase,tableHeaderLengthCase,mkMultiMeanReturn,unprecise)
+import Eval.Engine                         (funcs,showF,multiF,meanF,tableF)
+import Eval.EngineTestUtils                (TableValidArgs(..),addFunc,addFunc',mk,mk',mkO',oneArrayOfNum,success,toArray,tablesAndPlots,emptyArray,emptySortColCase,
+                                            tableColumsLengthCase,tableHeaderLengthCase,mkMultiMeanReturn,unprecise,mkTableValidArgs,unsafeMarshall)
 import Eval.Function                       (table,plot,array,obj,num,arrayOf,nonEmpty,(<|>),withFuncs)
 import Eval.FunctionEvalTestUtils          (Is(..),ExpOA(..),TableOA(..),NumOA(..),ExpTS(..),ArrayTS(..),ObjTS(..),applyFunc)
 import Parser.MonolithicParserTestUtils    (P(..),ExpTA(..),NumTA(..),to,un,uns)
@@ -163,6 +163,11 @@ prop_ReturnValueMean  (P pn) (P pa) a1as = not (null a1as) ==>
       unprecise expected == unprecise (applyFunc funcs pn "mean" [a1])  &&
       unprecise expected == unprecise (evalStateT (meanF pn [a1r]) [])
 
+prop_ReturnValueTable (P pf) (TableValidArgs g1ss g2s) useHeader = not (null g1ss) ==>
+  let (g1,g2,expected) = mkTableValidArgs pf g1ss g2s useHeader in
+   expected == applyFunc funcs pf "table" [g1, g2] &&
+   expected == evalStateT (tableF pf [unsafeMarshall g1,unsafeMarshall g2]) []
+
 {-| Mandatory type signatures -}
 prop_NbArgs1 :: P -> [ExpTA] ->  Property
 prop_NbArgs2 :: P -> [ExpTA] ->  Property
@@ -187,13 +192,15 @@ prop_EmptyArgSort  :: P -> P -> NumTA -> [ArrayTS] -> [ArrayTS] -> Property
 prop_EmptyArgCol   :: P -> P -> NumTA -> [ArrayTS] -> [ArrayTS] -> Property
 
 prop_TableColumsLengthMismatch :: [(P,[ExpTS])]  ->  ObjTS  -> Property
---prop_TableUnexpectedOption     
 prop_TableHeaderLengthMismatch :: P -> [[ExpTS]] -> [ExpTS] -> Property
 
 
-prop_ReturnValueShow  :: P      -> [ExpOA] -> Property
-prop_ReturnValueMulti :: P -> P -> [NumTA] -> Property
-prop_ReturnValueMean  :: P -> P -> [NumTA] -> Property
+prop_ReturnValueShow  :: P      -> [ExpOA]           -> Property
+prop_ReturnValueMulti :: P -> P -> [NumTA]           -> Property
+prop_ReturnValueMean  :: P -> P -> [NumTA]           -> Property
+prop_ReturnValueTable :: P -> TableValidArgs -> Bool -> Property
+
+--prop_ReturnValueTable
 
 {-|
 show = show([tservice,tsalaire,trente])
