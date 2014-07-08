@@ -3,7 +3,7 @@ module Eval.Function
 , table, plot, array, obj, str, num, bool, null
 , any,noLit,lit
 , anyType, noLitType,litType
-, arrayOf, nonEmpty, args
+, arrayOf, objOf, nonEmpty, args
 , (<|>), (<!>)
 , withFuncs
 , evalError
@@ -90,7 +90,7 @@ null  :: TypeValidator
 table = match Table
 plot  = match Plot
 array = arrayOf any
-obj   = match Obj
+obj   = objOf   any
 str   = match Str
 num   = match Num
 bool  = match Bool
@@ -114,6 +114,9 @@ litType   = foldl1 Or [Arr,Obj,Str,Num,Bool,Null]
 
 arrayOf :: TypeValidator -> TypeValidator
 arrayOf v = TypeVal (runValidation (match Arr) >=> \(ArrayO p es) -> liftM (ArrayO p) $ mapM (runValidation v) es)
+
+objOf :: TypeValidator -> TypeValidator
+objOf v = TypeVal (runValidation (match Obj) >=> \(ObjO p ps) -> liftM (ObjO p) $ mapM (\(x,y) -> liftM2 (,) (return x) $ runValidation v y) ps)
 
 nonEmpty :: TypeValidator -> TypeValidator
 nonEmpty v = let raise = evalError .IllegalEmpty in TypeVal $ runValidation v >=> \ x -> case x of

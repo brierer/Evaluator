@@ -47,7 +47,6 @@ test-suite Evaluator-tests
                  Data.Token,
                  Parser.Monolithic,
                  Eval.MultiPass,
-                 Eval.FunctionEvalTestUtils,
                  Eval.FunctionEvalTest,
                  Eval.Function,
                  Data.Eval,
@@ -57,4 +56,5 @@ test-suite Evaluator-tests
                  Eval.MultiPassEvalTestUtils,
                  Eval.Engine,
                  Eval.EngineTest,
-                 Eval.EngineTestUtils
+                 Eval.EngineTestUtils,
+                 Eval.FunctionEvalTestUtils1

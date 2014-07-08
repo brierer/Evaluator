@@ -59,7 +59,7 @@ multiF p [ArrayO _ ns] = return $ NumO p $ product $ getNums ns;        multiF _
 meanF  p [ArrayO _ ns] = return $ NumO p $ mean $ toStatList ns;        meanF  _ xs = error $ "Engine::meanF  [Unexpected pattern ["++show xs++"]]"
 descF        = error "Eval.Function::descF      [Not Implemented]"--p [ArrayO _ ns] = tableF p [mkDescArg1 p ns,ObjO p []];   descF  _ xs = error $ "Engine::descF  [Unexpected pattern ["++show xs++"]]"
 
-tableF _{-p-} [ArrayO _ es, opts] = do
+tableF _{-p-} [ArrayO _ es, _{-opts-}] = do
   _{-ess-} <- getMatrix es
 --  _{-h-} <- getHeader opts
   error "Engine;:tableF [Rest of function not implemented]"
@@ -74,8 +74,8 @@ getColumn :: Int -> ExpObj -> EvalFunc [ExpObj]
 getColumn l (ArrayO p es) = let l' = length es in if l == l' then return es else evalError $ TableColumnLengthMismatch p l l'
 getColumn _ x = error $ "Engine::getColumn [Unexpected pattern ["++show x++"]]"
 
-getHeader :: ExpObj -> EvalFunc (Maybe [ExpObj])
-getHeader _ = return Nothing
+--getHeader :: ExpObj -> EvalFunc (Maybe [ExpObj])
+--getHeader _ = return Nothing
 
 nTimesF      = error "Eval.Function::ntimesF    [Not Implemented]"
 takeF        = error "Eval.Function::takeF      [Not Implemented]"

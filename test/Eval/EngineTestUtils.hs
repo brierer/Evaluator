@@ -1,17 +1,17 @@
 module Eval.EngineTestUtils where
 
-import qualified Eval.FunctionEvalTestUtils as FU (w2)
+import qualified Eval.FunctionEvalTestUtils1 as FU (w2)
 
-import Control.Applicative                        ((<$>),(<*>))
-import Control.Monad                              (liftM)
-import Control.Monad.Trans                        (lift)
-import Data.Eval                                  (EvalError(..),ExpObj(..),Func(..))
-import Data.List                                  (nub)
-import Data.Token                                 (PairToken(..),IdToken(..),ExpToken(..))
-import Eval.Engine                                (funcs)
-import Eval.FunctionEvalTestUtils                 (ExpOA,ExpTS,isTable,isPlot,p0,ws2,applyFunc)
-import Parser.MonolithicParserTestUtils           (Tall(..),Unto,to,uns,tShrinks,sListOf,sized1)
-import Test.Framework                             (Arbitrary(..),(==>))
+import Control.Applicative                         ((<$>),(<*>))
+import Control.Monad                               (liftM)
+import Control.Monad.Trans                         (lift)
+import Data.Eval                                   (EvalError(..),ExpObj(..),Func(..))
+import Data.Token                                  (PairToken(..),IdToken(..),ExpToken(..))
+import Eval.Engine                                 (funcs)
+import Eval.FunctionEvalTestUtils1                 (ExpOA,ExpTS,p0,ws2,applyFunc)
+import Eval.FunctionEvalTestUtils2                 (isTable,isPlot)
+import Parser.MonolithicParserTestUtils            (Tall(..),Unto,to,uns,tShrinks,sListOf,sized1)
+import Test.Framework                              (Arbitrary(..),(==>))
 
 fs = flip map funcs $ \(n,(typeValidators,_)) -> (n,(typeValidators, Func $ \_ _ -> lift $ success n))
 
