@@ -11,20 +11,17 @@ module Eval.Engine
 , plotLineF
 ) where
 
-import Prelude hiding    (sum,exp,null)
+import Prelude hiding             (sum,exp,null)
 
-import qualified Prelude as P (sum)
+import qualified Prelude     as P (sum)
+import qualified Data.Vector as V (length)
 
-import Control.Monad     (liftM)
-import Data.Eval         (EvalError(..),ExpObj(..),EvalFunc,FuncEntry,Func(..))
-import Data.Token        (Pos)
-import Data.Vector       (Vector,fromList
---,toList,length
-  )
-import Eval.Function     (table,plot,array,str,num,arrayOf,objOf,nonEmpty,(<|>),evalError)
-import Statistics.Sample (mean
---,variance,skewness,kurtosis
-  )
+import Control.Monad              (liftM)
+import Data.Eval                  (EvalError(..),ExpObj(..),EvalFunc,FuncEntry,Func(..))
+import Data.Token                 (Pos)
+import Data.Vector                (Vector,fromList,toList)
+import Eval.Function              (table,plot,array,str,num,arrayOf,objOf,nonEmpty,(<|>),evalError)
+import Statistics.Sample          (mean,variance,skewness,kurtosis)
 
 funcs :: [FuncEntry]
 funcs = -- 1 arg functions
@@ -58,9 +55,7 @@ plotLineF  :: Pos -> [ExpObj] -> EvalFunc ExpObj
 showF  p [x]           = return $ ObjO p [("result",x)];                     showF  _ xs = error $ "Engine::showF  [Unexpected pattern ["++show xs++"]]"
 multiF p [ArrayO _ ns] = return $ NumO p $ product $ getNums ns;             multiF _ xs = error $ "Engine::multiF [Unexpected pattern ["++show xs++"]]"
 meanF  p [ArrayO _ ns] = return $ NumO p $ mean $ toStatList ns;             meanF  _ xs = error $ "Engine::meanF  [Unexpected pattern ["++show xs++"]]"
-
-descF        = error "Eval.Function::descF      [Not Implemented]"--p [ArrayO _ ns] = tableF p [mkDescArg1 p ns,ObjO p []];   descF  _ xs = error $ "Engine::descF  [Unexpected pattern ["++show xs++"]]"
-
+descF  p [ArrayO _ ns] = tableF p [mkDescArg1 p ns,ObjO p []];               descF  _ xs = error $ "Engine::descF  [Unexpected pattern ["++show xs++"]]"
 tableF p [ArrayO _ es, ObjO _ ps] =
   do{ess <- getMatrix es; liftM (TableO p ess) $ getHeader (length ess) ps}; tableF _ xs = error $ "Engine::taleF  [Unexpected pattern ["++show xs++"]]"
 
@@ -77,16 +72,16 @@ toStatList = fromList.getNums
 getNums :: [ExpObj] -> [Double]
 getNums = map (\(NumO _ x)->x)
 
---count :: Vector a -> Double
---count = fromIntegral . Data.Vector.length
---
---sum :: Vector Double -> Double
---sum = P.sum.toList
---
---mkDescArg1 :: Pos -> [ExpObj] -> ExpObj
---mkDescArg1 p ns = ArrayO p [ArrayO p $ map (StrO p.fst) desc, ArrayO p $ map (NumO p.snd) desc ]
---  where desc = zip ["count","sum","mean","variance","skewness","kurtosis"] $ map ($ toStatList ns)
---                   [ count , sum , mean , variance , skewness , kurtosis]
+count :: Vector a -> Double
+count = fromIntegral . V.length
+
+sum :: Vector Double -> Double
+sum = P.sum.toList
+
+mkDescArg1 :: Pos -> [ExpObj] -> ExpObj
+mkDescArg1 p ns = ArrayO p [ArrayO p $ map (StrO p.fst) desc, ArrayO p $ map (NumO p.snd) desc ]
+  where desc = zip ["count","sum","mean","variance","skewness","kurtosis"] $ map ($ toStatList ns)
+                   [ count , sum , mean , variance , skewness , kurtosis]
 
 getMatrix :: [ExpObj] -> EvalFunc [[ExpObj]]
 getMatrix es@(ArrayO _ xs:_) = mapM (getColumn $ length xs) es

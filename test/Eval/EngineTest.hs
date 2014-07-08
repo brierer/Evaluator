@@ -8,7 +8,7 @@ import Control.Monad.State                 (evalStateT)
 import Data.Eval                           (EvalError(..),ExpObj(..))
 import Data.List                           (genericLength)
 import Data.Token                          (ExpToken(..))
-import Eval.Engine                         (funcs,showF,multiF,meanF,tableF)
+import Eval.Engine                         (funcs,showF,multiF,meanF,descF,tableF)
 import Eval.EngineTestUtils                (TableValidArgs(..),addFunc,addFunc',mk,mk',mkO',mkObj,mkObj',oneArrayOfNum,success,toArray,tablesAndPlots,emptyArray,emptySortColCase,
                                             tableColumnLengthCase,tableHeaderLengthCase,mkMultiMeanReturn,unprecise,mkTableValidArgs,unsafeMarshall)
 import Eval.Function                       (table,plot,array,str,num,arrayOf,objOf,nonEmpty,(<|>),withFuncs)
@@ -16,6 +16,9 @@ import Eval.FunctionEvalTestUtils1         (ExpOA(..),TableOA(..),NumOA(..),ExpT
 import Eval.FunctionEvalTestUtils2         (Is(..))
 import Parser.MonolithicParserTestUtils    (P(..),ExpTA(..),StrTA(..),NumTA(..),to,un,uns)
 import Test.Framework                      (TestSuite,Property,makeTestSuite,makeQuickCheckTest,makeLoc,qcAssertion,(==>))
+
+import Data.Vector (fromList)
+import Statistics.Sample
 
 prop_NbArgs1 (P p) esTA = length esTA > 1 ==> let es = uns esTA in
     all (\name -> Left (InvalidNbOfArgs p name 1 0)           == applyFunc E.fs p name ([] :: [ExpToken])
@@ -174,20 +177,30 @@ prop_TableHeaderLengthMismatch p g1as  = tableHeaderLengthCase (un p) g1as      
 prop_ReturnValueShow (P p) a1ras' = let (fs,a1) = addFunc' "tablesAndPlots" a1r; (_,a1r) = mkO' a1rs; a1rs = tablesAndPlots a1ras'; expected = Right (ObjO p [("result",a1r)])
                                     in  True ==> expected == applyFunc fs p "show" [a1] && expected == evalStateT (showF p [a1r]) []
 
-prop_ReturnValueMulti (P pn) (P pa) a1as = not (null a1as) ==>
-  let (a1,a1rs,a1r) = mkMultiMeanReturn a1as pa; expected = Right $ NumO pn $ product $ map (\(NumO _ x)->x) a1rs in  not (null a1as) ==>
-      expected == applyFunc funcs pn "multi" [a1]  &&
-      expected == evalStateT (multiF pn [a1r]) []
+prop_ReturnValueMulti (P pf) (P pa) a1as = not (null a1as) ==>
+  let (a1,a1rs,a1r) = mkMultiMeanReturn a1as pa; expected = Right $ NumO pf $ product $ map (\(NumO _ x)->x) a1rs in  not (null a1as) ==>
+      expected == applyFunc funcs pf "multi" [a1]  &&
+      expected == evalStateT (multiF pf [a1r]) []
 
-prop_ReturnValueMean  (P pn) (P pa) a1as = not (null a1as) ==>
-  let (a1,a1rs,a1r) = mkMultiMeanReturn a1as pa; expected = Right $ NumO pn $ sum (map (\(NumO _ x)->x) a1rs) / genericLength a1rs in  not (null a1as) ==>
-      unprecise expected == unprecise (applyFunc funcs pn "mean" [a1])  &&
-      unprecise expected == unprecise (evalStateT (meanF pn [a1r]) [])
+prop_ReturnValueMean  (P pf) (P pa) a1as = not (null a1as) ==>
+  let (a1,a1rs,a1r) = mkMultiMeanReturn a1as pa; expected = Right $ NumO pf $ sum (map (\(NumO _ x)->x) a1rs) / genericLength a1rs in  not (null a1as) ==>
+      unprecise expected == unprecise (applyFunc funcs pf "mean" [a1])  &&
+      unprecise expected == unprecise (evalStateT (meanF pf [a1r]) [])
 
+prop_ReturnValueDesc (P pf) (P pa) a1as = length a1as >= 2 ==>
+  let (a1,a1rs,a1r) = mkMultiMeanReturn a1as pa
+      ns  = map (\(NumO _ x)->x) a1rs
+      ns' = fromList ns
+      expected = Right $ TableO pf [map (StrO pf) ["count",                 "sum",  "mean",  "variance",   "skewness",   "kurtosis"],
+                                    map (NumO pf) [fromIntegral $ length ns, sum ns, mean ns',variance ns', skewness ns', kurtosis ns']] [] in
+      expected == applyFunc funcs pf "descriptive" [a1] &&
+      expected == evalStateT (descF pf [a1r]) []
+                            
 prop_ReturnValueTable (P pf) (TableValidArgs g1ss g2s) useHeader = any (not.null) g1ss ==>
   let (g1,g2,expected) = mkTableValidArgs pf g1ss g2s useHeader in
    expected == applyFunc funcs pf "table" [g1, g2] &&
    expected == evalStateT (tableF pf [unsafeMarshall g1,unsafeMarshall g2]) []
+
 
 {-| Mandatory type signatures -}
 prop_NbArgs1 :: P -> [ExpTA] ->  Property
@@ -218,6 +231,7 @@ prop_TableHeaderLengthMismatch :: P -> [ArrayTS] -> [StrTA]            -> Proper
 prop_ReturnValueShow  :: P      -> [ExpOA]           -> Property
 prop_ReturnValueMulti :: P -> P -> [NumTA]           -> Property
 prop_ReturnValueMean  :: P -> P -> [NumTA]           -> Property
+prop_ReturnValueDesc  :: P -> P -> [NumTA]           -> Property 
 prop_ReturnValueTable :: P -> TableValidArgs -> Bool -> Property
 
 {-|
