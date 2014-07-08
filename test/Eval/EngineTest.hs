@@ -184,7 +184,7 @@ prop_ReturnValueMean  (P pn) (P pa) a1as = not (null a1as) ==>
       unprecise expected == unprecise (applyFunc funcs pn "mean" [a1])  &&
       unprecise expected == unprecise (evalStateT (meanF pn [a1r]) [])
 
-prop_ReturnValueTable (P pf) (TableValidArgs g1ss g2s) useHeader = not (null g1ss) ==>
+prop_ReturnValueTable (P pf) (TableValidArgs g1ss g2s) useHeader = any (not.null) g1ss ==>
   let (g1,g2,expected) = mkTableValidArgs pf g1ss g2s useHeader in
    expected == applyFunc funcs pf "table" [g1, g2] &&
    expected == evalStateT (tableF pf [unsafeMarshall g1,unsafeMarshall g2]) []

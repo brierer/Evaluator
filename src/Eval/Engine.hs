@@ -15,6 +15,7 @@ import Prelude hiding    (sum,exp,null)
 
 import qualified Prelude as P (sum)
 
+import Control.Monad     (liftM)
 import Data.Eval         (EvalError(..),ExpObj(..),EvalFunc,FuncEntry,Func(..))
 import Data.Token        (Pos)
 import Data.Vector       (Vector,fromList
@@ -31,51 +32,37 @@ funcs = -- 1 arg functions
         , ("multi",      ([nonEmpty $ arrayOf num                                 ], Func multiF))
         , ("mean",       ([nonEmpty $ arrayOf num                                 ], Func meanF))
         , ("descriptive",([nonEmpty $ arrayOf num                                 ], Func descF))
-          -- 2 arg functions                                                                  
+          -- 2 arg functions
         , ("table",      ([tableArg                , objOf $ arrayOf str          ], Func tableF))
         , ("nTimes",     ([num                     , num                          ], Func nTimesF))
         , ("take",       ([num                     , table <|> array              ], Func takeF))
         , ("sort",       ([num                     , table <|> tableArg           ], Func sortF))
         , ("col",        ([num                     , table <|> tableArg           ], Func colF))
-          -- 3 arg functions                       
+          -- 3 arg functions
         , ("plotLine",   ([arrayOf num             , arrayOf num       , objOf str], Func plotLineF))
-        ] where tableArg = nonEmpty $ arrayOf $ nonEmpty array 
+        ] where tableArg = nonEmpty $ arrayOf $ nonEmpty array
 
 {-| Funcs -}
-showF      :: Pos -> [ExpObj] -> EvalFunc ExpObj 
-multiF     :: Pos -> [ExpObj] -> EvalFunc ExpObj 
-meanF      :: Pos -> [ExpObj] -> EvalFunc ExpObj 
-descF      :: Pos -> [ExpObj] -> EvalFunc ExpObj 
-tableF     :: Pos -> [ExpObj] -> EvalFunc ExpObj 
-nTimesF    :: Pos -> [ExpObj] -> EvalFunc ExpObj 
-takeF      :: Pos -> [ExpObj] -> EvalFunc ExpObj 
-sortF      :: Pos -> [ExpObj] -> EvalFunc ExpObj 
-colF       :: Pos -> [ExpObj] -> EvalFunc ExpObj 
-plotLineF  :: Pos -> [ExpObj] -> EvalFunc ExpObj 
+showF      :: Pos -> [ExpObj] -> EvalFunc ExpObj
+multiF     :: Pos -> [ExpObj] -> EvalFunc ExpObj
+meanF      :: Pos -> [ExpObj] -> EvalFunc ExpObj
+descF      :: Pos -> [ExpObj] -> EvalFunc ExpObj
+tableF     :: Pos -> [ExpObj] -> EvalFunc ExpObj
+nTimesF    :: Pos -> [ExpObj] -> EvalFunc ExpObj
+takeF      :: Pos -> [ExpObj] -> EvalFunc ExpObj
+sortF      :: Pos -> [ExpObj] -> EvalFunc ExpObj
+colF       :: Pos -> [ExpObj] -> EvalFunc ExpObj
+plotLineF  :: Pos -> [ExpObj] -> EvalFunc ExpObj
 
 
-showF  p [x]           = return $ ObjO p [("result",x)];                showF  _ xs = error $ "Engine::showF  [Unexpected pattern ["++show xs++"]]"
-multiF p [ArrayO _ ns] = return $ NumO p $ product $ getNums ns;        multiF _ xs = error $ "Engine::multiF [Unexpected pattern ["++show xs++"]]"
-meanF  p [ArrayO _ ns] = return $ NumO p $ mean $ toStatList ns;        meanF  _ xs = error $ "Engine::meanF  [Unexpected pattern ["++show xs++"]]"
+showF  p [x]           = return $ ObjO p [("result",x)];                     showF  _ xs = error $ "Engine::showF  [Unexpected pattern ["++show xs++"]]"
+multiF p [ArrayO _ ns] = return $ NumO p $ product $ getNums ns;             multiF _ xs = error $ "Engine::multiF [Unexpected pattern ["++show xs++"]]"
+meanF  p [ArrayO _ ns] = return $ NumO p $ mean $ toStatList ns;             meanF  _ xs = error $ "Engine::meanF  [Unexpected pattern ["++show xs++"]]"
+
 descF        = error "Eval.Function::descF      [Not Implemented]"--p [ArrayO _ ns] = tableF p [mkDescArg1 p ns,ObjO p []];   descF  _ xs = error $ "Engine::descF  [Unexpected pattern ["++show xs++"]]"
 
-tableF _{-p-} [ArrayO _ es, _{-opts-}] = do
-  _{-ess-} <- getMatrix es
---  _{-h-} <- getHeader opts
-  error "Engine;:tableF [Rest of function not implemented]"
-
-tableF _ xs = error $ "Engine::taleF  [Unexpected pattern ["++show xs++"]]"
-
-getMatrix :: [ExpObj] -> EvalFunc [[ExpObj]]
-getMatrix es@(ArrayO _ xs:_) = let l = length xs in mapM (getColumn l) es
-getMatrix xs = error $ "Engine::getMatrix [Unexpected pattern ["++show xs++"]]"
-
-getColumn :: Int -> ExpObj -> EvalFunc [ExpObj]
-getColumn l (ArrayO p es) = let l' = length es in if l == l' then return es else evalError $ TableColumnLengthMismatch p l l'
-getColumn _ x = error $ "Engine::getColumn [Unexpected pattern ["++show x++"]]"
-
---getHeader :: ExpObj -> EvalFunc (Maybe [ExpObj])
---getHeader _ = return Nothing
+tableF p [ArrayO _ es, ObjO _ ps] =
+  do{ess <- getMatrix es; liftM (TableO p ess) $ getHeader (length ess) ps}; tableF _ xs = error $ "Engine::taleF  [Unexpected pattern ["++show xs++"]]"
 
 nTimesF      = error "Eval.Function::ntimesF    [Not Implemented]"
 takeF        = error "Eval.Function::takeF      [Not Implemented]"
@@ -98,9 +85,26 @@ getNums = map (\(NumO _ x)->x)
 --
 --mkDescArg1 :: Pos -> [ExpObj] -> ExpObj
 --mkDescArg1 p ns = ArrayO p [ArrayO p $ map (StrO p.fst) desc, ArrayO p $ map (NumO p.snd) desc ]
---  where desc = zip ["count","sum","mean","variance","skewness","kurtosis"] $ map ($ toStatList ns) 
+--  where desc = zip ["count","sum","mean","variance","skewness","kurtosis"] $ map ($ toStatList ns)
 --                   [ count , sum , mean , variance , skewness , kurtosis]
-      
-      
+
+getMatrix :: [ExpObj] -> EvalFunc [[ExpObj]]
+getMatrix es@(ArrayO _ xs:_) = mapM (getColumn $ length xs) es
+getMatrix xs = error $ "Engine::getMatrix [Unexpected pattern ["++show xs++"]]"
+
+getColumn :: Int -> ExpObj -> EvalFunc [ExpObj]
+getColumn l (ArrayO p es) = validateLength p l es TableColumnLengthMismatch
+getColumn _ x = error $ "Engine::getColumn [Unexpected pattern ["++show x++"]]"
+
+getHeader :: Int -> [(String,ExpObj)] -> EvalFunc [ExpObj]
+getHeader l = processHeader l .lookup "col"
+
+processHeader :: Int -> Maybe ExpObj -> EvalFunc [ExpObj]
+processHeader _ Nothing              = return []
+processHeader l (Just (ArrayO p ss)) = validateLength p l ss TableHeaderLengthMismatch
+processHeader _ x = error $ "Engine::processHeader [UnexpectedPattern ["++show x++"]]"
+
+validateLength :: Pos -> Int -> [a] -> (Pos -> Int -> Int -> EvalError) -> EvalFunc [a]
+validateLength p expected val errorType = let actual = length val in if expected == actual then return val else evalError $ errorType p expected actual
 
         
