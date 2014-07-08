@@ -9,7 +9,7 @@ import Data.Eval                                   (EvalError(..),ExpObj(..),Fun
 import Data.Token                                  (PairToken(..),IdToken(..),ExpToken(..))
 import Eval.Engine                                 (funcs)
 import Eval.FunctionEvalTestUtils1                 (ExpOA,ExpTS,p0,ws2,applyFunc)
-import Eval.FunctionEvalTestUtils2                 (isTable,isPlot)
+import Eval.FunctionEvalTestUtils2                 (elems,isTable,isPlot)
 import Parser.MonolithicParserTestUtils            (Tall(..),Unto,to,uns,tShrinks,sListOf,sized1)
 import Test.Framework                              (Arbitrary(..),(==>))
 
@@ -47,17 +47,18 @@ emptySortColCase name pa pt n g2ass w2'ass =
     Left (IllegalEmpty pa) == applyFunc fs pt name [n, w2'] &&
     success name          == applyFunc fs pt name [n, g2 ]
 
-tableColumnLengthCase w1ps a2 = let moo = map snd w1ps in equalize moo /= moo ==>
-  let arrays = map (\(p,es)-> (p,ArrayT p ws2 es)) w1ps; ls = map (length.snd) w1ps; l = head ls in all (not.null.snd) w1ps ==> 
-  case applyFunc funcs p0 "table" [ArrayT p0 ws2 $ map snd arrays,a2] of
+tableColumnLengthCase w1ps g2as = let moo = map snd w1ps in equalize moo /= moo ==>
+  let arrays = map (\(p,es)-> (p,ArrayT p ws2 es)) w1ps; ls = map (length.snd) w1ps; l = head ls; (_,g2) = mkObj g2as in all (not.null.snd) w1ps ==> 
+  case applyFunc funcs p0 "table" [ArrayT p0 ws2 $ map snd arrays, g2] of
     Left (TableColumnLengthMismatch p expected actual) -> let Just (ArrayT pa _ es) = lookup p arrays in pa == p && l == expected && length es == actual
     e                                                  -> error $ "EngineTestUtils::tableColsCase [Unexpected pattern ["++show e++"]]"
     
-tableHeaderLengthCase pf g1ss g2s = 
-  let g1 = ArrayT p0 ws2 $ map (ArrayT p0 ws2) $ equalize g1ss
+tableHeaderLengthCase pf g1as g2s = 
+  let g1s = map elems $ fst $ mk' g1as
+      g1 = ArrayT p0 ws2 $ map (ArrayT p0 ws2) $ equalize g1s
       w2 = ObjT   p0 ws2 [PairT (IdT p0 ws2 "col") $ ArrayT p0 ws2 g2s]
-      (l1,l2) = (length g1ss,length g2s)
-  in any (not.null) g1ss && not (null g2s) && l1 `notElem` [0,l2] ==> 
+      (l1,l2) = (length g1s,length g2s)
+  in any (not.null) g1s && not (null g2s) && l1 `notElem` [0,l2] ==> 
   Left (TableHeaderLengthMismatch pf l1 l2) == applyFunc funcs pf "table" [g1,w2] 
     
 equalize g1ss = map (take l) g1ss where l = minimum $ map length g1ss

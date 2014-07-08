@@ -12,7 +12,7 @@ import Eval.Engine                         (funcs,showF,multiF,meanF,tableF)
 import Eval.EngineTestUtils                (TableValidArgs(..),addFunc,addFunc',mk,mk',mkO',mkObj,mkObj',oneArrayOfNum,success,toArray,tablesAndPlots,emptyArray,emptySortColCase,
                                             tableColumnLengthCase,tableHeaderLengthCase,mkMultiMeanReturn,unprecise,mkTableValidArgs,unsafeMarshall)
 import Eval.Function                       (table,plot,array,str,num,arrayOf,objOf,nonEmpty,(<|>),withFuncs)
-import Eval.FunctionEvalTestUtils1         (ExpOA(..),TableOA(..),NumOA(..),ExpTS(..),ArrayTS(..),ObjTS(..),applyFunc)
+import Eval.FunctionEvalTestUtils1         (ExpOA(..),TableOA(..),NumOA(..),ExpTS(..),ArrayTS(..),applyFunc)
 import Eval.FunctionEvalTestUtils2         (Is(..))
 import Parser.MonolithicParserTestUtils    (P(..),ExpTA(..),StrTA(..),NumTA(..),to,un,uns)
 import Test.Framework                      (TestSuite,Property,makeTestSuite,makeQuickCheckTest,makeLoc,qcAssertion,(==>))
@@ -168,8 +168,8 @@ prop_EmptyArgTable (P pf) (P pa) g1ass g2as w1'ass =
 prop_EmptyArgSort (P pf) (P pa) (NumTA _ n) = emptySortColCase "sort" pa pf n
 prop_EmptyArgCol  (P pf) (P pa) (NumTA _ n) = emptySortColCase "col"  pa pf n
 
-prop_TableColumnLengthMismatch   w1aps a2a  = tableColumnLengthCase        (map (un *** uns) w1aps) $ un a2a
-prop_TableHeaderLengthMismatch p g1ass g2as = tableHeaderLengthCase (un p) (map uns g1ass)           (uns g2as)
+prop_TableColumnLengthMismatch   w1aps = tableColumnLengthCase        (map (un *** uns) w1aps)
+prop_TableHeaderLengthMismatch p g1as  = tableHeaderLengthCase (un p) g1as                    .uns
 
 prop_ReturnValueShow (P p) a1ras' = let (fs,a1) = addFunc' "tablesAndPlots" a1r; (_,a1r) = mkO' a1rs; a1rs = tablesAndPlots a1ras'; expected = Right (ObjO p [("result",a1r)])
                                     in  True ==> expected == applyFunc fs p "show" [a1] && expected == evalStateT (showF p [a1r]) []
@@ -212,8 +212,8 @@ prop_EmptyArgTable :: P -> P -> [ArrayTS] -> [(String,[StrTA])]-> [ArrayTS]  -> 
 prop_EmptyArgSort  :: P -> P -> NumTA -> [ArrayTS] -> [ArrayTS]              -> Property
 prop_EmptyArgCol   :: P -> P -> NumTA -> [ArrayTS] -> [ArrayTS]              -> Property
 
-prop_TableColumnLengthMismatch :: [(P,[ExpTS])]  ->  ObjTS  -> Property
-prop_TableHeaderLengthMismatch :: P -> [[ExpTS]] -> [ExpTS] -> Property
+prop_TableColumnLengthMismatch :: [(P,[ExpTS])]  -> [(String,[StrTA])] -> Property
+prop_TableHeaderLengthMismatch :: P -> [ArrayTS] -> [StrTA]            -> Property
 
 prop_ReturnValueShow  :: P      -> [ExpOA]           -> Property
 prop_ReturnValueMulti :: P -> P -> [NumTA]           -> Property
