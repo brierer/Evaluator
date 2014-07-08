@@ -10,7 +10,7 @@ import Data.List                           (genericLength)
 import Data.Token                          (ExpToken(..))
 import Eval.Engine                         (funcs,showF,multiF,meanF,tableF)
 import Eval.EngineTestUtils                (TableValidArgs(..),addFunc,addFunc',mk,mk',mkO',oneArrayOfNum,success,toArray,tablesAndPlots,emptyArray,emptySortColCase,
-                                            tableColumsLengthCase,tableHeaderLengthCase,mkMultiMeanReturn,unprecise,mkTableValidArgs,unsafeMarshall)
+                                            tableColumnLengthCase,tableHeaderLengthCase,mkMultiMeanReturn,unprecise,mkTableValidArgs,unsafeMarshall)
 import Eval.Function                       (table,plot,array,obj,num,arrayOf,nonEmpty,(<|>),withFuncs)
 import Eval.FunctionEvalTestUtils          (Is(..),ExpOA(..),TableOA(..),NumOA(..),ExpTS(..),ArrayTS(..),ObjTS(..),applyFunc)
 import Parser.MonolithicParserTestUtils    (P(..),ExpTA(..),NumTA(..),to,un,uns)
@@ -147,7 +147,7 @@ prop_EmptyArgTable (P pf) (P pa) g1ass w1'ass (ObjTS o) =
 prop_EmptyArgSort (P pf) (P pa) (NumTA _ n) = emptySortColCase "sort" pa pf n
 prop_EmptyArgCol  (P pf) (P pa) (NumTA _ n) = emptySortColCase "col"  pa pf n
 
-prop_TableColumsLengthMismatch   w1aps a2a  = tableColumsLengthCase        (map (un *** uns) w1aps) $ un a2a
+prop_TableColumnLengthMismatch   w1aps a2a  = tableColumnLengthCase        (map (un *** uns) w1aps) $ un a2a
 prop_TableHeaderLengthMismatch p g1ass g2as = tableHeaderLengthCase (un p) (map uns g1ass)           (uns g2as)
 
 prop_ReturnValueShow (P p) a1ras' = let (fs,a1) = addFunc' "tablesAndPlots" a1r; (_,a1r) = mkO' a1rs; a1rs = tablesAndPlots a1ras'; expected = Right (ObjO p [("result",a1r)])
@@ -191,16 +191,13 @@ prop_EmptyArgTable :: P -> P -> [ArrayTS] -> [ArrayTS] -> ObjTS -> Property
 prop_EmptyArgSort  :: P -> P -> NumTA -> [ArrayTS] -> [ArrayTS] -> Property
 prop_EmptyArgCol   :: P -> P -> NumTA -> [ArrayTS] -> [ArrayTS] -> Property
 
-prop_TableColumsLengthMismatch :: [(P,[ExpTS])]  ->  ObjTS  -> Property
+prop_TableColumnLengthMismatch :: [(P,[ExpTS])]  ->  ObjTS  -> Property
 prop_TableHeaderLengthMismatch :: P -> [[ExpTS]] -> [ExpTS] -> Property
-
 
 prop_ReturnValueShow  :: P      -> [ExpOA]           -> Property
 prop_ReturnValueMulti :: P -> P -> [NumTA]           -> Property
 prop_ReturnValueMean  :: P -> P -> [NumTA]           -> Property
 prop_ReturnValueTable :: P -> TableValidArgs -> Bool -> Property
-
---prop_ReturnValueTable
 
 {-|
 show = show([tservice,tsalaire,trente])

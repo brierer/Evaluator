@@ -44,11 +44,10 @@ emptySortColCase name pa pt n g2ass w2'ass =
     Left (IllegalEmpty pa) == applyFunc fs pt name [n, w2'] &&
     success name          == applyFunc fs pt name [n, g2 ]
 
-tableColumsLengthCase w1ps a2 = 
-  let arrays = map (\(p,es)-> (p,ArrayT p ws2 es)) w1ps; ls = map (length.snd) w1ps; l = head ls in any (not.null.snd) w1ps ==> 
+tableColumnLengthCase w1ps a2 = let moo = map snd w1ps in equalize moo /= moo ==>
+  let arrays = map (\(p,es)-> (p,ArrayT p ws2 es)) w1ps; ls = map (length.snd) w1ps; l = head ls in all (not.null.snd) w1ps ==> 
   case applyFunc funcs p0 "table" [ArrayT p0 ws2 $ map snd arrays,a2] of
-    Left (TableHeaderLengthMismatch p expected actual) -> let Just (ArrayT pa _ es) = lookup p arrays in pa == p && l == expected && length es == actual
-    Right _                                            -> [l] == nub ls
+    Left (TableColumnLengthMismatch p expected actual) -> let Just (ArrayT pa _ es) = lookup p arrays in pa == p && l == expected && length es == actual
     e                                                  -> error $ "EngineTestUtils::tableColsCase [Unexpected pattern ["++show e++"]]"
     
 tableHeaderLengthCase pf g1ss g2s = 
