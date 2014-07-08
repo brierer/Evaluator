@@ -20,26 +20,26 @@ import Data.Token        (Pos)
 import Data.Vector       (Vector,fromList
 --,toList,length
   )
-import Eval.Function     (table,plot,array,obj,num,arrayOf,nonEmpty,(<|>),evalError)
+import Eval.Function     (table,plot,array,str,num,arrayOf,objOf,nonEmpty,(<|>),evalError)
 import Statistics.Sample (mean
 --,variance,skewness,kurtosis
   )
 
 funcs :: [FuncEntry]
 funcs = -- 1 arg functions
-        [ ("show",       ([arrayOf $ table <|> plot                      ], Func showF))
-        , ("multi",      ([nonEmpty $ arrayOf num                        ], Func multiF))
-        , ("mean",       ([nonEmpty $ arrayOf num                        ], Func meanF))
-        , ("descriptive",([nonEmpty $ arrayOf num                        ], Func descF))
-          -- 2 arg functions                                                              
-        , ("table",      ([tableArg                , obj                 ], Func tableF))
-        , ("nTimes",     ([num                     , num                 ], Func nTimesF))
-        , ("take",       ([num                     , table <|> array     ], Func takeF))
-        , ("sort",       ([num                     , table <|> tableArg  ], Func sortF))
-        , ("col",        ([num                     , table <|> tableArg  ], Func colF))
+        [ ("show",       ([arrayOf $ table <|> plot                               ], Func showF))
+        , ("multi",      ([nonEmpty $ arrayOf num                                 ], Func multiF))
+        , ("mean",       ([nonEmpty $ arrayOf num                                 ], Func meanF))
+        , ("descriptive",([nonEmpty $ arrayOf num                                 ], Func descF))
+          -- 2 arg functions                                                                  
+        , ("table",      ([tableArg                , objOf $ arrayOf str          ], Func tableF))
+        , ("nTimes",     ([num                     , num                          ], Func nTimesF))
+        , ("take",       ([num                     , table <|> array              ], Func takeF))
+        , ("sort",       ([num                     , table <|> tableArg           ], Func sortF))
+        , ("col",        ([num                     , table <|> tableArg           ], Func colF))
           -- 3 arg functions                       
-        , ("plotLine",   ([arrayOf num             , arrayOf num    , obj], Func plotLineF))
-        ] where tableArg = nonEmpty $ arrayOf $ nonEmpty array
+        , ("plotLine",   ([arrayOf num             , arrayOf num       , objOf str], Func plotLineF))
+        ] where tableArg = nonEmpty $ arrayOf $ nonEmpty array 
 
 {-| Funcs -}
 showF      :: Pos -> [ExpObj] -> EvalFunc ExpObj 

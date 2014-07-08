@@ -18,10 +18,13 @@ fs = flip map funcs $ \(n,(typeValidators,_)) -> (n,(typeValidators, Func $ \_ _
 mk  p ts = let es = uns ts; arg = ArrayT p FU.w2 es in (es,arg)
 mkO p ts = let es = uns ts; arg = ArrayO p       es in (es,arg)
 
-{-# ANN mk'  "HLint: ignore Eta reduce" #-}
-{-# ANN mkO' "HLint: ignore Eta reduce" #-}
+{-# ANN mk'   "HLint: ignore Eta reduce" #-}
+{-# ANN mkO'  "HLint: ignore Eta reduce" #-}
+{-# ANN mkObj "HLint: ignore Eta reduce" #-}
 mk'  ts = mk p0 ts
 mkO' ts = mkO p0 ts
+mkObj  ps = let (ss,tss) = unzip ps; ess = map uns tss in (concat ess,ObjT p0 ws2 $ map (\(x,ys)->PairT (IdT p0 ws2 x) $ ArrayT p0 ws2 ys) $ zip ss ess)
+mkObj' ps = let (ss,ts)  = unzip ps; es  = uns ts      in (es,        ObjT p0 ws2 $ map (\(x,y) ->PairT (IdT p0 ws2 x) y)                  $ zip ss es)
 
 oneArrayOfNum g1ras w1as = let es = uns g1ras; arg = ArrayO p0 es; (xs,g1) = addFunc "arrayOfNum" arg; (w1s,w1) = mk' w1as in (xs,g1,w1s,w1)
 
@@ -71,6 +74,7 @@ instance Arbitrary TableValidArgs where arbitrary = sized1 tall; shrink (TableVa
 instance Tall      TableValidArgs where                                                  tall n = mTableValidArgs (sListOf $ sListOf $ tall n) (sListOf $ tall n)
 mTableValidArgs tssa tsa = do tss <- tssa; ts <- tsa; let l = minimum [length tss, length ts] in return $ TableValidArgs (equalize $ map uns $ take l tss) $ uns $ take l ts 
 
+mTableValidArgs :: Monad m => m [[ExpTS]] -> m [ExpTS] -> m TableValidArgs 
 mkTableValidArgs pf g1ss g2s useHeader = 
   let expectedHeader = concat [map unsafeMarshall g2s                       | useHeader]
       inputHeader    =        [PairT (IdT p0 ws2 "col") $ ArrayT p0 ws2 g2s | useHeader] 
@@ -81,7 +85,4 @@ mkTableValidArgs pf g1ss g2s useHeader =
 
 unsafeMarshall :: ExpToken -> ExpObj  
 unsafeMarshall = undefined
-  
-{-| Monomorphism restriction -}
-mTableValidArgs :: Monad m => m [[ExpTS]] -> m [ExpTS] -> m TableValidArgs 
-  
+    
