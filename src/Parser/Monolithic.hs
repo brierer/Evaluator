@@ -23,7 +23,6 @@ import Control.Applicative           ((<$), (<$>), (<*>))
 import Text.ParserCombinators.Parsec (Parser,many,space,sepBy,char,try,notFollowedBy,oneOf,
                                       between,noneOf,option,many1,string,digit,getPosition,sourceLine,sourceColumn,(<|>))
 
-
 {-| Formal grammar
 
 START -> progT
@@ -162,22 +161,3 @@ unparseExp (StrT   _ (wb,wa) s)   = wb ++ show s                    ++ wa
 unparseExp (NumT   _ (wb,wa) o _) = wb ++ o                         ++ wa
 unparseExp (BoolT  _ (wb,wa) b)   = wb ++ map toLower (show b)      ++ wa
 unparseExp (NullT  _ (wb,wa))     = wb ++"null"                     ++ wa
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-

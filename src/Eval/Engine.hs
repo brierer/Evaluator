@@ -30,19 +30,22 @@ import Statistics.Sample          (mean,variance,skewness,kurtosis)
 
 funcs :: [FuncEntry]
 funcs = -- 1 arg functions
-        [ ("show",       ([arrayOf $ table <|> plot                               ], Func showL))
-        , ("multi",      ([nonEmpty $ arrayOf num                                 ], Func multiL))
-        , ("mean",       ([nonEmpty $ arrayOf num                                 ], Func meanL))
-        , ("descriptive",([nonEmpty $ arrayOf num                                 ], Func descL))
-          -- 2 arg functions
-        , ("table",      ([tableArg                , objOf $ arrayOf str          ], Func tableL))
-        , ("nTimes",     ([num                     , num                          ], Func nTimesL))
-        , ("take",       ([num                     , table <|> array              ], Func takeL))
-        , ("sort",       ([num                     , table <|> tableArg           ], Func sortL))
-        , ("col",        ([num                     , table <|> tableArg           ], Func colL))
+        [ ("show",       ([showables                                  ], Func showL))
+        , ("multi",      ([nums1                                      ], Func multiL))
+        , ("mean",       ([nums1                                      ], Func meanL))
+        , ("descriptive",([nums1                                      ], Func descL))
+          -- 2 arg functions                                          
+        , ("table",      ([tableArg   , objOf $ arrayOf str           ], Func tableL))
+        , ("nTimes",     ([num        , num                           ], Func nTimesL))
+        , ("take",       ([num        , table <|> array               ], Func takeL))
+        , ("sort",       ([num        , table <|> tableArg            ], Func sortL))
+        , ("col",        ([num        , table <|> tableArg            ], Func colL))
           -- 3 arg functions
-        , ("plot",       ([arrayOf num             , arrayOf num       , objOf str], Func plotL))
-        ] where tableArg = nonEmpty $ arrayOf $ nonEmpty array
+        , ("plot",       ([arrayOf num, arrayOf num        , objOf str], Func plotL))
+        ] 
+  where showables = arrayOf $ table <|> plot 
+        nums1     = nonEmpty $ arrayOf num
+        tableArg  = nonEmpty $ arrayOf $ nonEmpty array
 
 {-| Function stubs: extract from list and call the actual function -}
 showL      :: Pos -> [ExpObj] -> EvalFunc ExpObj
@@ -54,7 +57,7 @@ nTimesL    :: Pos -> [ExpObj] -> EvalFunc ExpObj
 takeL      :: Pos -> [ExpObj] -> EvalFunc ExpObj
 sortL      :: Pos -> [ExpObj] -> EvalFunc ExpObj
 colL       :: Pos -> [ExpObj] -> EvalFunc ExpObj
-plotL  :: Pos -> [ExpObj] -> EvalFunc ExpObj
+plotL      :: Pos -> [ExpObj] -> EvalFunc ExpObj
 
 showL   p [x]                                   = showF   p x;                 showL   _ xs = error $ "Engine::showL  [Unexpected pattern ["++show xs++"]]"
 multiL  p [ArrayO _ ns]                         = multiF  p ns;                multiL  _ xs = error $ "Engine::multiL [Unexpected pattern ["++show xs++"]]"
@@ -171,11 +174,10 @@ plotF :: Pos -> [ExpObj] -> [ExpObj] -> [(String,ExpObj)] -> EvalFunc ExpObj
 plotF p xs ys ps = return $ PlotO p (zip xs ys) $ getAttributes ps
 
 getAttributes :: [(String,ExpObj)] -> [(String,ExpObj)]
-getAttributes ps = let mTitle = moo "title"
-                       mColor = moo "color"
-                       moo n = maybeToList $ do r <- lookup n ps; return (n,r)
-                   in  mTitle ++ mColor
+getAttributes ps = get ps "title" ++ get ps "color"
 
-
-
+get :: [(String, ExpObj)] -> String -> [(String, ExpObj)]
+get ps n = maybeToList $ do r <- lookup n ps; return (n,r)
+        
+        
         

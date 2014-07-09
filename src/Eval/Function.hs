@@ -79,7 +79,6 @@ match t = TypeVal $ \e -> if t == getType e  then return e else runValidation (m
 mismatch :: Type -> TypeValidator
 mismatch t = TypeVal $ \e -> evalError $ TypeMismatch (getPos e) t (getType e)
 
-
 table :: TypeValidator
 plot  :: TypeValidator
 array :: TypeValidator
@@ -144,6 +143,9 @@ infixl 3 <!>
 withFuncs :: Marshallable a => [FuncEntry] -> TypeValidator -> a -> Eval ExpObj
 withFuncs fs v e = evalStateT (marshall e >>= runValidation v) fs
 
+evalError :: EvalError -> EvalFunc a
+evalError = lift.Left
+
 {-| Privates -}
 applyFunc :: Pos -> String -> [ExpToken] -> EvalFunc ExpObj
 applyFunc p i es = get >>= \fs -> case lookup i fs of
@@ -153,8 +155,4 @@ applyFunc p i es = get >>= \fs -> case lookup i fs of
 
 validArgCount :: Pos -> String -> Int -> Int -> EvalFunc ()
 validArgCount p i lv le = when (lv /= le) $ evalError $ InvalidNbOfArgs p i lv le
-
-evalError :: EvalError -> EvalFunc a
-evalError = lift.Left
-
 
