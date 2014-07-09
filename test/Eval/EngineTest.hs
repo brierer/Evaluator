@@ -8,11 +8,11 @@ import Control.Monad.State                 (evalStateT)
 import Data.Eval                           (EvalError(..),ExpObj(..))
 import Data.List                           (genericLength)
 import Data.Token                          (ExpToken(..))
-import Eval.Engine                         (funcs,showF,multiF,meanF,descF,tableF,nTimesF)
+import Eval.Engine                         (funcs,showF,multiF,meanF,descF,tableF,nTimesF,takeF)
 import Eval.EngineTestUtils                (TableValidArgs(..),addFunc,addFunc',mk,mk',mkO',mkObj,mkObj',oneArrayOfNum,success,toArray,tablesAndPlots,emptyArray,emptySortColCase,
                                             tableColumnLengthCase,tableHeaderLengthCase,mkMultiMeanReturn,unprecise,mkTableValidArgs,unsafeMarshall)
 import Eval.Function                       (table,plot,array,str,num,arrayOf,objOf,nonEmpty,(<|>),withFuncs)
-import Eval.FunctionEvalTestUtils1         (ExpOA(..),TableOA(..),NumOA(..),ExpTS(..),ArrayTS(..),applyFunc)
+import Eval.FunctionEvalTestUtils1         (ExpOA(..),TableOA(..),ArrayOA(..),NumOA(..),ExpTS(..),ArrayTS(..),applyFunc)
 import Eval.FunctionEvalTestUtils2         (Is(..))
 import Parser.MonolithicParserTestUtils   -- (P(..),ExpTA(..),StrTA(..),NumTA(..),to,un,uns)
 import Test.Framework                 --     (TestSuite,Property,makeTestSuite,makeQuickCheckTest,makeLoc,qcAssertion,(==>))
@@ -182,6 +182,14 @@ prop_ReturnValueNTimes (P pf) a1@(NumTA _ (NumT p1 _ _ v1)) a2@(NumTA _ (NumT p2
       expected == applyFunc funcs pf "nTimes" [un a1, un a2] &&
       expected == evalStateT (nTimesF pf [NumO p1 v1, NumO p2 v2]) []
 prop_ReturnValueNTimes _ x y = error $ "EngineTest::prop_ReturnValueNTimes [Unexpected pattern ["++show x++"] and ["++show y++"]]"
+
+prop_ReturnValueTake (P pf) (NumTA _ a1@(NumT pn _ _ v)) (TableOA a2r@(TableO _ cols header)) (ArrayOA a2r'@(ArrayO _ es)) =
+  any (not.null) cols && not (null es) ==>
+  let a1r = NumO pn v; (fs,a2) = addFunc' "mkTable" a2r; (fs',a2') = addFunc' "mkArray" a2r'; n = floor v;
+      expected = Right (TableO pf (map (take n) cols) header);
+      expected' = Right (ArrayO pf $ take n es) in
+   expected == applyFunc fs  pf "take" [a1,a2]    && expected' == applyFunc fs' pf "take" [a1,a2'] &&
+   expected == evalStateT (takeF pf [a1r,a2r]) [] && expected' == evalStateT (takeF pf [a1r,a2r']) []
 
 {-| Mandatory type signatures -}
 prop_NbArgs1 :: P -> [ExpTA] ->  Property
