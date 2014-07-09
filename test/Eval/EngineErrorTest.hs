@@ -15,7 +15,7 @@ import Eval.FunctionEvalTestUtils1         (ExpOA(..),TableOA(..),NumOA(..),ExpT
 import Eval.FunctionEvalTestUtils2         (Is(..))
 import Parser.MonolithicParserTestUtils    (P(..),ExpTA(..),StrTA(..),NumTA(..),to,un,uns)
 import Test.Framework                      (TestSuite,Property,makeTestSuite,makeQuickCheckTest,makeLoc,qcAssertion,(==>))
-                                           
+
 prop_NbArgs1 (P p) esTA = length esTA > 1 ==> let es = uns esTA in
     all (\name -> Left (InvalidNbOfArgs p name 1 0)           == applyFunc E.fs p name ([] :: [ExpToken])
                && Left (InvalidNbOfArgs p name 1 (length es)) == applyFunc E.fs p name es)
@@ -147,25 +147,25 @@ prop_TableHeaderLengthMismatch p g1as  = tableHeaderLengthCase (un p) g1as      
 
 prop_IndexOutOfBoundsSortTable (P pf) (NumTA _ a1@(NumT pn _ _ v)) (TableOA a2tr@(TableO _ cols header)) = (v < 0 || floor v > length cols) && any (not.null) cols ==>
   let (n,a2t,fs,expected) = mkOutOfBoundsTable pn v a2tr cols in
-   expected == applyFunc fs    pf "sort" [a1,a2t] && 
+   expected == applyFunc fs    pf "sort" [a1,a2t] &&
    expected == evalStateT (sortTF pf pn n cols header) []
 prop_IndexOutOfBoundsSortTable _ x y = error $ "EngineTest::prop_IndexOutOfBoundsSortTable [Unexpected pattern ["++show x++"] and ["++show y++"]]"
 
 prop_IndexOutOfBoundsSortArray (P pf) (NumTA _ a1@(NumT pn _ _ v)) a2as = (v < 0 || floor v > length a2as) && any (not.emptyArray.un) a2as ==>
   let (n,aOfArrays,mArrays,expected) = mkOutOfBoundsArray pn v a2as in
-   expected == applyFunc funcs pf "sort" [a1,aOfArrays] && 
+   expected == applyFunc funcs pf "sort" [a1,aOfArrays] &&
    expected == evalStateT (sortAF pf pn n mArrays) []
 prop_IndexOutOfBoundsSortArray _ x _ = error $ "EngineTest::prop_IndexOutOfBoundsSortArray [Unexpected pattern ["++show x++"]]"
 
 prop_IndexOutOfBoundsColTable (P pf) (NumTA _ a1@(NumT pn _ _ v)) (TableOA a2tr@(TableO _ cols _)) = (v < 0 || floor v > length cols) && any (not.null) cols ==>
   let (n,a2t,fs,expected) = mkOutOfBoundsTable pn v a2tr cols in
-   expected == applyFunc fs    pf "col" [a1,a2t] && 
+   expected == applyFunc fs    pf "col" [a1,a2t] &&
    expected == evalStateT (colTF pf pn n cols) []
 prop_IndexOutOfBoundsColTable _ x y = error $ "EngineTest::prop_IndexOutOfBoundsColTable [Unexpected pattern ["++show x++"] and ["++show y++"]]"
 
 prop_IndexOutOfBoundsColArray (P pf) (NumTA _ a1@(NumT pn _ _ v)) a2as = (v < 0 || floor v > length a2as) && any (not.emptyArray.un) a2as ==>
   let (n,aOfArrays,mArrays,expected) = mkOutOfBoundsArray pn v a2as in
-   expected == applyFunc funcs pf "col" [a1,aOfArrays] && 
+   expected == applyFunc funcs pf "col" [a1,aOfArrays] &&
    expected == evalStateT (colAF pf pn n mArrays) []
 prop_IndexOutOfBoundsColArray _ x _ = error $ "EngineTest::prop_IndexOutOfBoundsColArray [Unexpected pattern ["++show x++"]]"
 

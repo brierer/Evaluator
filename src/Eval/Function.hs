@@ -120,15 +120,15 @@ objOf v = TypeVal (runValidation (match Obj) >=> \(ObjO p ps) -> liftM (ObjO p) 
 
 nonEmpty :: TypeValidator -> TypeValidator
 nonEmpty v = let raise = evalError .IllegalEmpty in TypeVal $ runValidation v >=> \ x -> case x of
-  TableO p [] _ -> raise p; TableO p xs _ -> if not (P.any (not . P.null) xs) then raise p else return x 
-  PlotO  p [] _ -> raise p; 
-  ArrayO p [] -> raise p; 
-  ObjO   p [] -> raise p; 
-  StrO   p [] -> raise p; 
+  TableO p [] _ -> raise p; TableO p xs _ -> if not (P.any (not . P.null) xs) then raise p else return x
+  PlotO  p [] _ -> raise p;
+  ArrayO p [] -> raise p;
+  ObjO   p [] -> raise p;
+  StrO   p [] -> raise p;
   _ -> return x
 
 args :: FuncEntry -> FuncEntry
-args (n,(vs,f)) = (n,(zipWith arg [0..] vs,f)) where 
+args (n,(vs,f)) = (n,(zipWith arg [0..] vs,f)) where
   arg i (TypeVal v) = TypeVal $ \x -> do st <- get; case evalStateT (v x) st of Left e -> evalError $ ArgError i n e; r -> lift r
 
 (<|>) :: TypeValidator -> TypeValidator -> TypeValidator

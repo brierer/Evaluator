@@ -98,7 +98,7 @@ unsafeMarshall (NullT p _)     = NullO p
 unsafeMarshall e               = error $ "EngineTestUtils::unsafeMarshall [Unexpected pattern ["++show e++"]]"
 
 keepInRange (NumT p w _ v) l = (NumT p w (show v') v',n) where v' = fromIntegral n; n = floor v `mod` l
-keepInRange x _              = error $ "EngineTestUtils::keepInRange [Unexpected pattern ["++show x++"]]" 
+keepInRange x _              = error $ "EngineTestUtils::keepInRange [Unexpected pattern ["++show x++"]]"
 
 sortTOn :: Ord a => Int -> [[a]] -> [[a]]
 sortTOn n xss = transpose $ map snd $ sort $ zip (xss !! n) $ transpose xss
@@ -107,7 +107,7 @@ sortAOn :: Int -> [ExpObj] -> [ExpObj]
 sortAOn n arrays = let (ess,mks) = unzip $ map (\(ArrayO p es) -> (es,ArrayO p)) arrays in  zipWith ($) mks $ sortTOn n ess
 
 mkOutOfBoundsTable pn v a2tr cols = let n = floor v; (funs,a2t) = addFunc' "mkTable" a2tr; expected = Left $ IndexOutOfBounds pn n 0 $ length cols - 1 in (n,a2t,funs,expected)
-mkOutOfBoundsArray pn v a2as = let n = floor v; (arrays,aOfArrays) = mk' a2as; mArrays = map unsafeMarshall arrays; expected = Left $ IndexOutOfBounds pn n 0 $ length a2as - 1 in (n,aOfArrays,mArrays,expected) 
+mkOutOfBoundsArray pn v a2as = let n = floor v; (arrays,aOfArrays) = mk' a2as; mArrays = map unsafeMarshall arrays; expected = Left $ IndexOutOfBounds pn n 0 $ length a2as - 1 in (n,aOfArrays,mArrays,expected)
 
 mkSortColArray a1' a2as = let (a1,n) = keepInRange a1' (length a2as); (arrays,aOfArrays) = mk' a2as; mArrays = map unsafeMarshall arrays in (n, a1,aOfArrays,arrays,mArrays)
 

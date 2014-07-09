@@ -24,7 +24,7 @@ data EvalError = MultipleDefinitions Pos String
                | NoShow
                | InvalidNbOfArgs Pos String Int Int
                | ArgError Int String EvalError
-               | TypeMismatch Pos Type Type 
+               | TypeMismatch Pos Type Type
                | IllegalEmpty Pos
                | TableColumnLengthMismatch Pos Int Int
                | TableHeaderLengthMismatch Pos Int Int
@@ -41,7 +41,7 @@ data Type = Table | Plot | FunCall | Arr | Obj | Str | Num | Bool | Null
             deriving (Eq,Show)
 
 data ExpObj = TableO  Pos [[ExpObj]]        [ExpObj]           -- Pos -> Data cols  -> Header cols
-            | PlotO   Pos [(ExpObj,ExpObj)] [(String,ExpObj)]  -- Pos -> Pairs -> Opts 
+            | PlotO   Pos [(ExpObj,ExpObj)] [(String,ExpObj)]  -- Pos -> Pairs -> Opts
             | ArrayO  Pos [ExpObj]
             | ObjO    Pos [(String,ExpObj)]
             | StrO    Pos String
@@ -49,7 +49,7 @@ data ExpObj = TableO  Pos [[ExpObj]]        [ExpObj]           -- Pos -> Data co
             | BoolO   Pos Bool
             | NullO   Pos
               deriving (Eq,Ord,Show)
-              
+
 
 type EvalFunc = StateT [FuncEntry] Eval
 type FuncEntry = (String,([TypeValidator],Func))

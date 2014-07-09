@@ -24,7 +24,7 @@ import Text.ParserCombinators.Parsec (Parser,many,space,sepBy,char,try,notFollow
                                       between,noneOf,option,many1,string,digit,getPosition,sourceLine,sourceColumn,(<|>))
 
 
-{-| Formal grammar 
+{-| Formal grammar
 
 START -> progT
 
@@ -68,7 +68,7 @@ pairT = do (_,i,_,e) <- seq4 (pos, idT, char ':', expT); return $ PairT i e
 -- idT -> alpha [alpha | digit]*
 idT = let alpha = ['a'..'z'] ++ ['A'..'Z']
       in do (wb,p,i,wa) <- seq4 (ws,pos,liftM2 (:) (oneOf alpha) $ many (oneOf alpha <|> oneOf ['0'..'9']),ws); return $ IdT p (wb,wa) i
-      
+
 -- expT -> nullT  |      boolT  |      numT  |      strT   |      funcT  |      arrayT  |      objT  |      varT
 expT = try nullT <|> try boolT <|> try numT <|> try strT  <|> try funcT <|> try arrayT <|> try objT <|> try varT
 
@@ -145,7 +145,7 @@ instance Unparse ProgToken where unparse (ProgT _ fs)      = unparses' ";" fs
 instance Unparse FormToken where unparse (FormT s e)       = unparse s ++ "=" ++ unparse e
 instance Unparse PairToken where unparse (PairT s e)       = unparse s ++ ":" ++ unparse e
 instance Unparse ExpToken  where unparse                   = unparseExp
-instance Unparse IdToken   where unparse (IdT _ (wb,wa) s) = wb ++ s ++ wa 
+instance Unparse IdToken   where unparse (IdT _ (wb,wa) s) = wb ++ s ++ wa
 
 unparses :: Unparse a => [a] -> String
 unparses  = unparses' ","

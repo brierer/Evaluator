@@ -36,7 +36,7 @@ instance Eq ExpToken where
   (BoolT _  a1 b1)    == (BoolT _  a2 b2)    = (a1,b1)    == (a2,b2)
   (NullT _  a1)       == (NullT _  a2)       =  a1        ==  a2
   _                   == _                   = False
-  
+
 type Pos = (Int,Int)
 type IntegerS = String
 

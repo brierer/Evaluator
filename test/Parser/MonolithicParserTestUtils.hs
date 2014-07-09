@@ -16,19 +16,19 @@ class Tall a   where tall :: Int -> Gen a
 
 data ProgTA = ProgTA ProgToken deriving (Eq,Show)
 instance Arbitrary ProgTA where arbitrary = sized1 tall; shrink (ProgTA (ProgT p fs)) = mProgTA (tShrink p) (tShrinks fs)
-instance Tall      ProgTA where                                                tall n =  mProgTA  arbitrary  (sizes n) 
+instance Tall      ProgTA where                                                tall n =  mProgTA  arbitrary  (sizes n)
 mProgTA = liftMF2 mkProg un uns where mkProg x = ProgTA . ProgT x
 
 data FormTA = FormTA FormToken deriving (Show)
 instance Unto FormTA FormToken where to = FormTA; un (FormTA f) = f
 instance Arbitrary FormTA where arbitrary = sized1 tall; shrink (FormTA (FormT i e)) = mFormTA (tShrink i) (tShrink e)
-instance Tall      FormTA where                                               tall n = mFormTA arbitrary  (tall n) 
+instance Tall      FormTA where                                               tall n = mFormTA arbitrary  (tall n)
 mFormTA = liftMF2 mkForm un un where mkForm x = FormTA .FormT x
 
 data PairTA = PairTA PairToken deriving (Show)
 instance Unto PairTA PairToken where to = PairTA; un (PairTA p) = p
 instance Arbitrary PairTA where arbitrary = sized1 tall; shrink (PairTA (PairT i v)) = mPairTA (tShrink i) (tShrink v)
-instance Tall      PairTA where                                               tall n = mPairTA  arbitrary  (tall n) 
+instance Tall      PairTA where                                               tall n = mPairTA  arbitrary  (tall n)
 mPairTA = liftMF2 mkPair un un where mkPair x = PairTA .PairT x
 
 data IdTA =   IdTA IdToken deriving (Show)
@@ -36,7 +36,7 @@ instance Unto IdTA IdToken where to = IdTA; un (IdTA s) = s
 instance Arbitrary IdTA where
   arbitrary                 = mIdTA  arbitrary   arbitrary  (liftM2 (:) (elements alpha) $ sListOf $ elements alphaDigit)
   shrink (IdTA (IdT p w s)) = mIdTA (tShrink p) (tShrink w) (sList $ filter validId $ sShrink s)
-mIdTA = liftMF3 mkId un un id where mkId x y = IdTA .IdT x y 
+mIdTA = liftMF3 mkId un un id where mkId x y = IdTA .IdT x y
 validId s =  all (`elem` alphaDigit) s && not (null s) && head s `elem` alpha
 alpha = ['a'..'z']++['A'..'Z']
 alphaDigit = alpha ++ ['0'..'9']
@@ -57,14 +57,14 @@ mNumT     = liftM un (arbitrary  :: Gen NumTA)
 mBoolT    = liftM un (arbitrary  :: Gen BoolTA)
 mNullT    = liftM un (arbitrary  :: Gen NullTA)
 
-shrinkT x@(FuncT{})  = liftM un $ sShrink (to x :: FuncTA) 
+shrinkT x@(FuncT{})  = liftM un $ sShrink (to x :: FuncTA)
 shrinkT x@(ArrayT{}) = liftM un $ sShrink (to x :: ArrayTA)
-shrinkT x@(ObjT{})   = liftM un $ sShrink (to x :: ObjTA)  
-shrinkT x@(VarT{})   = liftM un $ sShrink (to x :: VarTA)  
-shrinkT x@(StrT{})   = liftM un $ sShrink (to x :: StrTA)  
-shrinkT x@(NumT{})   = liftM un $ sShrink (to x :: NumTA)  
-shrinkT x@(BoolT{})  = liftM un $ sShrink (to x :: BoolTA) 
-shrinkT x@(NullT{})  = liftM un $ sShrink (to x :: NullTA) 
+shrinkT x@(ObjT{})   = liftM un $ sShrink (to x :: ObjTA)
+shrinkT x@(VarT{})   = liftM un $ sShrink (to x :: VarTA)
+shrinkT x@(StrT{})   = liftM un $ sShrink (to x :: StrTA)
+shrinkT x@(NumT{})   = liftM un $ sShrink (to x :: NumTA)
+shrinkT x@(BoolT{})  = liftM un $ sShrink (to x :: BoolTA)
+shrinkT x@(NullT{})  = liftM un $ sShrink (to x :: NullTA)
 
 data FuncTA = FuncTA ExpToken deriving (Show)
 instance Unto FuncTA ExpToken where to = FuncTA; un (FuncTA f) = f
@@ -103,12 +103,12 @@ data NumType = Int | Flt | Exp deriving (Eq,Show)
 data NumTA = NumTA NumType ExpToken deriving (Show)
 instance Unto NumTA ExpToken where
   un (NumTA _ n) = n
-  to n@(NumT _ _ s v) 
+  to n@(NumT _ _ s v)
    | s == showInt (floor v) = NumTA Int n
    | s == showFlt        v  = NumTA Flt n
    | s == showExp        v  = NumTA Exp n
    | otherwise              = error $ "Invalid num string ["++s++"]"
-  
+
 instance Arbitrary NumTA where
   arbitrary                       = mNumTA  arbitrary   arbitrary   arbitrary  (elements [Int,Flt,Exp])
   shrink (NumTA t (NumT p w _ v)) = mNumTA (tShrink p) (tShrink w) (sShrink v) [t]
@@ -145,7 +145,7 @@ instance Unto P (Int,Int) where to = P; un (P p) = p
 instance Arbitrary P where
   arbitrary        = mP (choose validP)  (choose validP)
   shrink (P (l,c)) = mP (shrinkValidP l) (shrinkValidP c)
-mP = liftMF2 mkP id id where mkP x = P.(,) x 
+mP = liftMF2 mkP id id where mkP x = P.(,) x
 validP = (1,10000)
 shrinkValidP 0 = []
 shrinkValidP x = [x `div` 2, x -1]

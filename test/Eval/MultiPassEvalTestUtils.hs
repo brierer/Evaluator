@@ -3,7 +3,7 @@ module Eval.MultiPassEvalTestUtils where
 
 import qualified Data.Map as M             (fromList)
 import qualified Data.Set as S             (empty,toList,insert)
-                                           
+
 import Data.Eval                           (Table)
 import Data.Function                       (on)
 import Data.List                           (nubBy,sort,nub)
@@ -27,7 +27,7 @@ class HasProg a where
 
 instance HasProg ProgToken where forms (ProgT _ fs) = fs;      fromForms = ProgT p0
 instance HasProg ProgTA    where forms (ProgTA p)   = forms p; fromForms = ProgTA .fromForms
-        
+
 data UniqueDefs = UniqueDefs ProgTA deriving (Eq,Show)
 instance HasProg UniqueDefs where forms (UniqueDefs prog) = forms prog; fromForms = UniqueDefs .fromForms
 instance Arbitrary UniqueDefs where
@@ -44,9 +44,9 @@ mMultiDefs pa = let empty = MultiDefs (fromForms []) p0 "" in do
   fs <- liftM forms pa
   nullGuard fs empty $ do
     let (FormT (IdT p _ n) _) = head fs
-        fs' = FormT (IdT p0 w2 n) (NullT p0 w2):tail fs 
-    return $ MultiDefs (fromForms $ fs'++fs++fs') p n 
-    
+        fs' = FormT (IdT p0 w2 n) (NullT p0 w2):tail fs
+    return $ MultiDefs (fromForms $ fs'++fs++fs') p n
+
 data ValidVars = ValidVars UniqueDefs deriving (Eq,Show)
 instance HasProg ValidVars where
   forms (ValidVars prog) = forms prog
@@ -76,7 +76,7 @@ instance Arbitrary UndefVars where
 mUndefVars pa f1 f2 = let empty = UndefVars (fromForms []) p0 "" in do
   fs <- liftM forms pa
   let ns = getRefed fs
-  nullGuard ns empty $ do 
+  nullGuard ns empty $ do
     n <- f1 ns
     let fs' = filter (usesVar n) fs
     nullGuard fs' empty $ do
@@ -117,9 +117,9 @@ usesVarE :: String -> ExpToken -> Bool
 usesVarE fn (FuncT _ _ es)     = any (usesFuncE fn) es
 usesVarE fn (ArrayT _ _ es)    = any (usesFuncE fn) es
 usesVarE fn (ObjT _ _ ps)      = any (usesFuncE fn.pairVal) ps
-usesVarE fn (VarT (IdT _ _ n)) = fn == n   
+usesVarE fn (VarT (IdT _ _ n)) = fn == n
 usesVarE _  _                  = False
-    
+
 getRefed = S.toList . f S.empty
   where f acc []                   = acc
         f acc (FormT _ e:fs)     = f (g acc e) fs
@@ -161,13 +161,13 @@ funcNames = concatMap f where
 
 insertTopShow fs = FormT (IdT p0 w2 "show") (FuncT "" (IdT p0 w2 "show") $ map formVal fs):fs
 
-replaceNonTopShows = map f where 
+replaceNonTopShows = map f where
   f (FormT n e)               = FormT n $ g e
   g (FuncT w (IdT q w' n) es) = FuncT w (IdT q w' (case n of "show" -> "notShow"; _ -> n)) $ map g es
   g (ArrayT p w es)           = ArrayT p w $ map g es
   g (ObjT p w ps)             = ObjT p w $ map (mapPair g) ps
-  g e                         = e  
-  
+  g e                         = e
+
 removeTopShow []                                                       = []
 removeTopShow (FormT (IdT _ _ "show") (FuncT _ (IdT _ _ "show") _):fs) = fs
 removeTopShow (f:fs)                                                   = f:removeTopShow fs
@@ -233,7 +233,7 @@ removeShows = fromForms.map f.forms where
   g (ArrayT p w es)           = ArrayT p w $ map g es
   g (ObjT p w ps)             = ObjT p w $ map (mapPair g) ps
   g e                         = e
-  
+
 replaceOneNonTopFunc :: String -> String -> FormToken -> State Pos FormToken
 replaceOneNonTopFunc fn n' (FormT n (FuncT w m es)) = liftM (FormT n .FuncT w m) $ mapM (replaceOneFuncE fn n') es
 replaceOneNonTopFunc fn n' (FormT n e)              = liftM (FormT n) $ replaceOneFuncE fn n' e
@@ -301,7 +301,7 @@ mCycleVars  :: Monad m => m ValidVars  -> ChooseString m -> m CycleVars
 
 mValidFuncs  :: Monad m => m ValidVars  -> m ValidFuncs
 mUndefFuncs  :: Monad m => m ValidFuncs -> ChooseString m -> ChooseForm m -> m UndefFuncs
-mNoShowFuncs :: Monad m => m ValidFuncs -> m NoShowFuncs 
+mNoShowFuncs :: Monad m => m ValidFuncs -> m NoShowFuncs
 
 derefValidProg  :: HasProg a => a -> a
 derefValidProg' :: HasProg a => a -> Table

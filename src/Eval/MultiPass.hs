@@ -15,7 +15,7 @@ import Data.Token              (ProgToken(..),FormToken(..),PairToken(..),IdToke
 import Data.Eval               (EvalError(..),Eval,State,Table)
 
 initTable :: ProgToken -> Eval Table
-initTable (ProgT _ fs) = foldM f M.empty fs where 
+initTable (ProgT _ fs) = foldM f M.empty fs where
   f m (FormT (IdT p _ name) value) = case M.lookup name m of
     Nothing -> Right $ M.insert name (value,p) m
     Just _  -> Left $ MultipleDefinitions p name
@@ -24,8 +24,8 @@ derefVars :: Table -> Eval Table
 derefVars = flip f M.empty where
  f pending finished = do
   (newPending, newFinished) <- foldM derefVar (pending,finished) $ M.toList pending
-  if M.null newPending      then return newFinished       else 
-   if pending /= newPending then f newPending newFinished else Left $ CycleInDefinitions $ zip (map snd $ M.elems pending) (M.keys pending) 
+  if M.null newPending      then return newFinished       else
+   if pending /= newPending then f newPending newFinished else Left $ CycleInDefinitions $ zip (map snd $ M.elems pending) (M.keys pending)
 
 derefVar :: State -> (String,(ExpToken,Pos)) -> Eval State
 derefVar (pending,finished) (n,(v,p)) = do
@@ -34,14 +34,14 @@ derefVar (pending,finished) (n,(v,p)) = do
 
 deref :: Table -> Table -> ExpToken -> Eval ExpToken
 deref ps fs (FuncT w n es)  = liftM (FuncT w n) $ mapM (deref ps fs) es
-deref ps fs (ArrayT p w es) = liftM (ArrayT p w)  $ mapM (deref ps fs) es             
+deref ps fs (ArrayT p w es) = liftM (ArrayT p w)  $ mapM (deref ps fs) es
 deref ps fs (ObjT p w ts)   = liftM (ObjT p w)    $ mapM (mapMPair $ deref ps fs) ts
 deref ps fs (VarT i)        = let IdT q _ n = i in case M.lookup n fs of Just (x,_) -> return x; Nothing -> case M.lookup n ps of Just _ -> return $ VarT i; Nothing -> Left $ UndefinedVariable q n
 deref _  _  e               = return e
 
 hasAnyVar :: ExpToken -> Bool
 hasAnyVar (FuncT _ _ es)  = any hasAnyVar es
-hasAnyVar (ArrayT _ _ es) = any hasAnyVar es             
+hasAnyVar (ArrayT _ _ es) = any hasAnyVar es
 hasAnyVar (ObjT _ _ ps)   = any (hasAnyVar.pairVal) ps
 hasAnyVar (VarT _)        = True
 hasAnyVar _               = False

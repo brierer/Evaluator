@@ -11,7 +11,7 @@ import Eval.EngineTestUtils                (TableValidArgs(..),addFunc',mk',mkO'
 import Eval.FunctionEvalTestUtils1         (ExpOA(..),TableOA(..),ExpTS(..),ArrayTS(..),applyFunc,p0)
 import Parser.MonolithicParserTestUtils    (P(..),NumTA(..),un)
 import Test.Framework                      (TestSuite,Property,makeTestSuite,makeQuickCheckTest,makeLoc,qcAssertion,(==>))
-                                           
+
 import Data.Vector                         (fromList)
 import Statistics.Sample                   (mean,variance,skewness,kurtosis)
 
@@ -50,36 +50,36 @@ prop_ReturnValueNTimes _ x y = error $ "EngineTest::prop_ReturnValueNTimes [Unex
 
 prop_ReturnValueTakeTable (P pf) (NumTA _ a1@(NumT _ _ _ v)) (TableOA a2tr@(TableO _ cols header)) = any (not.null) cols ==>
   let (fs,a2t) = addFunc' "mkTable" a2tr; n = floor v; expected = Right $ TableO pf (map (take n) cols) header in
-   expected == applyFunc fs  pf "take" [a1,a2t] && 
+   expected == applyFunc fs  pf "take" [a1,a2t] &&
    expected == evalStateT (takeTF pf n cols header) []
 prop_ReturnValueTakeTable _ x y = error $ "EngineTest::prop_ReturnValueTake [Unexpected pattern ["++show x++"] and ["++show y++"]]"
 
 prop_ReturnValueTakeArray (P pf) (NumTA _ a1@(NumT _ _ _ v)) a2as = not (null a2as) ==>
   let n = floor v; (a2s,a2a) = mk' a2as; a2ar = map unsafeMarshall a2s; expected = Right $ ArrayO pf $ take n a2ar in
-   expected == applyFunc funcs pf "take" [a1,a2a] && 
+   expected == applyFunc funcs pf "take" [a1,a2a] &&
    expected == evalStateT (takeAF pf n a2ar) []
 prop_ReturnValueTakeArray _ x y = error $ "EngineTest::prop_ReturnValueTake [Unexpected pattern ["++show x++"] and ["++show y++"]]"
 
 prop_ReturnValueSortTable (P pf) (NumTA _ a1') (TableOA a2tr@(TableO _ cols header)) = any (not.null) cols ==>
   let (a1,n) = keepInRange a1' (length cols); (fs,a2t) = addFunc' "mkTable" a2tr; expected = Right $ TableO pf (sortTOn n cols) header in
-   expected == applyFunc fs    pf "sort" [a1,a2t] && 
+   expected == applyFunc fs    pf "sort" [a1,a2t] &&
    expected == evalStateT (sortTF pf p0 n cols header) []
 prop_ReturnValueSortTable _ x y = error $ "EngineTest::prop_ReturnValueTake [Unexpected pattern ["++show x++"] and ["++show y++"]]"
 
 prop_ReturnValueSortArray (P pf) (NumTA _ a1') a2as = any (not.emptyArray.un) a2as ==>
   let (n, a1,aOfArrays,arrays,mArrays) = mkSortColArray a1' a2as; expected = Right $ ArrayO pf (sortAOn n $ map unsafeMarshall arrays)in
-   expected == applyFunc funcs pf "sort" [a1,aOfArrays] && 
+   expected == applyFunc funcs pf "sort" [a1,aOfArrays] &&
    expected == evalStateT (sortAF pf p0 n mArrays) []
 
 prop_ReturnValueColTable (P pf) (NumTA _ a1') (TableOA a2tr@(TableO _ cols _)) = any (not.null) cols ==>
   let (a1,n) = keepInRange a1' (length cols); (fs,a2t) = addFunc' "mkTable" a2tr; expected = Right $ ArrayO pf (cols !! n) in
-   expected == applyFunc fs    pf "col" [a1,a2t] && 
+   expected == applyFunc fs    pf "col" [a1,a2t] &&
    expected == evalStateT (colTF pf p0 n cols) []
 prop_ReturnValueColTable _ x y = error $ "EngineTest::prop_ReturnValueTake [Unexpected pattern ["++show x++"] and ["++show y++"]]"
 
 prop_ReturnValueColArray (P pf) (NumTA _ a1') a2as = any (not.emptyArray.un) a2as ==>
   let (n, a1,aOfArrays,arrays,mArrays) = mkSortColArray a1' a2as; expected = Right $ let ArrayO _ es = unsafeMarshall $ arrays !! n in ArrayO pf es in
-   expected == applyFunc funcs pf "col" [a1,aOfArrays] && 
+   expected == applyFunc funcs pf "col" [a1,aOfArrays] &&
    expected == evalStateT (colAF pf p0 n mArrays) []
 
 {-| Mandatory type signatures -}

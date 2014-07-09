@@ -80,15 +80,15 @@ instance Marshallable TokOrObj where
 
 data TestIndexesT = TestIndexesT [ExpToken] [Int] [Int] deriving (Show)
 data TestIndexesO = TestIndexesO [ExpObj]   [Int] [Int] deriving (Show)
-instance Arbitrary TestIndexesT where 
+instance Arbitrary TestIndexesT where
   arbitrary = do
     TestToks es <- arbitrary
     arbIndexes (permutations [0..5]) (TestIndexesT es)
   shrink (TestIndexesT es is rest) = do
     TestToks es' <- shrink $ TestToks es
     shrinkIndexes is rest (TestIndexesT es')
-  
-instance Arbitrary TestIndexesO where 
+
+instance Arbitrary TestIndexesO where
   arbitrary = do
     TestObjs os <- arbitrary
     ArrayOA a <- arbitrary
@@ -140,11 +140,11 @@ instance Arbitrary ArgErrorA where
      else return $ IllegalEmpty pos
 
 
-class AllUniquePos a where 
+class AllUniquePos a where
   allUniquePos :: [a] -> [a]
   allUniquePos = flip evalState (S.singleton (0,0)).mapM ensureUnique
-  
-  ensureUnique :: a -> State (S.Set Pos) a 
+
+  ensureUnique :: a -> State (S.Set Pos) a
 instance AllUniquePos ExpToken where
     ensureUnique (FuncT w i es)  = liftM (FuncT w i) $ mapM ensureUnique es
     ensureUnique (ArrayT p w es) = do p' <- add p; liftM (ArrayT p' w) $ mapM ensureUnique es

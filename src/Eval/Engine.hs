@@ -60,14 +60,14 @@ meanL   p [ArrayO _ ns]                         = meanF   p ns;                m
 descL   p [ArrayO _ ns]                         = descF   p ns;                descL   _ xs = error $ "Engine::descL  [Unexpected pattern ["++show xs++"]]"
 tableL  p [ArrayO _ es, ObjO _ ps]              = tableF  p es ps;             tableL  _ xs = error $ "Engine::tableL [Unexpected pattern ["++show xs++"]]"
 nTimesL p [v, NumO _ n]                         = nTimesF p v n;               nTimesL _ xs = error $ "Engine::descL  [Unexpected pattern ["++show xs++"]]"
-                                                                               
-takeL   p [NumO _ v,TableO _ ess h]             = takeTF  p (floor v) ess h    
+
+takeL   p [NumO _ v,TableO _ ess h]             = takeTF  p (floor v) ess h
 takeL   p [NumO _ v,ArrayO _ es]                = takeAF  p (floor v) es;      takeL   _ xs = error $ "Engine::takeL  [Unexpected pattern ["++show xs++"]]"
-                                                                               
-sortL   p [NumO pn v,TableO _ ess h]            = sortTF  p pn (floor v) ess h 
+
+sortL   p [NumO pn v,TableO _ ess h]            = sortTF  p pn (floor v) ess h
 sortL   p [NumO pn v,ArrayO _ es]               = sortAF  p pn (floor v) es;   sortL   _ xs = error $ "Engine::sortL  [Unexpected pattern ["++show xs++"]]"
-                                                                               
-colL    p [NumO pn v,TableO _ ess _]            = colTF   p pn (floor v) ess;  
+
+colL    p [NumO pn v,TableO _ ess _]            = colTF   p pn (floor v) ess;
 colL    p [NumO pn v,ArrayO _ es]               = colAF   p pn (floor v) es;   colL    _ xs = error $ "Engine::colL   [Unexpected pattern ["++show xs++"]]"
 
 plotL   p [ArrayO _ xs, ArrayO _ ys, ObjO _ ps] = plotF p xs ys ps;            plotL   _ xs = error $ "Engine::plotL  [Unexpected pattern ["++show xs++"]]"
@@ -145,7 +145,7 @@ takeAF  p n es = return $ ArrayO p $ take n es
 sortTF :: Pos -> Pos -> Int -> [[ExpObj]] -> [ExpObj] -> EvalFunc ExpObj
 sortTF p pn n ess h = liftM (flip (TableO p) h) $ sortMatrix pn n ess
 
-sortMatrix :: Ord a => Pos -> Int -> [[a]] -> EvalFunc [[a]] 
+sortMatrix :: Ord a => Pos -> Int -> [[a]] -> EvalFunc [[a]]
 sortMatrix pn n ess = validateIndex pn n 0 (length ess - 1) >> return (transpose $ map snd $ sort $ zip (ess !! n) $ transpose ess)
 
 validateIndex :: Pos -> Int -> Int -> Int -> EvalFunc ()
