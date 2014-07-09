@@ -63,7 +63,7 @@ tableHeaderLengthCase pa g1as g2s =
 
 equalize g1ss = map (take l) g1ss where l = minimum $ map length g1ss
 
-mkMultiMeanReturn a1as pa = let a1s = uns a1as; a1rs = map (\(NumT q _ _ x) -> NumO q x) a1s; a1 = ArrayT pa ("","") a1s; a1r = ArrayO pa a1rs in (a1,a1rs,a1r)
+mkMultiMeanReturn a1as pa = let a1s = uns a1as; a1rs = map (\(NumT q _ _ x) -> NumO q x) a1s; a1 = ArrayT pa ("","") a1s in (a1,a1rs)
 
 unprecise :: Monad m => m ExpObj -> m ExpObj
 unprecise = liftM moo where
@@ -83,6 +83,9 @@ mkTableValidArgs pf g1ss g2s useHeader =
       g2 = ObjT p0 ws2 inputHeader
       expected       = Right (TableO pf (map (map unsafeMarshall) g1ss) expectedHeader)
   in (g1,g2,expected)
+
+unsafeMarshallP :: PairToken -> (String,ExpObj)
+unsafeMarshallP (PairT (IdT _ _ n) e) = (n,unsafeMarshall e)
 
 unsafeMarshall :: ExpToken -> ExpObj
 unsafeMarshall (ArrayT p _ es) = ArrayO p $ map unsafeMarshall es
