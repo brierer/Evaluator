@@ -2,8 +2,8 @@
 {-# OPTIONS_GHC -fno-warn-incomplete-patterns  #-}
 module Parser.MonolithicParserTestUtils where
 
+import Data.ExpToken                   (ProgToken(..),FormToken(..),PairToken(..),IdToken(..),ExpToken(..))
 import Data.List                       ((\\))
-import Data.Token                      (ProgToken(..),FormToken(..),PairToken(..),IdToken(..),ExpToken(..))
 import Control.Applicative             (Applicative,(<$>),(<*>))
 import Control.Monad                   (liftM,liftM2,join,replicateM)
 import Numeric                         (showEFloat)

@@ -17,7 +17,7 @@ module Parser.Monolithic
 
 import Data.Char                     (toLower)
 import Data.List                     (intercalate)
-import Data.Token                    (ProgToken(..),FormToken(..),PairToken(..),IdToken(..),ExpToken(..),IntegerS)
+import Data.ExpToken                    (ProgToken(..),FormToken(..),PairToken(..),IdToken(..),ExpToken(..),IntegerS)
 import Control.Monad                 (liftM,liftM2)
 import Control.Applicative           ((<$), (<$>), (<*>))
 import Text.ParserCombinators.Parsec (Parser,many,space,sepBy,char,try,notFollowedBy,oneOf,

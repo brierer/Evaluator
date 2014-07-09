@@ -1,7 +1,7 @@
 {-# OPTIONS_GHC -F -pgmF htfpp #-}
 module Eval.MultiPassEvalTest where
 
-import Data.Eval                   (EvalError(..))
+import Data.EvalError              (EvalError(..))
 import Eval.MultiPassEvalTestUtils (HasProg,UniqueDefs(..),MultiDefs(..),ValidVars(..),UndefVars(..),CycleVars(..),ValidFuncs(..),UndefFuncs(..),NonTopShowFuncs(..),NoShowFuncs(..),
                                     initTable',derefValidProg',nonEmpty,fromProgForms,toToken)
 import Eval.MultiPass              (initTable,derefVars,validateFunctions)

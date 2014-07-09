@@ -15,8 +15,10 @@ import qualified Prelude as P (any,null)
 
 import Control.Monad.State    (evalStateT,get,lift)
 import Control.Monad          (liftM,liftM2,zipWithM,when,(>=>))
-import Data.Eval              (EvalError(..),Type(..),ExpObj(..),EvalError(..),Eval,FuncEntry,EvalFunc,TypeValidator(..),Func(..))
-import Data.Token             (PairToken(..),IdToken(..),ExpToken(..),Pos)
+import Data.Eval              (Eval,FuncEntry,EvalFunc,TypeValidator(..),Func(..))
+import Data.EvalError         (EvalError(..))
+import Data.ExpObj            (Type(..),ExpObj(..))
+import Data.ExpToken          (PairToken(..),IdToken(..),ExpToken(..),Pos)
 
 class Marshallable a where
   marshall :: a -> EvalFunc ExpObj

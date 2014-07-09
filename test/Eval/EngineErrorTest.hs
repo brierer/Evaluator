@@ -5,8 +5,9 @@ import qualified Eval.EngineTestUtils as E (fs)
 
 import Control.Arrow                       ((***))
 import Control.Monad.State                 (evalStateT)
-import Data.Eval                           (EvalError(..),ExpObj(..))
-import Data.Token                          (ExpToken(..))
+import Data.EvalError                      (EvalError(..))
+import Data.ExpObj                         (ExpObj(..))
+import Data.ExpToken                       (ExpToken(..))
 import Eval.Engine                         (funcs,sortTF,sortAF,colTF,colAF)
 import Eval.EngineTestUtils                (addFunc,mk,mk',mkObj,mkObj',oneArrayOfNum,success,toArray,emptyArray,emptySortColCase,
                                             tableColumnLengthCase,tableHeaderLengthCase,mkOutOfBoundsTable,mkOutOfBoundsArray)

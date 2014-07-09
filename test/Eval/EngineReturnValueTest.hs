@@ -2,9 +2,9 @@
 module Eval.EngineReturnValueTest where
 
 import Control.Monad.State                 (evalStateT)
-import Data.Eval                           (ExpObj(..))
+import Data.ExpObj                         (ExpObj(..))
+import Data.ExpToken                       (ExpToken(..))
 import Data.List                           (genericLength)
-import Data.Token                          (ExpToken(..))
 import Eval.Engine                         (funcs,showF,multiF,meanF,descF,tableF,nTimesF,takeTF,takeAF,sortTF,sortAF,colTF,colAF)
 import Eval.EngineTestUtils                (TableValidArgs(..),addFunc',mk',mkO',tablesAndPlots,emptyArray,mkMultiMeanReturn,unprecise,
                                             mkTableValidArgs,unsafeMarshallP,unsafeMarshall,sortTOn,sortAOn,keepInRange,mkSortColArray)

@@ -1,4 +1,4 @@
-module Data.Token
+module Data.ExpToken
 ( ProgToken(..)
 , FormToken(..)
 , PairToken(..)

@@ -25,12 +25,12 @@ executable Evaluator
                    QuickCheck >=2.6 && <2.7
   ghc-options:     -Wall
   other-modules:   
-                   Data.Token,
                    Parser.Monolithic,
                    Eval.MultiPass,
                    Eval.Function,
                    Data.Eval,
-                   Eval.Engine
+                   Eval.Engine,
+                   Data.EvalError
 
 test-suite Evaluator-tests
   type:           exitcode-stdio-1.0
@@ -44,7 +44,6 @@ test-suite Evaluator-tests
                  src,
                  test
   other-modules: 
-                 Data.Token,
                  Parser.Monolithic,
                  Eval.MultiPass,
                  Eval.FunctionEvalTest,
@@ -57,4 +56,5 @@ test-suite Evaluator-tests
                  Eval.Engine,
                  Eval.EngineTestUtils,
                  Eval.FunctionEvalTestUtils1,
-                 Eval.EngineReturnValueTest
+                 Eval.EngineReturnValueTest,
+                 Data.EvalError

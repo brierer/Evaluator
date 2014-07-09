@@ -7,8 +7,10 @@ import qualified Prelude as P           (any,null)
 
 import Control.Arrow                    (second)
 import Control.Monad                    (liftM)
-import Data.Eval                        (EvalError(..),ExpObj(..),Type(..),Func(..),TypeValidator(..))
-import Data.Token                       (PairToken(..),IdToken(..),ExpToken(..))
+import Data.Eval                        (Func(..),TypeValidator(..))
+import Data.EvalError                   (EvalError(..))
+import Data.ExpObj                      (Type(..),ExpObj(..))
+import Data.ExpToken                    (PairToken(..),IdToken(..),ExpToken(..))
 import Eval.Function                    (Marshallable(..),table,plot,array,obj,str,num,bool,null,any,noLit,noLitType,lit,litType,nonEmpty,args,withFuncs,evalError)
 import Eval.FunctionEvalTestUtils1      (TestToks(..),TestObjs(..),ExpOA(..),TableOA(..),PlotOA(..),ArrayOA(..),ObjOA(..),StrOA(..),NumOA(..),BoolOA(..),NullOA(..),
                                          ExpTS(..),ArrayTS(..),ObjTS(..),ArrayTF(..),ObjTF(..),testFunc,forAll,testS,testF,mkFunc,funcNamesLit,funcNamesNoLit)

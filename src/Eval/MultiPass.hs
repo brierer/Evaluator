@@ -11,8 +11,9 @@ module Eval.MultiPass
 import qualified Data.Map as M (empty,lookup,insert,null,toList,keys,delete,elems)
 
 import Control.Monad           (foldM,liftM,liftM2)
-import Data.Token              (ProgToken(..),FormToken(..),PairToken(..),IdToken(..),ExpToken(..),Pos)
-import Data.Eval               (EvalError(..),Eval,State,Table)
+import Data.Eval               (Eval,State,Table)
+import Data.EvalError          (EvalError(..))
+import Data.ExpToken           (ProgToken(..),FormToken(..),PairToken(..),IdToken(..),ExpToken(..),Pos)
 
 initTable :: ProgToken -> Eval Table
 initTable (ProgT _ fs) = foldM f M.empty fs where
