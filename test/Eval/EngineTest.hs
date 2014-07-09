@@ -8,17 +8,18 @@ import Control.Monad.State                 (evalStateT)
 import Data.Eval                           (EvalError(..),ExpObj(..))
 import Data.List                           (genericLength)
 import Data.Token                          (ExpToken(..))
-import Eval.Engine                         (funcs,showF,multiF,meanF,descF,tableF)
+import Eval.Engine                         (funcs,showF,multiF,meanF,descF,tableF,nTimesF)
 import Eval.EngineTestUtils                (TableValidArgs(..),addFunc,addFunc',mk,mk',mkO',mkObj,mkObj',oneArrayOfNum,success,toArray,tablesAndPlots,emptyArray,emptySortColCase,
                                             tableColumnLengthCase,tableHeaderLengthCase,mkMultiMeanReturn,unprecise,mkTableValidArgs,unsafeMarshall)
 import Eval.Function                       (table,plot,array,str,num,arrayOf,objOf,nonEmpty,(<|>),withFuncs)
 import Eval.FunctionEvalTestUtils1         (ExpOA(..),TableOA(..),NumOA(..),ExpTS(..),ArrayTS(..),applyFunc)
 import Eval.FunctionEvalTestUtils2         (Is(..))
-import Parser.MonolithicParserTestUtils    (P(..),ExpTA(..),StrTA(..),NumTA(..),to,un,uns)
-import Test.Framework                      (TestSuite,Property,makeTestSuite,makeQuickCheckTest,makeLoc,qcAssertion,(==>))
+import Parser.MonolithicParserTestUtils   -- (P(..),ExpTA(..),StrTA(..),NumTA(..),to,un,uns)
+import Test.Framework                 --     (TestSuite,Property,makeTestSuite,makeQuickCheckTest,makeLoc,qcAssertion,(==>))
 
 import Data.Vector (fromList)
 import Statistics.Sample
+
 
 prop_NbArgs1 (P p) esTA = length esTA > 1 ==> let es = uns esTA in
     all (\name -> Left (InvalidNbOfArgs p name 1 0)           == applyFunc E.fs p name ([] :: [ExpToken])
@@ -113,37 +114,12 @@ tableArg = nonEmpty $ arrayOf $ nonEmpty array
 prop_TypeMismatchPlotLine (P p) g1as g2as g3as w1as (ExpTS w1') w2as (ExpTS w2') w3as (ExpTS w3') =
   let (_,g1) = mk' g1as; (_,g2) = mk' g2as; (_,g3) = mkObj' g3as; (w1s,w1) = mk' w1as; (w2s,w2) = mk' w2as; (w3s,w3) = mkObj' w3as in 
   any (not.isNum) w1s && not (isArray w1') && any (not.isNum) w2s && not (isArray w2') && any (not.isStr) w3s && not (isObj w3') ==>
-    withFuncs E.fs (arrayOf num) w1  == applyFunc E.fs p "plotLine" [w1 ,g2 ,g3]  &&
-    withFuncs E.fs (arrayOf num) w1  == applyFunc E.fs p "plotLine" [w1 ,w2 ,g3]  &&
-    withFuncs E.fs (arrayOf num) w1  == applyFunc E.fs p "plotLine" [w1 ,w2',g3]  &&
-    withFuncs E.fs (arrayOf num) w1  == applyFunc E.fs p "plotLine" [w1 ,g2 ,w3]  &&
-    withFuncs E.fs (arrayOf num) w1  == applyFunc E.fs p "plotLine" [w1 ,g2 ,w3'] &&
-    withFuncs E.fs (arrayOf num) w1  == applyFunc E.fs p "plotLine" [w1 ,w2 ,w3]  &&
-    withFuncs E.fs (arrayOf num) w1  == applyFunc E.fs p "plotLine" [w1 ,w2',w3]  &&
-    withFuncs E.fs (arrayOf num) w1  == applyFunc E.fs p "plotLine" [w1 ,w2 ,w3'] &&
-    withFuncs E.fs (arrayOf num) w1  == applyFunc E.fs p "plotLine" [w1 ,w2',w3'] &&
-                                     
-    withFuncs E.fs (arrayOf num) w1' == applyFunc E.fs p "plotLine" [w1',g2 ,g3]  &&
-    withFuncs E.fs (arrayOf num) w1' == applyFunc E.fs p "plotLine" [w1',w2 ,g3]  &&
-    withFuncs E.fs (arrayOf num) w1' == applyFunc E.fs p "plotLine" [w1',w2',g3]  &&
-    withFuncs E.fs (arrayOf num) w1' == applyFunc E.fs p "plotLine" [w1',g2 ,w3]  &&
-    withFuncs E.fs (arrayOf num) w1' == applyFunc E.fs p "plotLine" [w1',g2 ,w3'] &&
-    withFuncs E.fs (arrayOf num) w1' == applyFunc E.fs p "plotLine" [w1',w2 ,w3]  &&
-    withFuncs E.fs (arrayOf num) w1' == applyFunc E.fs p "plotLine" [w1',w2',w3]  &&
-    withFuncs E.fs (arrayOf num) w1' == applyFunc E.fs p "plotLine" [w1',w2 ,w3'] &&
-    withFuncs E.fs (arrayOf num) w1' == applyFunc E.fs p "plotLine" [w1',w2',w3'] &&
-                                     
-    withFuncs E.fs (arrayOf num) w2  == applyFunc E.fs p "plotLine" [g1 ,w2 ,g3]  &&
-    withFuncs E.fs (arrayOf num) w2  == applyFunc E.fs p "plotLine" [g1 ,w2 ,w3]  &&
-    withFuncs E.fs (arrayOf num) w2  == applyFunc E.fs p "plotLine" [g1 ,w2 ,w3'] &&
-    
-    withFuncs E.fs (arrayOf num) w2' == applyFunc E.fs p "plotLine" [g1 ,w2',g3]  &&
-    withFuncs E.fs (arrayOf num) w2' == applyFunc E.fs p "plotLine" [g1 ,w2',w3]  &&
-    withFuncs E.fs (arrayOf num) w2' == applyFunc E.fs p "plotLine" [g1 ,w2',w3'] &&
-    
+    all (\xs -> withFuncs E.fs (arrayOf num) w1  == applyFunc E.fs p "plotLine" xs) [[w1 ,x  ,y] | x <- [g2,w2,w2'], y <- [g3,w3,w3']] &&
+    all (\xs -> withFuncs E.fs (arrayOf num) w1' == applyFunc E.fs p "plotLine" xs) [[w1',x  ,y] | x <- [g2,w2,w2'], y <- [g3,w3,w3']] &&
+    all (\xs -> withFuncs E.fs (arrayOf num) w2  == applyFunc E.fs p "plotLine" xs) [[g1 ,w2 ,x] | x <- [g3,w3,w3']] &&
+    all (\xs -> withFuncs E.fs (arrayOf num) w2' == applyFunc E.fs p "plotLine" xs) [[g1 ,w2',x] | x <- [g3,w3,w3']] &&
     withFuncs E.fs (objOf str) w3    == applyFunc E.fs p "plotLine" [g1 ,g2, w3]  &&
     withFuncs E.fs (objOf str) w3'   == applyFunc E.fs p "plotLine" [g1 ,g2, w3'] &&
-                                     
     success "plotLine"               == applyFunc E.fs p "plotLine" [g1 ,g2 ,g3]
 
 prop_EmptyArgMulti (P pf) (P pa) g1as = not (null g1as) ==>
@@ -201,6 +177,11 @@ prop_ReturnValueTable (P pf) (TableValidArgs g1ss g2s) useHeader = any (not.null
    expected == applyFunc funcs pf "table" [g1, g2] &&
    expected == evalStateT (tableF pf [unsafeMarshall g1,unsafeMarshall g2]) []
 
+prop_ReturnValueNTimes (P pf) a1@(NumTA _ (NumT p1 _ _ v1)) a2@(NumTA _ (NumT p2 _ _ v2)) = 
+  let expected = Right $ ArrayO pf $ replicate (floor v2) (NumO p1 v1) in
+      expected == applyFunc funcs pf "nTimes" [un a1, un a2] &&
+      expected == evalStateT (nTimesF pf [NumO p1 v1, NumO p2 v2]) []
+prop_ReturnValueNTimes _ x y = error $ "EngineTest::prop_ReturnValueNTimes [Unexpected pattern ["++show x++"] and ["++show y++"]]"
 
 {-| Mandatory type signatures -}
 prop_NbArgs1 :: P -> [ExpTA] ->  Property
@@ -228,11 +209,11 @@ prop_EmptyArgCol   :: P -> P -> NumTA -> [ArrayTS] -> [ArrayTS]              -> 
 prop_TableColumnLengthMismatch :: [(P,[ExpTS])]  -> [(String,[StrTA])] -> Property
 prop_TableHeaderLengthMismatch :: P -> [ArrayTS] -> [StrTA]            -> Property
 
-prop_ReturnValueShow  :: P      -> [ExpOA]           -> Property
-prop_ReturnValueMulti :: P -> P -> [NumTA]           -> Property
-prop_ReturnValueMean  :: P -> P -> [NumTA]           -> Property
-prop_ReturnValueDesc  :: P -> P -> [NumTA]           -> Property 
-prop_ReturnValueTable :: P -> TableValidArgs -> Bool -> Property
+prop_ReturnValueShow   :: P      -> [ExpOA]           -> Property
+prop_ReturnValueMulti  :: P -> P -> [NumTA]           -> Property
+prop_ReturnValueMean   :: P -> P -> [NumTA]           -> Property
+prop_ReturnValueDesc   :: P -> P -> [NumTA]           -> Property 
+prop_ReturnValueTable  :: P -> TableValidArgs -> Bool -> Property
 
 {-|
 show = show([tservice,tsalaire,trente])
