@@ -9,7 +9,7 @@ module Eval.Engine
 , takeTF, takeAF
 , sortTF, sortAF
 ,  colTF,  colAF
-, plotLineF
+, plotF
 ) where
 
 import Prelude hiding             (sum,exp,null)
@@ -20,6 +20,7 @@ import qualified Data.Vector as V (length)
 import Control.Monad              (liftM,when)
 import Data.Eval                  (EvalError(..),ExpObj(..),EvalFunc,FuncEntry,Func(..))
 import Data.List                  (sort,transpose)
+import Data.Maybe                 (maybeToList)
 import Data.Token                 (Pos)
 import Data.Vector                (Vector,fromList,toList)
 import Eval.Function              (table,plot,array,str,num,arrayOf,objOf,nonEmpty,(<|>),evalError)
@@ -38,7 +39,7 @@ funcs = -- 1 arg functions
         , ("sort",       ([num                     , table <|> tableArg           ], Func sortL))
         , ("col",        ([num                     , table <|> tableArg           ], Func colL))
           -- 3 arg functions
-        , ("plotLine",   ([arrayOf num             , arrayOf num       , objOf str], Func plotLineL))
+        , ("plot",       ([arrayOf num             , arrayOf num       , objOf str], Func plotL))
         ] where tableArg = nonEmpty $ arrayOf $ nonEmpty array
 
 {-| Function stubs: extract from list and call the actual function -}
@@ -51,25 +52,25 @@ nTimesL    :: Pos -> [ExpObj] -> EvalFunc ExpObj
 takeL      :: Pos -> [ExpObj] -> EvalFunc ExpObj
 sortL      :: Pos -> [ExpObj] -> EvalFunc ExpObj
 colL       :: Pos -> [ExpObj] -> EvalFunc ExpObj
-plotLineL  :: Pos -> [ExpObj] -> EvalFunc ExpObj
+plotL  :: Pos -> [ExpObj] -> EvalFunc ExpObj
 
-showL   p [x]                        = showF   p x;                 showL   _ xs = error $ "Engine::showL  [Unexpected pattern ["++show xs++"]]"
-multiL  p [ArrayO _ ns]              = multiF  p ns;                multiL  _ xs = error $ "Engine::multiL [Unexpected pattern ["++show xs++"]]"
-meanL   p [ArrayO _ ns]              = meanF   p ns;                meanL   _ xs = error $ "Engine::meanL  [Unexpected pattern ["++show xs++"]]"
-descL   p [ArrayO _ ns]              = descF   p ns;                descL   _ xs = error $ "Engine::descL  [Unexpected pattern ["++show xs++"]]"
-tableL  p [ArrayO _ es, ObjO _ ps]   = tableF  p es ps;             tableL  _ xs = error $ "Engine::tableL [Unexpected pattern ["++show xs++"]]"
-nTimesL p [v, NumO _ n]              = nTimesF p v n;               nTimesL _ xs = error $ "Engine::descL  [Unexpected pattern ["++show xs++"]]"
+showL   p [x]                                   = showF   p x;                 showL   _ xs = error $ "Engine::showL  [Unexpected pattern ["++show xs++"]]"
+multiL  p [ArrayO _ ns]                         = multiF  p ns;                multiL  _ xs = error $ "Engine::multiL [Unexpected pattern ["++show xs++"]]"
+meanL   p [ArrayO _ ns]                         = meanF   p ns;                meanL   _ xs = error $ "Engine::meanL  [Unexpected pattern ["++show xs++"]]"
+descL   p [ArrayO _ ns]                         = descF   p ns;                descL   _ xs = error $ "Engine::descL  [Unexpected pattern ["++show xs++"]]"
+tableL  p [ArrayO _ es, ObjO _ ps]              = tableF  p es ps;             tableL  _ xs = error $ "Engine::tableL [Unexpected pattern ["++show xs++"]]"
+nTimesL p [v, NumO _ n]                         = nTimesF p v n;               nTimesL _ xs = error $ "Engine::descL  [Unexpected pattern ["++show xs++"]]"
+                                                                               
+takeL   p [NumO _ v,TableO _ ess h]             = takeTF  p (floor v) ess h    
+takeL   p [NumO _ v,ArrayO _ es]                = takeAF  p (floor v) es;      takeL   _ xs = error $ "Engine::takeL  [Unexpected pattern ["++show xs++"]]"
+                                                                               
+sortL   p [NumO pn v,TableO _ ess h]            = sortTF  p pn (floor v) ess h 
+sortL   p [NumO pn v,ArrayO _ es]               = sortAF  p pn (floor v) es;   sortL   _ xs = error $ "Engine::sortL  [Unexpected pattern ["++show xs++"]]"
+                                                                               
+colL    p [NumO pn v,TableO _ ess _]            = colTF   p pn (floor v) ess;  
+colL    p [NumO pn v,ArrayO _ es]               = colAF   p pn (floor v) es;   colL    _ xs = error $ "Engine::colL   [Unexpected pattern ["++show xs++"]]"
 
-takeL   p [NumO _ v,TableO _ ess h]  = takeTF  p (floor v) ess h
-takeL   p [NumO _ v,ArrayO _ es]     = takeAF  p (floor v) es;      takeL   _ xs = error $ "Engine::takeL  [Unexpected pattern ["++show xs++"]]"
-
-sortL   p [NumO pn v,TableO _ ess h] = sortTF  p pn (floor v) ess h
-sortL   p [NumO pn v,ArrayO _ es]    = sortAF  p pn (floor v) es;   sortL   _ xs = error $ "Engine::sortL  [Unexpected pattern ["++show xs++"]]"
-
-colL    p [NumO pn v,TableO _ ess _] = colTF   p pn (floor v) ess;
-colL    p [NumO pn v,ArrayO _ es]    = colAF   p pn (floor v) es;   colL    _ xs = error $ "Engine::colL   [Unexpected pattern ["++show xs++"]]"
-
-plotLineL    = error "Eval.Function::plotLineL  [Not Implemented]"
+plotL   p [ArrayO _ xs, ArrayO _ ys, ObjO _ ps] = plotF p xs ys ps;            plotL   _ xs = error $ "Engine::plotL  [Unexpected pattern ["++show xs++"]]"
 
 {-| Actual Functions -}
 -- Wrap the topmost result (table or plot) in an object (arbitrary, otherwise the object would be left unchanged)
@@ -163,8 +164,15 @@ colTF p pn n ess = validateIndex pn n 0 (length ess - 1) >> return (ArrayO p $ e
 colAF :: Pos -> Pos -> Int -> [ExpObj] -> EvalFunc ExpObj
 colAF p pn n arrays = validateIndex pn n 0 (length arrays - 1) >> return (let ArrayO _ es = arrays !! n in ArrayO p es)
 
-plotLineF    = error "Eval.Function::plotLineF  [Not Implemented]"
+-- Plots a line graph using the (x,y) points
+plotF :: Pos -> [ExpObj] -> [ExpObj] -> [(String,ExpObj)] -> EvalFunc ExpObj
+plotF p xs ys ps = return $ PlotO p (zip xs ys) $ getAttributes ps
 
+getAttributes :: [(String,ExpObj)] -> [(String,ExpObj)]
+getAttributes ps = let mTitle = moo "title"
+                       mColor = moo "color"
+                       moo n = maybeToList $ do r <- lookup n ps; return (n,r)
+                   in  mTitle ++ mColor
 
 
 

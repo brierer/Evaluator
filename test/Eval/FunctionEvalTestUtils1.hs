@@ -66,9 +66,9 @@ equalize xss = let n = minimum $ map length xss in map (take n) xss
 
 data PlotOA = PlotOA ExpObj deriving (Show)
 instance Unto PlotOA ExpObj where to = PlotOA; un (PlotOA p) = p
-instance Arbitrary PlotOA where arbitrary = sized1 tall; shrink (PlotOA (PlotO p ps o)) = mPlotOA (tShrink p) (tShrinks ps)      (tShrink o)
-instance Tall      PlotOA where                                                  tall n = mPlotOA  arbitrary  (sListOf $ tall n) (tall n)
-mPlotOA = liftMF3 mkPlot un uns un where mkPlot x y = PlotOA .PlotO x y
+instance Arbitrary PlotOA where arbitrary = sized1 tall; shrink (PlotOA (PlotO p ps o)) = mPlotOA (tShrink p) (tShrinks ps)      (tShrinks o)
+instance Tall      PlotOA where                                                  tall n = mPlotOA  arbitrary  (sListOf $ tall n) (sListOf $ tall n)
+mPlotOA = liftMF3 mkPlot un uns uns where mkPlot x y = PlotOA .PlotO x y
 instance Unto (ExpOA,ExpOA) (ExpObj,ExpObj) where un (x,y) = (un x, un y); to (x,y) = (to x, to y)
 instance Tall (ExpOA,ExpOA) where tall n =  liftM2 (,) (tall n) (tall n)
 
@@ -202,15 +202,15 @@ testE e               = error $ "FunctionEvalTestUtils::testF [Failed pattern ma
 mTestToks :: (Applicative m, Monad m) => m ArrayTS -> m ObjTS -> m StrTA -> m NumTA -> m BoolTA -> m NullTA -> m TestToks
 mTestObjs :: (Applicative m, Monad m) => m TableOA -> m PlotOA                                              -> m TestObjs
 
-mExpOA    :: (Applicative m, Monad m) => m ExpObj                                  -> m ExpOA
-mTableOA  :: (Applicative m, Monad m) => m P -> m [[ExpOA]]       -> m [ExpOA]     -> m TableOA
-mPlotOA   :: (Applicative m, Monad m) => m P -> m [(ExpOA,ExpOA)] -> m  ObjOA      -> m PlotOA
-mArrayOA  :: (Applicative m, Monad m) => m P -> m [ExpOA]                          -> m ArrayOA
-mObjOA    :: (Applicative m, Monad m) => m P -> m [(String,ExpOA)]                 -> m ObjOA
-mStrOA    :: (Applicative m, Monad m) => m P -> m String                           -> m StrOA
-mNumOA    :: (Applicative m, Monad m) => m P -> m Double                           -> m NumOA
-mBoolOA   :: (Applicative m, Monad m) => m P -> m Bool                             -> m BoolOA
-mNullOA   :: (Applicative m, Monad m) => m P                                       -> m NullOA
+mExpOA    :: (Applicative m, Monad m) => m ExpObj                                       -> m ExpOA
+mTableOA  :: (Applicative m, Monad m) => m P -> m [[ExpOA]]       -> m [ExpOA]          -> m TableOA
+mPlotOA   :: (Applicative m, Monad m) => m P -> m [(ExpOA,ExpOA)] -> m [(String,ExpOA)] -> m PlotOA
+mArrayOA  :: (Applicative m, Monad m) => m P -> m [ExpOA]                               -> m ArrayOA
+mObjOA    :: (Applicative m, Monad m) => m P -> m [(String,ExpOA)]                      -> m ObjOA
+mStrOA    :: (Applicative m, Monad m) => m P -> m String                                -> m StrOA
+mNumOA    :: (Applicative m, Monad m) => m P -> m Double                                -> m NumOA
+mBoolOA   :: (Applicative m, Monad m) => m P -> m Bool                                  -> m BoolOA
+mNullOA   :: (Applicative m, Monad m) => m P                                            -> m NullOA
 
 mExpTS    :: (Applicative m, Monad m) => m ExpTA   -> m ExpTS
 mArrayTS  :: (Applicative m, Monad m) => m ArrayTA -> m ArrayTS

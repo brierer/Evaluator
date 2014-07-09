@@ -32,7 +32,7 @@ prop_NbArgs3 (P p) esTA = length esTA > 3 ==> let es = uns esTA in
              && Left (InvalidNbOfArgs p name 3 1)           == applyFunc E.fs p name (take 1 es)
              && Left (InvalidNbOfArgs p name 3 2)           == applyFunc E.fs p name (take 2 es)
              && Left (InvalidNbOfArgs p name 3 (length es)) == applyFunc E.fs p name es)
-    ["plotLine"]
+    ["plot"]
 
 prop_TypeMismatchShow (P p) (ExpOA g1r) w1as (ExpTS w1') =
   let (fs,g1) = addFunc "tableOrPlot" g1r; (w1s,w1) = mk' w1as in (isTable g1r || isPlot g1r) && not (null w1s) && not (isArray w1') ==>
@@ -109,13 +109,13 @@ tableArg = nonEmpty $ arrayOf $ nonEmpty array
 prop_TypeMismatchPlotLine (P p) g1as g2as g3as w1as (ExpTS w1') w2as (ExpTS w2') w3as (ExpTS w3') =
   let (_,g1) = mk' g1as; (_,g2) = mk' g2as; (_,g3) = mkObj' g3as; (w1s,w1) = mk' w1as; (w2s,w2) = mk' w2as; (w3s,w3) = mkObj' w3as in
   any (not.isNum) w1s && not (isArray w1') && any (not.isNum) w2s && not (isArray w2') && any (not.isStr) w3s && not (isObj w3') ==>
-    all (\xs -> withFuncs E.fs (arrayOf num) w1  == applyFunc E.fs p "plotLine" xs) [[w1 ,x  ,y] | x <- [g2,w2,w2'], y <- [g3,w3,w3']] &&
-    all (\xs -> withFuncs E.fs (arrayOf num) w1' == applyFunc E.fs p "plotLine" xs) [[w1',x  ,y] | x <- [g2,w2,w2'], y <- [g3,w3,w3']] &&
-    all (\xs -> withFuncs E.fs (arrayOf num) w2  == applyFunc E.fs p "plotLine" xs) [[g1 ,w2 ,x] | x <- [g3,w3,w3']] &&
-    all (\xs -> withFuncs E.fs (arrayOf num) w2' == applyFunc E.fs p "plotLine" xs) [[g1 ,w2',x] | x <- [g3,w3,w3']] &&
-    withFuncs E.fs (objOf str) w3    == applyFunc E.fs p "plotLine" [g1 ,g2, w3]  &&
-    withFuncs E.fs (objOf str) w3'   == applyFunc E.fs p "plotLine" [g1 ,g2, w3'] &&
-    success "plotLine"               == applyFunc E.fs p "plotLine" [g1 ,g2 ,g3]
+    all (\xs -> withFuncs E.fs (arrayOf num) w1  == applyFunc E.fs p "plot" xs) [[w1 ,x  ,y] | x <- [g2,w2,w2'], y <- [g3,w3,w3']] &&
+    all (\xs -> withFuncs E.fs (arrayOf num) w1' == applyFunc E.fs p "plot" xs) [[w1',x  ,y] | x <- [g2,w2,w2'], y <- [g3,w3,w3']] &&
+    all (\xs -> withFuncs E.fs (arrayOf num) w2  == applyFunc E.fs p "plot" xs) [[g1 ,w2 ,x] | x <- [g3,w3,w3']] &&
+    all (\xs -> withFuncs E.fs (arrayOf num) w2' == applyFunc E.fs p "plot" xs) [[g1 ,w2',x] | x <- [g3,w3,w3']] &&
+    withFuncs E.fs (objOf str) w3    == applyFunc E.fs p "plot" [g1 ,g2, w3]  &&
+    withFuncs E.fs (objOf str) w3'   == applyFunc E.fs p "plot" [g1 ,g2, w3'] &&
+    success "plot"               == applyFunc E.fs p "plot" [g1 ,g2 ,g3]
 
 prop_EmptyArgMulti (P pf) (P pa) g1as = not (null g1as) ==>
   let (_,g1) = mk' g1as; (_,w1) = mk pa ([] :: [NumTA])

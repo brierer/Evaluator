@@ -156,7 +156,7 @@ instance AllUniquePos ExpToken where
 
 instance AllUniquePos ExpObj where
   ensureUnique (TableO p a b) = do p' <- add p; liftM2 (TableO p') (mapM (mapM ensureUnique) a) (mapM ensureUnique b)
-  ensureUnique (PlotO  p a b) = do p' <- add p; liftM2 (PlotO p')  (mapM (\(x,y) -> liftM2 (,) (ensureUnique x) (ensureUnique y)) a) (ensureUnique b)
+  ensureUnique (PlotO  p a b) = do p' <- add p; liftM2 (PlotO p')  (mapM (\(x,y) -> liftM2 (,) (ensureUnique x) (ensureUnique y)) a) (mapM ensureUnique b)
   ensureUnique (ArrayO p es)  = do p' <- add p; liftM (ArrayO p')  (mapM ensureUnique es)
   ensureUnique (ObjO   p ps)  = do p' <- add p; liftM (ObjO p')    (mapM (\(x,y) -> liftM2 (,) (return x) (ensureUnique y)) ps)
   ensureUnique (StrO   p s)   = do p' <- add p; return $ StrO p' s
