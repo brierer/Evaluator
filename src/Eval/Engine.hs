@@ -6,11 +6,9 @@ module Eval.Engine
 , descF
 , tableF
 , nTimesF
-, takeTF
-, takeAF
-, sortAF
-, sortTF
-, colF
+, takeTF, takeAF
+, sortTF, sortAF
+,  colTF,  colAF
 , plotLineF
 ) where
 
@@ -61,12 +59,16 @@ meanL   p [ArrayO _ ns]              = meanF   p ns;                meanL   _ xs
 descL   p [ArrayO _ ns]              = descF   p ns;                descL   _ xs = error $ "Engine::descL  [Unexpected pattern ["++show xs++"]]"
 tableL  p [ArrayO _ es, ObjO _ ps]   = tableF  p es ps;             tableL  _ xs = error $ "Engine::tableL [Unexpected pattern ["++show xs++"]]"
 nTimesL p [v, NumO _ n]              = nTimesF p v n;               nTimesL _ xs = error $ "Engine::descL  [Unexpected pattern ["++show xs++"]]"
+
 takeL   p [NumO _ v,TableO _ ess h]  = takeTF  p (floor v) ess h
 takeL   p [NumO _ v,ArrayO _ es]     = takeAF  p (floor v) es;      takeL   _ xs = error $ "Engine::takeL  [Unexpected pattern ["++show xs++"]]"
+
 sortL   p [NumO pn v,TableO _ ess h] = sortTF  p pn (floor v) ess h
 sortL   p [NumO pn v,ArrayO _ es]    = sortAF  p pn (floor v) es;   sortL   _ xs = error $ "Engine::sortL  [Unexpected pattern ["++show xs++"]]"
 
-colL         = error "Eval.Function::colL       [Not Implemented]"
+colL    p [NumO pn v,TableO _ ess _] = colTF   p pn (floor v) ess;
+colL    p [NumO pn v,ArrayO _ es]    = colAF   p pn (floor v) es;   colL    _ xs = error $ "Engine::colL   [Unexpected pattern ["++show xs++"]]"
+
 plotLineL    = error "Eval.Function::plotLineL  [Not Implemented]"
 
 {-| Actual Functions -}
@@ -143,7 +145,7 @@ sortTF :: Pos -> Pos -> Int -> [[ExpObj]] -> [ExpObj] -> EvalFunc ExpObj
 sortTF p pn n ess h = liftM (flip (TableO p) h) $ sortMatrix pn n ess
 
 sortMatrix :: Ord a => Pos -> Int -> [[a]] -> EvalFunc [[a]] 
-sortMatrix pn n ess = validateIndex pn n 0 (length ess) >> return (transpose $ map snd $ sort $ zip (ess !! n) $ transpose ess)
+sortMatrix pn n ess = validateIndex pn n 0 (length ess - 1) >> return (transpose $ map snd $ sort $ zip (ess !! n) $ transpose ess)
 
 validateIndex :: Pos -> Int -> Int -> Int -> EvalFunc ()
 validateIndex pn n minL maxL = when (n < minL || n > maxL) $ evalError $ IndexOutOfBounds pn n minL maxL
@@ -153,7 +155,14 @@ sortAF :: Pos -> Pos -> Int -> [ExpObj] -> EvalFunc ExpObj
 sortAF p pn n arrays =  let (fs,ess) = unzip $ map (\(ArrayO q es) -> (ArrayO q,es)) arrays
                      in  liftM (ArrayO p . zipWith ($) fs) (sortMatrix pn n ess)
 
-colF         = error "Eval.Function::colF       [Not Implemented]"
+-- Extracts from a table the n'th column as an array
+colTF :: Pos -> Pos -> Int -> [[ExpObj]] -> EvalFunc ExpObj
+colTF p pn n ess = validateIndex pn n 0 (length ess - 1) >> return (ArrayO p $ ess !! n)
+
+-- Extracts from an array of arrays (matrix) the n'th array-element (column)
+colAF :: Pos -> Pos -> Int -> [ExpObj] -> EvalFunc ExpObj
+colAF p pn n arrays = validateIndex pn n 0 (length arrays - 1) >> return (let ArrayO _ es = arrays !! n in ArrayO p es)
+
 plotLineF    = error "Eval.Function::plotLineF  [Not Implemented]"
 
 

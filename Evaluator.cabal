@@ -55,6 +55,6 @@ test-suite Evaluator-tests
                  Eval.MultiPassEvalTest,
                  Eval.MultiPassEvalTestUtils,
                  Eval.Engine,
-                 Eval.EngineTest,
                  Eval.EngineTestUtils,
-                 Eval.FunctionEvalTestUtils1
+                 Eval.FunctionEvalTestUtils1,
+                 Eval.EngineReturnValueTest
