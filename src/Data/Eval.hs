@@ -28,6 +28,7 @@ data EvalError = MultipleDefinitions Pos String
                | IllegalEmpty Pos
                | TableColumnLengthMismatch Pos Int Int
                | TableHeaderLengthMismatch Pos Int Int
+               | IndexOutOfBounds Pos Int Int Int
                  deriving (Eq,Show)
 
 
@@ -47,7 +48,8 @@ data ExpObj = TableO  Pos [[ExpObj]]        [ExpObj] -- Pos -> Data cols  -> Hea
             | NumO    Pos Double
             | BoolO   Pos Bool
             | NullO   Pos
-              deriving (Eq,Show)
+              deriving (Eq,Ord,Show)
+              
 
 type EvalFunc = StateT [FuncEntry] Eval
 type FuncEntry = (String,([TypeValidator],Func))

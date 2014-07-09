@@ -6,6 +6,7 @@ import Control.Applicative                         ((<$>),(<*>))
 import Control.Monad                               (liftM)
 import Control.Monad.Trans                         (lift)
 import Data.Eval                                   (EvalError(..),ExpObj(..),Func(..))
+import Data.List                                   (sort,transpose)
 import Data.Token                                  (PairToken(..),IdToken(..),ExpToken(..))
 import Eval.Engine                                 (funcs)
 import Eval.FunctionEvalTestUtils1                 (ExpOA,ExpTS,p0,ws2,applyFunc)
@@ -95,6 +96,15 @@ unsafeMarshall (NumT p _ _ v)  = NumO p v
 unsafeMarshall (BoolT p _ v)   = BoolO p v
 unsafeMarshall (NullT p _)     = NullO p
 unsafeMarshall e               = error $ "EngineTestUtils::unsafeMarshall [Unexpected pattern ["++show e++"]]"
+
+keepInRange (NumT p w _ v) l = (NumT p w (show v') v',n) where v' = fromIntegral n; n = floor v `mod` l
+keepInRange x _              = error $ "EngineTestUtils::keepInRange [Unexpected pattern ["++show x++"]]" 
+
+sortTOn :: Ord a => Int -> [[a]] -> [[a]]
+sortTOn n xss = transpose $ map snd $ sort $ zip (xss !! n) $ transpose xss
+
+sortAOn :: Int -> [ExpObj] -> [ExpObj]
+sortAOn n arrays = let (ess,mks) = unzip $ map (\(ArrayO p es) -> (es,ArrayO p)) arrays in  zipWith ($) mks $ sortTOn n ess
 
 
 

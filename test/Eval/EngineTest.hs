@@ -8,18 +8,17 @@ import Control.Monad.State                 (evalStateT)
 import Data.Eval                           (EvalError(..),ExpObj(..))
 import Data.List                           (genericLength)
 import Data.Token                          (ExpToken(..))
-import Eval.Engine                         (funcs,showF,multiF,meanF,descF,tableF,nTimesF,takeTF,takeAF)
+import Eval.Engine                         (funcs,showF,multiF,meanF,descF,tableF,nTimesF,takeTF,takeAF,sortTF,sortAF)
 import Eval.EngineTestUtils                (TableValidArgs(..),addFunc,addFunc',mk,mk',mkO',mkObj,mkObj',oneArrayOfNum,success,toArray,tablesAndPlots,emptyArray,emptySortColCase,
-                                            tableColumnLengthCase,tableHeaderLengthCase,mkMultiMeanReturn,unprecise,mkTableValidArgs,unsafeMarshallP,unsafeMarshall)
+                                            tableColumnLengthCase,tableHeaderLengthCase,mkMultiMeanReturn,unprecise,mkTableValidArgs,unsafeMarshallP,unsafeMarshall,sortTOn,sortAOn,keepInRange)
 import Eval.Function                       (table,plot,array,str,num,arrayOf,objOf,nonEmpty,(<|>),withFuncs)
-import Eval.FunctionEvalTestUtils1         (ExpOA(..),TableOA(..),ArrayOA(..),NumOA(..),ExpTS(..),ArrayTS(..),applyFunc)
+import Eval.FunctionEvalTestUtils1         (ExpOA(..),TableOA(..),NumOA(..),ExpTS(..),ArrayTS(..),applyFunc,p0)
 import Eval.FunctionEvalTestUtils2         (Is(..))
-import Parser.MonolithicParserTestUtils   -- (P(..),ExpTA(..),StrTA(..),NumTA(..),to,un,uns)
-import Test.Framework                 --     (TestSuite,Property,makeTestSuite,makeQuickCheckTest,makeLoc,qcAssertion,(==>))
-
-import Data.Vector (fromList)
-import Statistics.Sample
-
+import Parser.MonolithicParserTestUtils    --(P(..),ExpTA(..),StrTA(..),NumTA(..),to,un,uns)
+import Test.Framework                      --(TestSuite,Property,makeTestSuite,makeQuickCheckTest,makeLoc,qcAssertion,(==>))
+                                           
+import Data.Vector                         (fromList)
+import Statistics.Sample                   (mean,variance,skewness,kurtosis)
 
 prop_NbArgs1 (P p) esTA = length esTA > 1 ==> let es = uns esTA in
     all (\name -> Left (InvalidNbOfArgs p name 1 0)           == applyFunc E.fs p name ([] :: [ExpToken])
@@ -64,7 +63,7 @@ prop_TypeMismatchDesc (P p) g1ras w1as (ExpTS w1') =
     success "descriptive"                == applyFunc fs p "descriptive" [g1]
 
 prop_TypeMismatchTable (P p) g1as g2as w1as (ExpTS w1') w2as (ExpTS w2') =
-  let (g1s,g1) = mk' g1as; (_,g2) = mkObj g2as; (w1s,w1) = mk' w1as; (w2s,w2) = mkObj w2as in 
+  let (g1s,g1) = mk' g1as; (_,g2) = mkObj g2as; (w1s,w1) = mk' w1as; (w2s,w2) = mkObj w2as in
   any (not.emptyArray) g1s && any (not.isArray) w1s && not (isArray w1') && any (not.isStr) w2s && not (isObj w2') ==>
     withFuncs E.fs (arrayOf array) w1        == applyFunc E.fs p "table" [w1 ,g2]  &&
     withFuncs E.fs (arrayOf array) w1'       == applyFunc E.fs p "table" [w1',w2]  &&
@@ -112,7 +111,7 @@ prop_TypeMismatchCol (P p) (NumTA _ g1) g2ass (TableOA g2r) (ExpTS w1) w2as (Exp
 tableArg = nonEmpty $ arrayOf $ nonEmpty array
 
 prop_TypeMismatchPlotLine (P p) g1as g2as g3as w1as (ExpTS w1') w2as (ExpTS w2') w3as (ExpTS w3') =
-  let (_,g1) = mk' g1as; (_,g2) = mk' g2as; (_,g3) = mkObj' g3as; (w1s,w1) = mk' w1as; (w2s,w2) = mk' w2as; (w3s,w3) = mkObj' w3as in 
+  let (_,g1) = mk' g1as; (_,g2) = mk' g2as; (_,g3) = mkObj' g3as; (w1s,w1) = mk' w1as; (w2s,w2) = mk' w2as; (w3s,w3) = mkObj' w3as in
   any (not.isNum) w1s && not (isArray w1') && any (not.isNum) w2s && not (isArray w2') && any (not.isStr) w3s && not (isObj w3') ==>
     all (\xs -> withFuncs E.fs (arrayOf num) w1  == applyFunc E.fs p "plotLine" xs) [[w1 ,x  ,y] | x <- [g2,w2,w2'], y <- [g3,w3,w3']] &&
     all (\xs -> withFuncs E.fs (arrayOf num) w1' == applyFunc E.fs p "plotLine" xs) [[w1',x  ,y] | x <- [g2,w2,w2'], y <- [g3,w3,w3']] &&
@@ -150,6 +149,18 @@ prop_EmptyArgCol  (P pf) (P pa) (NumTA _ n) = emptySortColCase "col"  pa pf n
 prop_TableColumnLengthMismatch   w1aps = tableColumnLengthCase        (map (un *** uns) w1aps)
 prop_TableHeaderLengthMismatch p g1as  = tableHeaderLengthCase (un p) g1as                    .uns
 
+prop_IndexOutOfBoundsSortTable (P pf) (NumTA _ a1@(NumT pn _ _ v)) (TableOA a2tr@(TableO _ cols header)) = (v < 0 || floor v > length cols) && any (not.null) cols ==>
+  let n = floor v; (fs,a2t) = addFunc' "mkTable" a2tr; expected = Left $ IndexOutOfBounds pn n 0 $ length cols in
+   expected == applyFunc fs    pf "sort" [a1,a2t] && 
+   expected == evalStateT (sortTF pf pn n cols header) []
+prop_IndexOutOfBoundsSortTable _ x y = error $ "EngineTest::prop_IndexOutOfBoundsSortTable [Unexpected pattern ["++show x++"] and ["++show y++"]]"
+
+prop_IndexOutOfBoundsSortArray (P pf) (NumTA _ a1@(NumT pn _ _ v)) a2as = (v < 0 || floor v > length a2as) && any (not.emptyArray.un) a2as ==>
+  let n = floor v; (arrays,aOfArrays) = mk' a2as; mArrays = map unsafeMarshall arrays; expected = Left $ IndexOutOfBounds pn n 0 $ length a2as  in
+   expected == applyFunc funcs pf "sort" [a1,aOfArrays] && 
+   expected == evalStateT (sortAF pf pn n mArrays) []
+prop_IndexOutOfBoundsSortArray _ x _ = error $ "EngineTest::prop_IndexOutOfBoundsSortArray [Unexpected pattern ["++show x++"]]"
+
 prop_ReturnValueShow (P p) a1ras' = let (fs,a1) = addFunc' "tablesAndPlots" a1r; (_,a1r) = mkO' a1rs; a1rs = tablesAndPlots a1ras'; expected = Right (ObjO p [("result",a1r)])
                                     in  True ==> expected == applyFunc fs p "show" [a1] && expected == evalStateT (showF p a1r) []
 
@@ -171,26 +182,40 @@ prop_ReturnValueDesc (P pf) (P pa) a1as = length a1as >= 2 ==>
                                     map (NumO pf) [fromIntegral $ length ns, sum ns, mean ns',variance ns', skewness ns', kurtosis ns']] [] in
       expected == applyFunc funcs pf "descriptive" [a1] &&
       expected == evalStateT (descF pf a1rs) []
-                            
+
 prop_ReturnValueTable (P pf) (TableValidArgs g1ss g2s) useHeader = any (not.null) g1ss ==>
   let (g1@(ArrayT _ _ es),g2@(ObjT _ _ ps),expected) = mkTableValidArgs pf g1ss g2s useHeader in
    expected == applyFunc funcs pf "table" [g1, g2] &&
    expected == evalStateT (tableF pf (map unsafeMarshall es) (map unsafeMarshallP ps)) []
 
-prop_ReturnValueNTimes (P pf) a1@(NumTA _ (NumT p1 _ _ v1)) a2@(NumTA _ (NumT _ _ _ v2)) = 
+prop_ReturnValueNTimes (P pf) a1@(NumTA _ (NumT p1 _ _ v1)) a2@(NumTA _ (NumT _ _ _ v2)) =
   let expected = Right $ ArrayO pf $ replicate (floor v2) (NumO p1 v1) in
       expected == applyFunc funcs pf "nTimes" [un a1, un a2] &&
       expected == evalStateT (nTimesF pf (NumO p1 v1) v2) []
 prop_ReturnValueNTimes _ x y = error $ "EngineTest::prop_ReturnValueNTimes [Unexpected pattern ["++show x++"] and ["++show y++"]]"
 
-prop_ReturnValueTake (P pf) (NumTA _ a1@(NumT _ _ _ v)) (TableOA a2r@(TableO _ cols header)) (ArrayOA a2r'@(ArrayO _ es)) =
-  any (not.null) cols && not (null es) ==>
-  let (fs,a2) = addFunc' "mkTable" a2r; (fs',a2') = addFunc' "mkArray" a2r'; n = floor v;
-      expected = Right (TableO pf (map (take n) cols) header);
-      expected' = Right (ArrayO pf $ take n es) in
-   expected == applyFunc fs  pf "take" [a1,a2]    && expected' == applyFunc fs' pf "take" [a1,a2'] &&
-   expected == evalStateT (takeTF pf v cols header) [] && expected' == evalStateT (takeAF pf v es) []
-prop_ReturnValueTake _ x y z = error $ "EngineTest::prop_ReturnValueTake [Unexpected pattern ["++show x++"], ["++show y++"] and ["++show z++"]]"
+prop_ReturnValueTakeTable (P pf) (NumTA _ a1@(NumT _ _ _ v)) (TableOA a2tr@(TableO _ cols header)) = any (not.null) cols ==>
+  let (fs,a2t) = addFunc' "mkTable" a2tr; n = floor v; expected = Right $ TableO pf (map (take n) cols) header in
+   expected == applyFunc fs  pf "take" [a1,a2t] && 
+   expected == evalStateT (takeTF pf n cols header) []
+prop_ReturnValueTakeTable _ x y = error $ "EngineTest::prop_ReturnValueTake [Unexpected pattern ["++show x++"] and ["++show y++"]]"
+
+prop_ReturnValueTakeArray (P pf) (NumTA _ a1@(NumT _ _ _ v)) a2as = not (null a2as) ==>
+  let n = floor v; (a2s,a2a) = mk' a2as; a2ar = map unsafeMarshall a2s; expected = Right $ ArrayO pf $ take n a2ar in
+   expected == applyFunc funcs pf "take" [a1,a2a] && 
+   expected == evalStateT (takeAF pf n a2ar) []
+prop_ReturnValueTakeArray _ x y = error $ "EngineTest::prop_ReturnValueTake [Unexpected pattern ["++show x++"] and ["++show y++"]]"
+
+prop_ReturnValueSortTable (P pf) (NumTA _ a1') (TableOA a2tr@(TableO _ cols header)) = any (not.null) cols ==>
+  let (a1,n) = keepInRange a1' (length cols); (fs,a2t) = addFunc' "mkTable" a2tr; expected = Right $ TableO pf (sortTOn n cols) header in
+   expected == applyFunc fs    pf "sort" [a1,a2t] && 
+   expected == evalStateT (sortTF pf p0 n cols header) []
+prop_ReturnValueSortTable _ x y = error $ "EngineTest::prop_ReturnValueTake [Unexpected pattern ["++show x++"] and ["++show y++"]]"
+
+prop_ReturnValueSortArray (P pf) (NumTA _ a1') a2as = any (not.emptyArray.un) a2as ==>
+  let (a1,n) = keepInRange a1' (length a2as); (arrays,aOfArrays) = mk' a2as; mArrays = map unsafeMarshall arrays; expected = Right $ ArrayO pf (sortAOn n $ map unsafeMarshall arrays)in
+   expected == applyFunc funcs pf "sort" [a1,aOfArrays] && 
+   expected == evalStateT (sortAF pf p0 n mArrays) []
 
 {-| Mandatory type signatures -}
 prop_NbArgs1 :: P -> [ExpTA] ->  Property
@@ -218,11 +243,18 @@ prop_EmptyArgCol   :: P -> P -> NumTA -> [ArrayTS] -> [ArrayTS]              -> 
 prop_TableColumnLengthMismatch :: [(P,[ExpTS])]  -> [(String,[StrTA])] -> Property
 prop_TableHeaderLengthMismatch :: P -> [ArrayTS] -> [StrTA]            -> Property
 
-prop_ReturnValueShow   :: P      -> [ExpOA]           -> Property
-prop_ReturnValueMulti  :: P -> P -> [NumTA]           -> Property
-prop_ReturnValueMean   :: P -> P -> [NumTA]           -> Property
-prop_ReturnValueDesc   :: P -> P -> [NumTA]           -> Property 
-prop_ReturnValueTable  :: P -> TableValidArgs -> Bool -> Property
+prop_IndexOutOfBoundsSortTable :: P -> NumTA ->  TableOA  -> Property
+prop_IndexOutOfBoundsSortArray :: P -> NumTA -> [ArrayTS] -> Property
+
+prop_ReturnValueShow      :: P      -> [ExpOA]           -> Property
+prop_ReturnValueMulti     :: P -> P -> [NumTA]           -> Property
+prop_ReturnValueMean      :: P -> P -> [NumTA]           -> Property
+prop_ReturnValueDesc      :: P -> P -> [NumTA]           -> Property
+prop_ReturnValueTable     :: P -> TableValidArgs -> Bool -> Property
+prop_ReturnValueTakeTable :: P -> NumTA -> TableOA       -> Property
+prop_ReturnValueTakeArray :: P -> NumTA -> [ExpTS]       -> Property
+prop_ReturnValueSortTable :: P -> NumTA ->  TableOA      -> Property
+prop_ReturnValueSortArray :: P -> NumTA -> [ArrayTS]     -> Property
 
 {-|
 show = show([tservice,tsalaire,trente])

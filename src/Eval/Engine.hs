@@ -8,7 +8,8 @@ module Eval.Engine
 , nTimesF
 , takeTF
 , takeAF
-, sortF
+, sortAF
+, sortTF
 , colF
 , plotLineF
 ) where
@@ -18,8 +19,9 @@ import Prelude hiding             (sum,exp,null)
 import qualified Prelude     as P (sum)
 import qualified Data.Vector as V (length)
 
-import Control.Monad              (liftM)
+import Control.Monad              (liftM,when)
 import Data.Eval                  (EvalError(..),ExpObj(..),EvalFunc,FuncEntry,Func(..))
+import Data.List                  (sort,transpose)
 import Data.Token                 (Pos)
 import Data.Vector                (Vector,fromList,toList)
 import Eval.Function              (table,plot,array,str,num,arrayOf,objOf,nonEmpty,(<|>),evalError)
@@ -53,16 +55,17 @@ sortL      :: Pos -> [ExpObj] -> EvalFunc ExpObj
 colL       :: Pos -> [ExpObj] -> EvalFunc ExpObj
 plotLineL  :: Pos -> [ExpObj] -> EvalFunc ExpObj
 
-showL   p [x]                       = showF   p x;       showL   _ xs = error $ "Engine::showL  [Unexpected pattern ["++show xs++"]]"
-multiL  p [ArrayO _ ns]             = multiF  p ns;      multiL  _ xs = error $ "Engine::multiL [Unexpected pattern ["++show xs++"]]"
-meanL   p [ArrayO _ ns]             = meanF   p ns;      meanL   _ xs = error $ "Engine::meanL  [Unexpected pattern ["++show xs++"]]"
-descL   p [ArrayO _ ns]             = descF   p ns;      descL   _ xs = error $ "Engine::descL  [Unexpected pattern ["++show xs++"]]"
-tableL  p [ArrayO _ es, ObjO _ ps]  = tableF  p es ps;   tableL  _ xs = error $ "Engine::tableL [Unexpected pattern ["++show xs++"]]"
-nTimesL p [v, NumO _ n]             = nTimesF p v n;     nTimesL _ xs = error $ "Engine::descL  [Unexpected pattern ["++show xs++"]]"
-takeL   p [NumO _ v,TableO _ ess h] = takeTF  p v ess h;
-takeL   p [NumO _ v,ArrayO _ es]    = takeAF  p v es;    takeL   _ xs = error $ "Engine::takeL  [Unexpected pattern ["++show xs++"]]"
+showL   p [x]                        = showF   p x;                 showL   _ xs = error $ "Engine::showL  [Unexpected pattern ["++show xs++"]]"
+multiL  p [ArrayO _ ns]              = multiF  p ns;                multiL  _ xs = error $ "Engine::multiL [Unexpected pattern ["++show xs++"]]"
+meanL   p [ArrayO _ ns]              = meanF   p ns;                meanL   _ xs = error $ "Engine::meanL  [Unexpected pattern ["++show xs++"]]"
+descL   p [ArrayO _ ns]              = descF   p ns;                descL   _ xs = error $ "Engine::descL  [Unexpected pattern ["++show xs++"]]"
+tableL  p [ArrayO _ es, ObjO _ ps]   = tableF  p es ps;             tableL  _ xs = error $ "Engine::tableL [Unexpected pattern ["++show xs++"]]"
+nTimesL p [v, NumO _ n]              = nTimesF p v n;               nTimesL _ xs = error $ "Engine::descL  [Unexpected pattern ["++show xs++"]]"
+takeL   p [NumO _ v,TableO _ ess h]  = takeTF  p (floor v) ess h
+takeL   p [NumO _ v,ArrayO _ es]     = takeAF  p (floor v) es;      takeL   _ xs = error $ "Engine::takeL  [Unexpected pattern ["++show xs++"]]"
+sortL   p [NumO pn v,TableO _ ess h] = sortTF  p pn (floor v) ess h
+sortL   p [NumO pn v,ArrayO _ es]    = sortAF  p pn (floor v) es;   sortL   _ xs = error $ "Engine::sortL  [Unexpected pattern ["++show xs++"]]"
 
-sortL        = error "Eval.Function::sortL      [Not Implemented]"
 colL         = error "Eval.Function::colL       [Not Implemented]"
 plotLineL    = error "Eval.Function::plotLineL  [Not Implemented]"
 
@@ -128,15 +131,28 @@ nTimesF :: Pos -> ExpObj -> Double -> EvalFunc ExpObj
 nTimesF p v n = return $ ArrayO p $ replicate (floor n) v
 
 -- Takes from a table the n first rows
-takeTF :: Pos -> Double -> [[ExpObj]] -> [ExpObj] -> EvalFunc ExpObj
-takeTF  p n ess h = return $ TableO p (map (take $ floor n) ess) h
+takeTF :: Pos -> Int -> [[ExpObj]] -> [ExpObj] -> EvalFunc ExpObj
+takeTF  p n ess h = return $ TableO p (map (take n) ess) h
 
 -- Takes from an array the n first elements
-takeAF :: Pos -> Double -> [ExpObj] -> EvalFunc ExpObj
-takeAF  p n es = return $ ArrayO p $ take (floor n) es
+takeAF :: Pos -> Int -> [ExpObj] -> EvalFunc ExpObj
+takeAF  p n es = return $ ArrayO p $ take n es
 
+-- Sorts a table by its n'th column
+sortTF :: Pos -> Pos -> Int -> [[ExpObj]] -> [ExpObj] -> EvalFunc ExpObj
+sortTF p pn n ess h = liftM (flip (TableO p) h) $ sortMatrix pn n ess
 
-sortF        = error "Eval.Function::sortF      [Not Implemented]"
+sortMatrix :: Ord a => Pos -> Int -> [[a]] -> EvalFunc [[a]] 
+sortMatrix pn n ess = validateIndex pn n 0 (length ess) >> return (transpose $ map snd $ sort $ zip (ess !! n) $ transpose ess)
+
+validateIndex :: Pos -> Int -> Int -> Int -> EvalFunc ()
+validateIndex pn n minL maxL = when (n < minL || n > maxL) $ evalError $ IndexOutOfBounds pn n minL maxL
+
+-- Sorts an array of arrays (matrix) by the n'th array-element (column)
+sortAF :: Pos -> Pos -> Int -> [ExpObj] -> EvalFunc ExpObj
+sortAF p pn n arrays =  let (fs,ess) = unzip $ map (\(ArrayO q es) -> (ArrayO q,es)) arrays
+                     in  liftM (ArrayO p . zipWith ($) fs) (sortMatrix pn n ess)
+
 colF         = error "Eval.Function::colF       [Not Implemented]"
 plotLineF    = error "Eval.Function::plotLineF  [Not Implemented]"
 
