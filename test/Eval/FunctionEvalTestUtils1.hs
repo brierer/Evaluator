@@ -12,6 +12,7 @@ import Data.Eval                        (Func(..))
 import Data.ExpObj                      (Type (..),ExpObj(..))
 import Data.ExpToken                    (ExpToken (..),IdToken (..),PairToken (..))
 import Eval.Function                    (any,withFuncs)
+import Data.List                        ((\\))
 import Eval.MultiPass                   (mapPair)
 import Parser.MonolithicParserTestUtils (ArrayTA (..),BoolTA (..),ExpTA (..),IdTA (..),NullTA (..),NumTA (..),ObjTA (..),P (..),StrTA (..),Tall (..),Unto (..),
                                          liftMF2,liftMF3,sListOf,sShrink,sized1,sizes,tShrink,tShrinks,uns)
@@ -166,9 +167,12 @@ fromRight x         = error $ "FunctionEvalTestUtils::fromRight [Failed pattern 
 
 mkFunc p n = FuncT w1 (IdT p w2 n)
 
-funcNamesLit   = ["arrayTestF","objTestF","strTestF","numTestF","boolTestF","nullTestF"]
-funcNamesNoLit = ["tableTestF","plotTestF"]
-mkFuncs os es = zipWith f funcNamesNoLit os ++ zipWith g funcNamesLit es
+funcNamesTok    = ["arrayTestF","objTestF","strTestF","numTestF","boolTestF","nullTestF"]
+funcNamesObj    = ["tableTestF","plotTestF"]
+funcNamesAtom   = ["strTestF","numTestF","boolTestF","nullTestF"]
+funcNamesNoAtom = ["tableTestF","plotTestF","arrayTestF","objTestF"] 
+mkFuncs os es = if not $ null $ (funcNamesTok ++ funcNamesObj) \\ (funcNamesAtom ++ funcNamesNoAtom) then error "FunctionEvalTestUtils1::mkFuncs [Invalid partition of all functions]"
+  else zipWith f funcNamesObj os ++ zipWith g funcNamesTok es
   where f name e = (name,([],Func $ \_ _ -> return e))
         g name e = (name,([],Func $ \_ _ -> testE e))
 

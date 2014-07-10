@@ -1,8 +1,8 @@
 module Eval.Function
 ( Marshallable(..)
 , table, plot, array, obj, str, num, bool, null
-, any,noLit,lit
-, anyType, noLitType,litType
+, any,atom
+, anyType,atomType
 , arrayOf, objOf, nonEmpty, args
 , (<|>), (<!>)
 , withFuncs
@@ -98,20 +98,16 @@ bool  = match Bool
 null  = match Null
 
 any   :: TypeValidator
-lit   :: TypeValidator
-noLit :: TypeValidator
+atom  :: TypeValidator
 
-any   = table <|> plot <|> array <|> obj <|> str <|> num <|> bool <|> null <!> anyType
-noLit = table <|> plot                                                     <!> noLitType
-lit   =                    array <|> obj <|> str <|> num <|> bool <|> null <!> litType
+any   = table <|> plot <|> array <|> obj <|> atom <!> anyType
+atom  = str <|> num <|> bool <|> null             <!> atomType
 
-anyType   :: Type
-noLitType :: Type
-litType   :: Type
+anyType    :: Type
+atomType   :: Type
 
-anyType   = foldl1 Or [noLitType,litType]
-noLitType = foldl1 Or [Table,Plot]
-litType   = foldl1 Or [Arr,Obj,Str,Num,Bool,Null]
+anyType    = foldl1 Or [Table,Plot,Arr,Obj,atomType]
+atomType   = foldl1 Or [Str,Num,Bool,Null]
 
 arrayOf :: TypeValidator -> TypeValidator
 arrayOf v = TypeVal (runValidation (match Arr) >=> \(ArrayO p es) -> liftM (ArrayO p) $ mapM (runValidation v) es)

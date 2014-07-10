@@ -5,7 +5,7 @@ module Eval.FunctionEvalTestUtils2 where
 import Prelude hiding                   (any,null)
 
 import qualified Data.Set as S          (Set,findMax,findMin,insert,member,singleton)
-import qualified Prelude as P           (null)
+import qualified Prelude as P           (any,null)
 
 import Control.Monad                    (liftM,liftM2)
 import Control.Monad.State              (State,evalState,get,put)
@@ -15,7 +15,7 @@ import Data.ExpObj                      (Type(..),ExpObj(..))
 import Data.ExpToken                    (ExpToken (..),IdToken (..),Pos)
 import Data.List                        (permutations,(\\))
 import Data.Maybe                       (isJust)
-import Eval.Function                    (Marshallable (..),any,array,arrayOf,objOf,bool,lit,null,num,obj,str,withFuncs,(<!>),(<|>))
+import Eval.Function                    (Marshallable (..),any,array,arrayOf,objOf,bool,null,num,obj,str,withFuncs,(<!>),(<|>))
 import Eval.MultiPass                   (mapMPair)
 import Parser.MonolithicParserTestUtils (IdTA (..),P (..),Tall (..),Unto (..),sized1)
 import Test.Framework                   (Arbitrary (..),Gen,NonNegative(..),choose,elements)
@@ -34,6 +34,9 @@ class Is a where
   isNum      :: a -> Bool
   isBool     :: a -> Bool
   isNull     :: a -> Bool
+  
+  isAtom     :: a -> Bool
+  isAtom e = P.any ($e) [isStr,isNum,isBool,isNull]
 
 instance Is ExpToken where
   isTable    = error "FunctionEvalTestUtils::isTable<ExpToken> [Should not be called]"
@@ -211,12 +214,8 @@ findWithPosAndType p t (e:_)  | getPos e == p && getType e == t           = Just
                               | isJust (findWithPosAndType p t $ elems e) = Just e
 findWithPosAndType p t (_:es)                                             = findWithPosAndType p t es
 
-mkEntries ns es os = foldr removeEntry (zip3 (funcNamesNoLit++funcNamesLit) types (map MkObj os++ map MkTok es)) ns
+mkEntries ns es os = foldr removeEntry (zip3 (funcNamesObj++funcNamesTok) types (map MkObj os++ map MkTok es)) ns
 
 anyCase os es (name,_,MkObj e) = Right e == withFuncs [] any (testFunc os es (getPos e) name)
 anyCase os es (name,_,MkTok e) = testS e == withFuncs [] any (testFunc os es (getPos e) name)
-
-litCase os es (name,_,MkObj e) = Right e == withFuncs [] lit (testFunc os es (getPos e) name)
-litCase os es (name,_,MkTok e) = testS e == withFuncs [] lit (testFunc os es (getPos e) name)
-
 

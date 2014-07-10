@@ -6,15 +6,14 @@ import Prelude hiding                   (any,null)
 import qualified Prelude as P           (any,null)
 
 import Control.Arrow                    (second)
-import Control.Monad                    (liftM)
 import Data.Eval                        (Func(..),TypeValidator(..))
 import Data.EvalError                   (EvalError(..))
 import Data.ExpObj                      (Type(..),ExpObj(..))
 import Data.ExpToken                    (PairToken(..),IdToken(..),ExpToken(..))
-import Eval.Function                    (Marshallable(..),table,plot,array,obj,str,num,bool,null,any,noLit,noLitType,lit,litType,nonEmpty,args,withFuncs,evalError)
+import Eval.Function                    (Marshallable(..),table,plot,array,obj,str,num,bool,null,any,atom,atomType,nonEmpty,args,withFuncs,evalError)
 import Eval.FunctionEvalTestUtils1      (TestToks(..),TestObjs(..),ExpOA(..),TableOA(..),PlotOA(..),ArrayOA(..),ObjOA(..),StrOA(..),NumOA(..),BoolOA(..),NullOA(..),
-                                         ExpTS(..),ArrayTS(..),ObjTS(..),ArrayTF(..),ObjTF(..),testFunc,forAll,testS,testF,mkFunc,funcNamesLit,funcNamesNoLit)
-import Eval.FunctionEvalTestUtils2      (Is(..),InvalidArgsNb(..),TokOrObj(..),TestIndexesT(..),TestIndexesO(..),ValA(..),ArgErrorA(..),mkEntries,anyCase,litCase,orCase,caseArrayOf,caseObjOf)
+                                         ExpTS(..),ArrayTS(..),ObjTS(..),ArrayTF(..),ObjTF(..),testFunc,forAll,testS,testF,mkFunc,funcNamesAtom,funcNamesNoAtom)
+import Eval.FunctionEvalTestUtils2      (Is(..),InvalidArgsNb(..),TokOrObj(..),TestIndexesT(..),TestIndexesO(..),ValA(..),ArgErrorA(..),mkEntries,anyCase,orCase,caseArrayOf,caseObjOf)
 import Eval.MultiPassEvalTestUtils      (usesFuncE,w2,p0)
 import Parser.MonolithicParserTestUtils (StrTA(..),NumTA(..),BoolTA(..),NullTA(..),P(..),un,uns)
 import Test.Framework                   (TestSuite,NonNegative(..),makeTestSuite,makeQuickCheckTest,makeLoc,qcAssertion,(==>))
@@ -83,15 +82,6 @@ prop_MarshallAnyObj (ExpOA e)                    = Right e == withFuncs [] any e
 prop_MarshallAnyFunc (TestObjs os) (TestToks es) = forAll (mkEntries [] es os) (anyCase os es)
 
 {-| Basic types without literals -}
--- Any type without literal
-prop_ErrorMarshallNoLitLit (ExpTS e)                     = Left (TypeMismatch (getPos e) noLitType (getType e)) == withFuncs [] noLit e
-prop_ErrorMarshallNoLitFunc (TestObjs os) (TestToks es)  =
-  forAll (mkEntries funcNamesNoLit es os) $ \(name,t,e) -> Left (TypeMismatch (getPos e) noLitType t)           == withFuncs [] noLit (testFunc os es (getPos e) name)
-
-prop_MarshallNoLitObj  (ExpOA e)                       = isTable e || isPlot e ==> Right e == withFuncs [] noLit e
-prop_MarshallNoLitFunc (TestObjs os) (TestToks es)     =
-  forAll (mkEntries funcNamesLit es os) $ \(name,_,e) ->                           Right e == liftM MkObj (withFuncs [] noLit (testFunc os es (getPos e) name))
-
 -- Table
 prop_ErrorMarshallTableObj  (ExpOA e)                   = not (isTable e) ==> Left (TypeMismatch (getPos e) Table (getType e)) == withFuncs [] table e
 prop_ErrorMarshallTableFunc (TestObjs os) (TestToks es) =
@@ -108,15 +98,7 @@ prop_ErrorMarshallPlotFunc (TestObjs os) (TestToks es) =
 prop_MarshallPlotObj  (PlotOA p)                        = Right p == withFuncs [] plot p
 prop_MarshallPlotFunc (TestObjs os@[_,p]) (TestToks es) = Right p == withFuncs [] plot (testFunc os es (getPos p) "plotTestF")
 
-{-| Basic types with literals -}
--- Any type with literal
-prop_ErrorMarshallLitObj (ExpOA e)                    = isTable e || isPlot e ==> Left (TypeMismatch (getPos e) litType (getType e)) == withFuncs [] lit e
-prop_ErrorMarshallLitFunc (TestObjs os) (TestToks es) =
-  forAll (mkEntries funcNamesLit es os) $ \(name,t,e) ->                          Left (TypeMismatch (getPos e) litType t)           == withFuncs [] lit (testFunc os es (getPos e) name)
-
-prop_MarshallLitLit  (ExpTS e)                   = testS e == withFuncs [] lit e
-prop_MarshallLitFunc (TestObjs os) (TestToks es) = forAll (mkEntries funcNamesNoLit es os) (litCase os es)
-
+{-| Basic types with literals -}  
 -- Array
 prop_ErrorMarshallArrayLit  (ExpTS e)                   = not (isArray e || isVar e || isFunc e) ==> Left (TypeMismatch (getPos e) Arr (getType e)) == withFuncs [] array e
 prop_ErrorMarshallArrayObj  (ExpOA e)                   = not (isArray e)                        ==> Left (TypeMismatch (getPos e) Arr (getType e)) == withFuncs [] array e
@@ -176,6 +158,18 @@ prop_ErrorMarshallNullFunc (TestObjs os) (TestToks es) =
 prop_MarshallNullLit  (NullTA n)                                = testS n == withFuncs [] null n
 prop_MarshallNullObj  (NullOA n)                                = Right n == withFuncs [] null n
 prop_MarshallNullFunc (TestObjs os) (TestToks es@[_,_,_,_,_,n]) = testS n == withFuncs [] null (testFunc os es (getPos n) "nullTestF")
+
+-- Atom (str,num,bool or null)
+prop_ErrorMarshallAtomLit  (ExpTS e)                   = not (isAtom e || isVar e || isFunc e) ==> Left (TypeMismatch (getPos e) atomType (getType e)) == withFuncs [] atom e
+prop_ErrorMarshallAtomObj  (ExpOA e)                   = not (isAtom e)                        ==> Left (TypeMismatch (getPos e) atomType (getType e)) == withFuncs [] atom e
+prop_ErrorMarshallAtomFunc (TestObjs os) (TestToks es) =
+  forAll (mkEntries funcNamesAtom es os) $ \(name,t,e) ->        Left (TypeMismatch (getPos e) atomType t)           == withFuncs [] atom (testFunc os es (getPos e) name)
+
+prop_MarshallAtomLit  (StrTA s) (NumTA _ nb) (BoolTA b) (NullTA nu) = forAll [s,nb,b,nu] $ \x -> testS x == withFuncs [] atom x
+prop_MarshallAtomObj  (StrOA s) (NumOA   nb) (BoolOA b) (NullOA nu) = forAll [s,nb,b,nu] $ \x -> Right x == withFuncs [] atom x
+prop_MarshallAtomFunc (TestObjs os) (TestToks es) = forAll (mkEntries funcNamesNoAtom es os) f where
+  f (name,_,MkTok e) = testS e == withFuncs [] atom (testFunc os es (getPos e) name)
+  f (name,_,MkObj e) = Right e == withFuncs [] atom (testFunc os es (getPos e) name)
 
 {-| Literals containing function calls -}
 prop_MarshallFuncsArray (ArrayTF e o (IdT _ _ i)) = usesFuncE i e ==> testF fs e == withFuncs fs array e where fs = [(i,([],Func $ \_ _ -> return o))]
