@@ -251,11 +251,11 @@ mNoShowFuncs = liftM (fromForms.removeTopShow.forms)
 
 {- | Utils -}
 unsafeProg = unsafeParse progT
+formTable = M.fromList.map toTriple
 
-fromProgForms = M.fromList.map toTriple.forms
+unsafeInitTable = unsafeRight.initTable.toToken
 derefValidProg = fromForms.derefAll.forms
-derefValidProg' = initTable'.derefValidProg
-initTable' = unsafeRight.initTable.toToken
+derefValidProg' = unsafeInitTable.derefValidProg
 
 derefAll []             = []
 derefAll (FormT n v:fs) = let moo1 = FormT n (derefOne fs v):derefAll fs
@@ -303,8 +303,7 @@ mNoShowFuncs :: Monad m => m ValidFuncs -> m NoShowFuncs
 
 derefValidProg  :: HasProg a => a -> a
 derefValidProg' :: HasProg a => a -> Table
-fromProgForms   :: HasProg a => a -> Table
-initTable'      :: HasProg a => a -> Table
+unsafeInitTable :: HasProg a => a -> Table
 nonEmpty        :: HasProg a => a -> Bool
 
 

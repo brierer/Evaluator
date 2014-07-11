@@ -7,7 +7,6 @@ import Data.List
 import Control.Applicative
 import Control.Monad
 import Numeric
-import Parser.Monolithic
 import Test.Framework
 import Text.ParserCombinators.Parsec
 import Text.ParserCombinators.Parsec.Error
@@ -161,39 +160,6 @@ instance Arbitrary W where
   shrink (W w) = mW $ filter (`elem` " \t\n\v") <$> sShrink w
 mW = liftM W
 
-class NoPos a where noPos :: a -> a
-instance NoPos ProgToken where noPos (ProgT _ fs) = ProgT p0 $ map noPos fs
-instance NoPos FormToken where noPos (FormT i e)  = FormT (noPos i) (noPos e)
-instance NoPos PairToken where noPos (PairT i e)  = PairT (noPos i) (noPos e)
-instance NoPos IdToken   where noPos (IdT _ w i)  = IdT   p0 w i
-instance NoPos ExpToken  where
-  noPos(FuncT   w  i es) = FuncT    w (noPos i) $ map noPos es
-  noPos(ArrT  _ w    es) = ArrT  p0 w           $ map noPos es
-  noPos(ObjT  _ w    ps) = ObjT  p0 w           $ map noPos ps
-  noPos(VarT       i   ) = VarT       (noPos i)
-  noPos(StrT  _ w   v  ) = StrT  p0 w   v
-  noPos(NumT  _ w s v  ) = NumT  p0 w s v
-  noPos(BoolT _ w   v  ) = BoolT p0 w   v
-  noPos(NullT _ w      ) = NullT p0 w
-
-testCase p = unsafeRight . parse p "" . unparse
-a .= b = noPos a == noPos b
-
-unsafeParse p = unsafeRight . parse p ""
-
-mkProg   = ProgT
-mkForm p = FormT      .mkId p
-mkPair p = PairT      .mkId p
-mkId   p = IdT   p w2
-mkFunc p = FuncT   w1 .mkId p
-mkArr  p = ArrT  p w2
-mkObj  p = ObjT  p w2
-mkVar  p = VarT       .mkId p
-mkStr  p = StrT  p w2
-mkNum  p = NumT  p w2
-mkBool p = BoolT p w2
-mkNull p = NullT p w2
-
 liftMF2 g f1 f2       x1 x2        = g <$> liftM f1 x1 <*> liftM f2 x2
 liftMF3 g f1 f2 f3    x1 x2 x3     = g <$> liftM f1 x1 <*> liftM f2 x2 <*> liftM f3 x3
 liftMF4 g f1 f2 f3 f4 x1 x2 x3 x4  = g <$> liftM f1 x1 <*> liftM f2 x2 <*> liftM f3 x3 <*> liftM f4 x4
@@ -211,10 +177,9 @@ tShrinks = sShrink.map to
 unsafeRight (Right x) = x
 unsafeRight x         = error $ "MonolithicParserTestUtils::unsafeRight [UnexpectedPattern ["++show x++"]]"
 
-p0 = (0,0)
+p0 = (0,0) :: Pos
 w1 = ""
 w2 = ("","")
-ascii = [' '..'!'] ++ ['#'..'~']
 
 {-| Mandatory type signatures -}
 mProgTA :: (Applicative m, Monad m) => m P               -> m [FormTA]              -> m ProgTA

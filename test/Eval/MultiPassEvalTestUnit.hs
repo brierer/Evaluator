@@ -1,0 +1,41 @@
+{-# OPTIONS_GHC -F -pgmF htfpp #-}
+module Eval.MultiPassEvalTestUnit where
+
+import Data.EvalError
+import Eval.MultiPass
+import Eval.MultiPassEvalTestUtils
+import Parser.MonolithicParserTestUtils
+import Test.Framework
+
+{-# ANN module "HLint: ignore Use camelCase" #-}
+
+test_MultiDefs = do assertEqual (Left  $ MultipleDefinitions (1,8)  "x")                                               $ initProg "x=null;x=true"
+                    assertEqual (Left  $ MultipleDefinitions (1,15) "x")                                               $ initProg "x=null;y=true;x=null"
+test_ValidDefs = do assertEqual (Right $ formTable [])                                                                 $ initProg ""
+                    assertEqual (Right $ formTable [mkForm (1,1) "x" $ mkNull (1,3)])                                  $ initProg "x=null"
+                    assertEqual (Right $ formTable [mkForm (1,1) "x" $ mkNull (1,3),mkForm (1,8) "y" $ mkNull (1,10)]) $ initProg "x=null;y=null"
+                                                                                                                       
+test_UndefVars = do assertEqual (Left  $ UndefinedVariable (1,3) "y")                                                  $ derefProg "x=y"
+                    assertEqual (Left  $ UndefinedVariable (1,5) "y")                                                  $ derefProg "x=f(y)"
+                    assertEqual (Left  $ UndefinedVariable (1,4) "y")                                                  $ derefProg "x=[y]"
+                    assertEqual (Left  $ UndefinedVariable (1,6) "y")                                                  $ derefProg "x={x:y}"
+test_CycleVars = do assertEqual (Left  $ CycleInDefinitions [((1,1),"x")])                                             $ derefProg "x=x"
+                    assertEqual (Left  $ CycleInDefinitions [((1,1),"x"),((1,8),"y")])                                 $ derefProg "x=f(y);y=[x]"
+                    assertEqual (Left  $ CycleInDefinitions [((1,1),"x"),((1,8),"y"),((1,14),"z")])                    $ derefProg "x=f(y);y=[z];z={a:y}"
+test_ValidVars = do assertEqual (Right $ formTable [])                                                                 $ derefProg ""
+                    assertEqual (Right $ formTable [mkForm (1,1) "x" $ mkNull (1,7)                                      
+                                                   ,mkForm (1,5) "y" $ mkNull (1,7)])                                  $ derefProg "x=y;y=null"
+
+test_UndefFuncs = do assertEqual (Left $ UndefinedFunction (1,3) "f")                                                  $ validateProg []    "x=f()"
+                     assertEqual (Left $ UndefinedFunction (1,3) "g")                                                  $ validateProg ["f"] "x=g()"
+test_NonTopShow = do assertEqual (Left $ NonTopLevelShow   (1,5))                                                      $ validateProg ["f"] "x=f(show())"
+                     assertEqual (Left $ NonTopLevelShow   (1,4))                                                      $ validateProg []    "x=[show()]"
+                     assertEqual (Left $ NonTopLevelShow   (1,6))                                                      $ validateProg []    "x={a:show()}"
+test_NoShow     = do assertEqual (Left NoShow)                                                                         $ validateProg []    ""
+                     assertEqual (Left NoShow)                                                                         $ validateProg ["f"] "x=f()"
+                     assertEqual (Left NoShow)                                                                         $ validateProg []    "x=[]"
+                     assertEqual (Left NoShow)                                                                         $ validateProg []    "x={}"
+
+initProg = initTable.unsafeProg
+derefProg = derefVars.unsafeInitTable.unsafeProg
+validateProg fs = validateFunctions fs.unsafeInitTable.unsafeProg

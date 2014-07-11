@@ -50,11 +50,11 @@ test-suite Evaluator-tests
                  Eval.Function,
                  Data.Eval,
                  Parser.MonolithicParserTestUtils,
-                 Eval.MultiPassEvalTest,
                  Eval.MultiPassEvalTestUtils,
                  Eval.Engine,
                  Eval.EngineTestUtils,
                  Eval.FunctionEvalTestUtils1,
                  Eval.EngineReturnValueTest,
                  Data.EvalError,
-                 Parser.MonolithicParserTestProp
+                 Parser.MonolithicParserTestProp,
+                 Eval.MultiPassEvalTestProp
