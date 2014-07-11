@@ -13,8 +13,8 @@ import Test.Framework
 
 {-| Units -}
 test_MultiDefs = do
-  assertEqual (Left (MultipleDefinitions (1,8) "x"))                                $ initTable $ unsafeProg "x=null;x=true"
-  assertEqual (Right $ M.fromList [("x",(mkNull,(1,1))),("y",(mkBool True,(1,8)))]) $ initTable $ unsafeProg "x=null;y=true"
+  assertEqual (Left (MultipleDefinitions (1,8) "x"))                                              $ initTable $ unsafeProg "x=null;x=true"
+  assertEqual (Right $ M.fromList [("x",(mkNull (1,3), (1,1))),("y",(mkBool (1,10) True,(1,8)))]) $ initTable $ unsafeProg "x=null;y=true"
 
 {-| Props -}
 prop_MultiDefs (MultiDefs  prog p x)                        = nonEmpty prog ==> Left (MultipleDefinitions p x) == initTable (toToken prog)

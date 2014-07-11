@@ -34,18 +34,18 @@ derefVar (pending,finished) (n,(v,p)) = do
   return $ uncurry (,) $ if hasAnyVar v' then (M.insert n (v',p) pending,finished) else (M.delete n pending,M.insert n (v',p) finished)
 
 deref :: Table -> Table -> ExpToken -> Eval ExpToken
-deref ps fs (FuncT w n es)  = liftM (FuncT w n) $ mapM (deref ps fs) es
-deref ps fs (ArrayT p w es) = liftM (ArrayT p w)  $ mapM (deref ps fs) es
-deref ps fs (ObjT p w ts)   = liftM (ObjT p w)    $ mapM (mapMPair $ deref ps fs) ts
-deref ps fs (VarT i)        = let IdT q _ n = i in case M.lookup n fs of Just (x,_) -> return x; Nothing -> case M.lookup n ps of Just _ -> return $ VarT i; Nothing -> Left $ UndefinedVariable q n
-deref _  _  e               = return e
+deref ps fs (FuncT w n es) = liftM (FuncT w n) $ mapM (deref ps fs) es
+deref ps fs (ArrT p w es)  = liftM (ArrT p w)  $ mapM (deref ps fs) es
+deref ps fs (ObjT p w ts)  = liftM (ObjT p w)  $ mapM (mapMPair $ deref ps fs) ts
+deref ps fs (VarT i)       = let IdT q _ n = i in case M.lookup n fs of Just (x,_) -> return x; Nothing -> case M.lookup n ps of Just _ -> return $ VarT i; Nothing -> Left $ UndefinedVariable q n
+deref _  _  e              = return e
 
 hasAnyVar :: ExpToken -> Bool
-hasAnyVar (FuncT _ _ es)  = any hasAnyVar es
-hasAnyVar (ArrayT _ _ es) = any hasAnyVar es
-hasAnyVar (ObjT _ _ ps)   = any (hasAnyVar.pairVal) ps
-hasAnyVar (VarT _)        = True
-hasAnyVar _               = False
+hasAnyVar (FuncT _ _ es) = any hasAnyVar es
+hasAnyVar (ArrT _ _ es)  = any hasAnyVar es
+hasAnyVar (ObjT _ _ ps)  = any (hasAnyVar.pairVal) ps
+hasAnyVar (VarT _)       = True
+hasAnyVar _              = False
 
 validateFunctions :: [String] -> Table -> Eval ()
 validateFunctions fns t = let table = map (\(a,(b,_))->(a,b)) $ M.toList t in do
@@ -56,7 +56,7 @@ validateFunctions fns t = let table = map (\(a,(b,_))->(a,b)) $ M.toList t in do
 validateNames :: [String] -> [(String,ExpToken)] -> Eval ()
 validateNames fns = mapM_ (uncurry f)   where
   f v (FuncT _ (IdT p _ fn) es) | isValidShow v fn fns = mapM_ (f v) es | otherwise = Left $ UndefinedFunction p fn
-  f v (ArrayT _ _ es)                                  = mapM_ (f v) es
+  f v (ArrT _ _ es)                                    = mapM_ (f v) es
   f v (ObjT _ _ ps)                                    = mapM_ (f v.pairVal) ps
   f _ _                                                = return ()
 
@@ -68,7 +68,7 @@ validateNonTopShows = mapM_ (uncurry top) where
   top v (FuncT _ _ es) = mapM_ (f v) es
   top v e              = f v e
   f v (FuncT _ (IdT p _ fn) es) | fn /= "show" = mapM_ (f v) es | otherwise = Left $ NonTopLevelShow p
-  f v (ArrayT _ _ es)                          = mapM_ (f v) es
+  f v (ArrT _ _ es)                            = mapM_ (f v) es
   f v (ObjT _ _ ps)                            = mapM_ (f v.pairVal) ps
   f _ _                                        = return ()
 
