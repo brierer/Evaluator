@@ -1,27 +1,24 @@
 {-# OPTIONS_GHC -fno-warn-orphans  #-}
 module Eval.MultiPassEvalTestUtils where
 
-import qualified Data.Map as M             
-import qualified Data.Set as S             
+import qualified Data.Map as M
+import qualified Data.Set as S
 
-import Control.Applicative                 
-import Control.Monad                       
-import Control.Monad.State                 
-import Data.Eval                           
-import Data.ExpToken                       
-import Data.Function                       
-import Data.List                           
-import Data.Maybe                          
-import Eval.MultiPass                      
+import Control.Applicative
+import Control.Monad
+import Control.Monad.State
+import Data.ExpToken
+import Data.Function
+import Data.List
+import Data.Maybe
+import Eval.MultiPass
 import Parser.Monolithic
-import Parser.MonolithicParserTestUtils    
-import Test.Framework                      
+import Parser.MonolithicParserTestUtils
+import Test.Framework
 
 class HasProg a where
   forms     :: a -> [FormToken]
   fromForms :: [FormToken] -> a
-  toToken   :: a -> ProgToken
-  toToken = fromForms.forms
 
 instance HasProg ProgToken where forms (ProgT _ fs) = fs;      fromForms = ProgT p0
 instance HasProg ProgTA    where forms (ProgTA p)   = forms p; fromForms = ProgTA .fromForms
@@ -252,14 +249,11 @@ mNoShowFuncs = liftM (fromForms.removeTopShow.forms)
 {- | Utils -}
 unsafeProg = unsafeParse progT
 formTable = M.fromList.map toTriple
-
-unsafeInitTable = unsafeRight.initTable.toToken
-derefValidProg = fromForms.derefAll.forms
-derefValidProg' = unsafeInitTable.derefValidProg
+unsafeInitTable = unsafeRight.initTable
 
 derefAll []             = []
-derefAll (FormT n v:fs) = let moo1 = FormT n (derefOne fs v):derefAll fs
-                          in  if any hasVarF moo1 then derefAll moo1 else moo1
+derefAll (FormT i e:fs) = let form = FormT i (derefOne fs e):derefAll fs
+                          in  if any hasVarF form then derefAll form else form
 
 hasVarF (FormT _ e)    = hasVar e
 hasVarP (PairT _ e)    = hasVar e
@@ -283,8 +277,6 @@ toTriple(FormT (IdT p _ a) b) = (a,(b,p))
 formName = fst.toTuple
 formPos = snd.snd.toTriple
 
-nonEmpty = not.null.forms
-
 diff x = filter (/= x)
 
 type ChooseString m = ([String] -> m String)
@@ -301,10 +293,6 @@ mValidFuncs  :: Monad m => m ValidVars  -> m ValidFuncs
 mUndefFuncs  :: Monad m => m ValidFuncs -> ChooseString m -> ChooseForm m -> m UndefFuncs
 mNoShowFuncs :: Monad m => m ValidFuncs -> m NoShowFuncs
 
-derefValidProg  :: HasProg a => a -> a
-derefValidProg' :: HasProg a => a -> Table
-unsafeInitTable :: HasProg a => a -> Table
-nonEmpty        :: HasProg a => a -> Bool
 
 
 

@@ -5,7 +5,6 @@ import Data.ExpToken
 import Parser.Monolithic
 import Parser.MonolithicParserTestUtils
 import Test.Framework
-import Text.ParserCombinators.Parsec
 
 {-# ANN module "HLint: ignore Use camelCase" #-}
 
@@ -33,7 +32,7 @@ prop_Bool (BoolTA b)       =                b   .= testCase boolT b
 prop_Null (NullTA n)       =                n   .= testCase nullT n
 
 {-| Utils -}
-testCase p = unsafeRight . parse p "" . unparse
+testCase p = unsafeParse p.unparse
 a .= b = noPos a == noPos b
 
 class    NoPos a         where noPos :: a -> a

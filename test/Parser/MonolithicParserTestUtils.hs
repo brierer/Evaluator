@@ -160,6 +160,19 @@ instance Arbitrary W where
   shrink (W w) = mW $ filter (`elem` " \t\n\v") <$> sShrink w
 mW = liftM W
 
+mkProg   = ProgT
+mkForm p = FormT      .mkId p
+mkPair p = PairT      .mkId p
+mkId   p = IdT   p w2
+mkFunc p = FuncT   w1 .mkId p
+mkArr  p = ArrT  p w2
+mkObj  p = ObjT  p w2
+mkVar  p = VarT       .mkId p
+mkStr  p = StrT  p w2
+mkNum  p = NumT  p w2
+mkBool p = BoolT p w2
+mkNull p = NullT p w2
+
 liftMF2 g f1 f2       x1 x2        = g <$> liftM f1 x1 <*> liftM f2 x2
 liftMF3 g f1 f2 f3    x1 x2 x3     = g <$> liftM f1 x1 <*> liftM f2 x2 <*> liftM f3 x3
 liftMF4 g f1 f2 f3 f4 x1 x2 x3 x4  = g <$> liftM f1 x1 <*> liftM f2 x2 <*> liftM f3 x3 <*> liftM f4 x4
@@ -173,6 +186,8 @@ sList = take 10
 sShrink  = take 1.shrink
 tShrink  = sShrink.to
 tShrinks = sShrink.map to
+
+unsafeParse p = unsafeRight . parse p ""
 
 unsafeRight (Right x) = x
 unsafeRight x         = error $ "MonolithicParserTestUtils::unsafeRight [UnexpectedPattern ["++show x++"]]"

@@ -1,11 +1,10 @@
 {-# OPTIONS_GHC -F -pgmF htfpp #-}
 module Parser.MonolithicParserTestUnit where
 
-import Data.ExpToken
+import Data.List
 import Parser.Monolithic
 import Parser.MonolithicParserTestUtils
 import Test.Framework
-import Text.ParserCombinators.Parsec
 
 {-# ANN module "HLint: ignore Use camelCase" #-}
 
@@ -85,23 +84,4 @@ test_UnparseBool = do assertEqual "true"                  $ unparse $ mkBool (1,
 test_UnparseNull =    assertEqual "null"                  $ unparse $ mkNull (1,1)
 
 {-| Utils -}
-unsafeParse p = unsafeRight . parse p ""
-
-mkProg   = ProgT
-mkForm p = FormT      .mkId p
-mkPair p = PairT      .mkId p
-mkId   p = IdT   p w2
-mkFunc p = FuncT   w1 .mkId p
-mkArr  p = ArrT  p w2
-mkObj  p = ObjT  p w2
-mkVar  p = VarT       .mkId p
-mkStr  p = StrT  p w2
-mkNum  p = NumT  p w2
-mkBool p = BoolT p w2
-mkNull p = NullT p w2
-
 ascii = [' '..'~'] \\ "\"\\"
-
-
-
-               
