@@ -1,22 +1,21 @@
 {-# OPTIONS_GHC -F -pgmF htfpp -fno-warn-incomplete-patterns #-}
-module Eval.FunctionEvalTest where
+module Eval.Function.FunctionEvalTest where
 
-import Prelude hiding                   (any,null)
+import Prelude        hiding (any,null)
+import Test.Framework hiding (forAll)
 
-import qualified Prelude as P           (any,null)
+import qualified Prelude as P
 
-import Control.Arrow                    (second)
-import Data.Eval                        (Func(..),TypeValidator(..))
-import Data.EvalError                   (EvalError(..))
-import Data.ExpObj                      (Type(..),ExpObj(..))
-import Data.ExpToken                    (PairToken(..),IdToken(..),ExpToken(..))
-import Eval.Function                    (Marshallable(..),table,plot,array,obj,str,num,bool,null,any,atom,atomType,nonEmpty,args,withFuncs,evalError)
-import Eval.FunctionEvalTestUtils1      (TestToks(..),TestObjs(..),ExpOA(..),TableOA(..),PlotOA(..),ArrayOA(..),ObjOA(..),StrOA(..),NumOA(..),BoolOA(..),NullOA(..),
-                                         ExpTS(..),ArrayTS(..),ObjTS(..),ArrayTF(..),ObjTF(..),testFunc,forAll,testS,testF,mkFunc,funcNamesAtom,funcNamesNoAtom)
-import Eval.FunctionEvalTestUtils2      (Is(..),InvalidArgsNb(..),TokOrObj(..),TestIndexesT(..),TestIndexesO(..),ValA(..),ArgErrorA(..),mkEntries,anyCase,orCase,caseArrayOf,caseObjOf)
-import Eval.MultiPassEvalTestUtils      (usesFuncE,w2,p0)
-import Parser.MonolithicParserTestUtils (StrTA(..),NumTA(..),BoolTA(..),NullTA(..),P(..),un,uns)
-import Test.Framework                   (TestSuite,NonNegative(..),makeTestSuite,makeQuickCheckTest,makeLoc,qcAssertion,(==>))
+import Control.Arrow
+import Data.Eval
+import Data.EvalError
+import Data.ExpObj
+import Data.ExpToken
+import Eval.Function
+import Eval.Function.FunctionEvalTestUtils1
+import Eval.Function.FunctionEvalTestUtils2
+import Eval.MultiPass.MultiPassEvalTestUtils
+import Parser.MonolithicParserTestUtils
 
 {-| Number of args validation -}
 prop_NbArgs (InvalidArgsNb nbParams nbArgs p name goodFunc badFunc fs) = Left (InvalidNbOfArgs p name nbParams nbArgs) == withFuncs fs any badFunc && Right (NullO p) == withFuncs fs any goodFunc
@@ -28,17 +27,17 @@ prop_OrObj (TestIndexesO os  indexes rest) = orCase os [table,plot,array,obj,str
 
 prop_ArrayOfLit :: P -> [ExpTS] -> ValA ExpToken -> Bool
 prop_ArrayOfObj :: P -> [ExpOA] -> ValA ExpObj   -> Bool
-prop_ArrayOfLit p ts (ValA _ v) = caseArrayOf (un p) v (uns ts) testS $ flip ArrayT w2
-prop_ArrayOfObj p ts (ValA _ v) = caseArrayOf (un p) v (uns ts) Right ArrayO
+prop_ArrayOfLit p ts (ValA _ v) = caseArrayOf (un p) v (map un ts) testS mkArr
+prop_ArrayOfObj p ts (ValA _ v) = caseArrayOf (un p) v (map un ts) Right ArrayO
 
 prop_ObjOfLit :: P -> [(String,ExpTS)] -> ValA ExpToken -> Bool
 prop_ObjOfObj :: P -> [(String,ExpOA)] -> ValA ExpObj   -> Bool
-prop_ObjOfLit p ps (ValA _ v) = caseObjOf (un p) v (map (second un) ps) testS $ \pos -> ObjT pos w2 . map (\(x,y) -> PairT (IdT p0 w2 x) y)
+prop_ObjOfLit p ps (ValA _ v) = caseObjOf (un p) v (map (second un) ps) testS $ \pos -> mkObj pos . map (uncurry $ mkPair p0)
 prop_ObjOfObj p ps (ValA _ v) = caseObjOf (un p) v (map (second un) ps) Right ObjO
 
-prop_NonEmptyLit (TestToks [a@(ArrayT pa wa es), o@(ObjT po wo pairs), s@(StrT ps ws v), nb, b, nu]) =
+prop_NonEmptyLit (TestToks [a@(ArrT pa wa es), o@(ObjT po wo pairs), s@(StrT ps ws v), nb, b, nu]) =
   let f = withFuncs [] (nonEmpty any) in not (P.null es) && not (P.null pairs) && not (P.null v) ==>
-    Left (IllegalEmpty pa) == f (ArrayT pa wa [])  &&
+    Left (IllegalEmpty pa) == f (ArrT pa wa [])  &&
     Left (IllegalEmpty po) == f (ObjT   po wo [])  &&
     Left (IllegalEmpty ps) == f (StrT   ps ws [])  &&
     testS a  == f a  && testS o  == f o  && testS s  == f s &&
@@ -70,7 +69,7 @@ prop_NonEmptyFunc n name (P pos)
     Right a  == f a  && Right o  == f o  && Right s  == f s &&
     Right nb == f nb && Right b  == f b  && Right nu == f nu
 
-prop_ArgError (NonNegative n') name (ArgErrorA e) = Left (ArgError n name e) == withFuncs (map args fs) any (mkFunc p0 name $ replicate (n+1) (NullT p0 w2))
+prop_ArgError (NonNegative n') name (ArgErrorA e) = Left (ArgError n name e) == withFuncs (map args fs) any (mkFunc p0 name $ replicate (n+1) (mkNull p0))
   where fs = [(name,(replicate n any ++ [TypeVal $ \_ -> evalError e], f))]
         f = Func $ \_ -> error "FunctionEvalTest::prop_ArgError [Should not be called]"
         n = n' `mod` 1000
@@ -98,14 +97,14 @@ prop_ErrorMarshallPlotFunc (TestObjs os) (TestToks es) =
 prop_MarshallPlotObj  (PlotOA p)                        = Right p == withFuncs [] plot p
 prop_MarshallPlotFunc (TestObjs os@[_,p]) (TestToks es) = Right p == withFuncs [] plot (testFunc os es (getPos p) "plotTestF")
 
-{-| Basic types with literals -}  
+{-| Basic types with literals -}
 -- Array
 prop_ErrorMarshallArrayLit  (ExpTS e)                   = not (isArray e || isVar e || isFunc e) ==> Left (TypeMismatch (getPos e) Arr (getType e)) == withFuncs [] array e
 prop_ErrorMarshallArrayObj  (ExpOA e)                   = not (isArray e)                        ==> Left (TypeMismatch (getPos e) Arr (getType e)) == withFuncs [] array e
 prop_ErrorMarshallArrayFunc (TestObjs os) (TestToks es) =
   forAll (mkEntries ["arrayTestF"] es os) $ \(name,t,e) ->                                           Left (TypeMismatch (getPos e) Arr t)           == withFuncs [] array (testFunc os es (getPos e) name)
 
-prop_MarshallArrayLit  (ArrayTS a)                               = testS a == withFuncs [] array a
+prop_MarshallArrayLit  (ArrTS a)                               = testS a == withFuncs [] array a
 prop_MarshallArrayObj  (ArrayOA a)                               = Right a == withFuncs [] array a
 prop_MarshallArrayFunc (TestObjs os) (TestToks es@[a,_,_,_,_,_]) = testS a == withFuncs [] array (testFunc os es (getPos a) "arrayTestF")
 
@@ -172,6 +171,6 @@ prop_MarshallAtomFunc (TestObjs os) (TestToks es) = forAll (mkEntries funcNamesN
   f (name,_,MkObj e) = Right e == withFuncs [] atom (testFunc os es (getPos e) name)
 
 {-| Literals containing function calls -}
-prop_MarshallFuncsArray (ArrayTF e o (IdT _ _ i)) = usesFuncE i e ==> testF fs e == withFuncs fs array e where fs = [(i,([],Func $ \_ _ -> return o))]
+prop_MarshallFuncsArray (ArrTF e o (IdT _ _ i)) = usesFuncE i e ==> testF fs e == withFuncs fs array e where fs = [(i,([],Func $ \_ _ -> return o))]
 prop_MarshallFuncsObj   (ObjTF   e o (IdT _ _ i)) = usesFuncE i e ==> testF fs e == withFuncs fs obj   e where fs = [(i,([],Func $ \_ _ -> return o))]
 

@@ -46,15 +46,14 @@ test-suite Evaluator-tests
   other-modules: 
                  Parser.Monolithic,
                  Eval.MultiPass,
-                 Eval.FunctionEvalTest,
-                 Eval.Function,
                  Data.Eval,
                  Parser.MonolithicParserTestUtils,
-                 Eval.MultiPassEvalTestUtils,
                  Eval.Engine,
-                 Eval.EngineTestUtils,
-                 Eval.FunctionEvalTestUtils1,
-                 Eval.EngineReturnValueTest,
                  Data.EvalError,
                  Parser.MonolithicParserTestProp,
-                 Eval.MultiPassEvalTestProp
+                 Eval.MultiPass.MultiPassEvalTestUtils,
+                 Eval.Function.FunctionEvalTestUtils1,
+                 Eval.Engine.EngineTestUtils
+lTestProp
+TestProp
+stProp

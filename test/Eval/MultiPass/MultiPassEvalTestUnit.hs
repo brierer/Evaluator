@@ -1,9 +1,9 @@
 {-# OPTIONS_GHC -F -pgmF htfpp #-}
-module Eval.MultiPassEvalTestUnit where
+module Eval.MultiPass.MultiPassEvalTestUnit where
 
 import Data.EvalError
 import Eval.MultiPass
-import Eval.MultiPassEvalTestUtils
+import Eval.MultiPass.MultiPassEvalTestUtils
 import Parser.MonolithicParserTestUtils
 import Test.Framework
 

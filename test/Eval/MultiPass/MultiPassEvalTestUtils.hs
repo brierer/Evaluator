@@ -1,5 +1,5 @@
 {-# OPTIONS_GHC -fno-warn-orphans  #-}
-module Eval.MultiPassEvalTestUtils where
+module Eval.MultiPass.MultiPassEvalTestUtils where
 
 import qualified Data.Map as M
 import qualified Data.Set as S
@@ -39,7 +39,7 @@ mMultiDefs pa = let emptyProg = MultiDefs (fromForms []) p0 "" in do
   fs <- liftM forms pa
   nullGuard fs emptyProg $ do
     let (FormT (IdT p _ n) _) = head fs
-        fs' = FormT (IdT p0 w2 n) (NullT p0 w2):tail fs
+        fs' = mkForm p0 n (mkNull p0):tail fs
     return $ MultiDefs (fromForms $ fs'++fs++fs') p n
 
 data ValidVars = ValidVars UniqueDefs deriving (Eq,Show)
@@ -154,7 +154,7 @@ funcNames = concatMap f where
   f (ObjT _ _ ps)            = funcNames $ map pairVal ps
   f _                        = []
 
-insertTopShow fs = FormT (IdT p0 w2 "show") (FuncT "" (IdT p0 w2 "show") $ map formVal fs):fs
+insertTopShow fs = mkForm p0 "show" (mkFunc p0 "show" $ map formVal fs):fs
 
 replaceNonTopShows = map f where
   f (FormT n e)               = FormT n $ g e

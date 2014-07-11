@@ -1,26 +1,26 @@
 {-# LANGUAGE MultiParamTypeClasses, FlexibleInstances #-}
 {-# OPTIONS_GHC -fno-warn-incomplete-patterns #-}
-module Eval.FunctionEvalTestUtils2 where
+module Eval.Function.FunctionEvalTestUtils2 where
 
-import Prelude hiding                   (any,null)
+import Prelude        hiding (any,null)
+import Data.List      hiding (any,null)
+import Test.Framework hiding (forAll)
 
-import qualified Data.Set as S          (Set,findMax,findMin,insert,member,singleton)
-import qualified Prelude as P           (any,null)
+import qualified Data.Set as S          
+import qualified Prelude  as P           
 
-import Control.Monad                    (liftM,liftM2)
-import Control.Monad.State              (State,evalState,get,put)
-import Data.Eval                        (Func(..),TypeValidator (..),FuncEntry)
-import Data.EvalError                   (EvalError(..))
-import Data.ExpObj                      (Type(..),ExpObj(..))
-import Data.ExpToken                    (ExpToken (..),IdToken (..),Pos)
-import Data.List                        (permutations,(\\))
-import Data.Maybe                       (isJust)
-import Eval.Function                    (Marshallable (..),any,array,arrayOf,objOf,bool,null,num,obj,str,withFuncs,(<!>),(<|>))
-import Eval.MultiPass                   (mapMPair)
-import Parser.MonolithicParserTestUtils (IdTA (..),P (..),Tall (..),Unto (..),sized1)
-import Test.Framework                   (Arbitrary (..),Gen,NonNegative(..),choose,elements)
+import Control.Monad
+import Control.Monad.State
+import Data.Eval
+import Data.EvalError
+import Data.ExpObj
+import Data.ExpToken
+import Data.Maybe
+import Eval.Function
+import Eval.MultiPass
+import Parser.MonolithicParserTestUtils
 
-import Eval.FunctionEvalTestUtils1
+import Eval.Function.FunctionEvalTestUtils1
 
 class Is a where
   isFunc     :: a -> Bool
@@ -34,7 +34,7 @@ class Is a where
   isNum      :: a -> Bool
   isBool     :: a -> Bool
   isNull     :: a -> Bool
-  
+
   isAtom     :: a -> Bool
   isAtom e = P.any ($e) [isStr,isNum,isBool,isNull]
 
@@ -42,27 +42,27 @@ instance Is ExpToken where
   isTable    = error "FunctionEvalTestUtils::isTable<ExpToken> [Should not be called]"
   isPlot     = error "FunctionEvalTestUtils::isPlot<ExpToken> [Should not be called]"
 
-  isFunc   (FuncT{})  = True; isFunc _  = False
-  isVar    (VarT{})   = True; isVar _   = False
-  isArray  (ArrayT{}) = True; isArray _ = False
-  isObj    (ObjT{})   = True; isObj _   = False
-  isStr    (StrT{})   = True; isStr _   = False
-  isNum    (NumT{})   = True; isNum _   = False
-  isBool   (BoolT{})  = True; isBool _  = False
-  isNull   (NullT{})  = True; isNull _  = False
+  isFunc   (FuncT{}) = True; isFunc _  = False
+  isVar    (VarT{})  = True; isVar _   = False
+  isArray  (ArrT{})  = True; isArray _ = False
+  isObj    (ObjT{})  = True; isObj _   = False
+  isStr    (StrT{})  = True; isStr _   = False
+  isNum    (NumT{})  = True; isNum _   = False
+  isBool   (BoolT{}) = True; isBool _  = False
+  isNull   (NullT{}) = True; isNull _  = False
 
 instance Is ExpObj where
   isFunc = error "FunctionEvalTestUtils::isFunc<Obj> [Should not be called]"
   isVar  = error "FunctionEvalTestUtils::isVar<Obj>  [Should not be called]"
 
-  isTable  (TableO{})  = True; isTable _  = False
-  isPlot   (PlotO{})   = True; isPlot _   = False
-  isArray  (ArrayO{})  = True; isArray _  = False
-  isObj    (ObjO{})    = True; isObj _    = False
-  isStr    (StrO{})    = True; isStr _    = False
-  isNum    (NumO{})    = True; isNum _    = False
-  isBool   (BoolO{})   = True; isBool _   = False
-  isNull   (NullO{})   = True; isNull _   = False
+  isTable  (TableO{}) = True; isTable _ = False
+  isPlot   (PlotO{})  = True; isPlot _  = False
+  isArray  (ArrayO{}) = True; isArray _ = False
+  isObj    (ObjO{})   = True; isObj _   = False
+  isStr    (StrO{})   = True; isStr _   = False
+  isNum    (NumO{})   = True; isNum _   = False
+  isBool   (BoolO{})  = True; isBool _  = False
+  isNull   (NullO{})  = True; isNull _  = False
 
 data InvalidArgsNb = InvalidArgsNb Int Int Pos String ExpToken ExpToken [FuncEntry]
 instance Show InvalidArgsNb where show (InvalidArgsNb n m p i g b fs) = unlines ["InvalidArgsNb",show n,show m,show p,show i,show g,show b,show $ map fst fs]
@@ -152,7 +152,7 @@ class AllUniquePos a where
   ensureUnique :: a -> State (S.Set Pos) a
 instance AllUniquePos ExpToken where
     ensureUnique (FuncT w i es)  = liftM (FuncT w i) $ mapM ensureUnique es
-    ensureUnique (ArrayT p w es) = do p' <- add p; liftM (ArrayT p' w) $ mapM ensureUnique es
+    ensureUnique (ArrT p w es)   = do p' <- add p; liftM (ArrT p' w) $ mapM ensureUnique es
     ensureUnique (ObjT   p w ps) = do p' <- add p; liftM (ObjT p' w)   $ mapM (mapMPair ensureUnique) ps
     ensureUnique (StrT   p w s)  = do p' <- add p; return $ StrT p' w s
     ensureUnique (NumT p w s n)  = do p' <- add p; return $ NumT p' w s n
@@ -172,7 +172,7 @@ instance AllUniquePos ExpObj where
 instance AllUniquePos b => AllUniquePos (a,b) where ensureUnique (s,e) = liftM2 (,) (return s) $ ensureUnique e
 
 class Elems a where elems :: a -> [a]
-instance Elems ExpToken where elems (ArrayT _ _ xs) = xs; elems _ = []
+instance Elems ExpToken where elems (ArrT _ _ xs) = xs; elems _ = []
 instance Elems ExpObj   where elems (ArrayO _   xs) = xs; elems _ = []
 
 add :: Pos -> State (S.Set Pos) Pos
@@ -204,8 +204,8 @@ caseArrayOf p v xs mkExpectedArray mkArray = f $ allUniquePos xs where
     r@(Right _)                        -> r == mkExpectedArray arr
     l@(Left (TypeMismatch pos _ actT)) -> let Just e = findWithPosAndType pos actT es in  l == withFuncs [] v e && f (es \\ [e])
 
-caseObjOf p v xs mkExpectedObj mkObj = f $ allUniquePos xs where
-  f ps = let o = mkObj p ps in case withFuncs [] (objOf v) o of
+caseObjOf p v xs mkExpectedObj mkObjF = f $ allUniquePos xs where
+  f ps = let o = mkObjF p ps in case withFuncs [] (objOf v) o of
     r@(Right _)                        -> r == mkExpectedObj o
     l@(Left (TypeMismatch pos _ actT)) -> let Just e = findWithPosAndType pos actT $ map snd ps in l == withFuncs [] v e && f (filter (\(_,y) -> y /= e) ps)
 

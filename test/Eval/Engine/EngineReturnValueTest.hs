@@ -1,26 +1,30 @@
 {-# OPTIONS_GHC -F -pgmF htfpp #-}
-module Eval.EngineReturnValueTest where
+module Eval.Engine.EngineReturnValueTest where
 
-import Control.Monad.State                 (evalStateT)
-import Data.Eval                           (Eval)
-import Data.ExpObj                         (ExpObj(..))
-import Data.ExpToken                       (ExpToken(..))
-import Data.List                           (genericLength)
-import Eval.Engine                         (funcs,showF,multiF,meanF,descF,tableF,nTimesF,takeTF,takeAF,sortTF,sortAF,colTF,colAF)
-import Eval.EngineTestUtils                (TableValidArgs(..),addFunc',mk',mkO',tablesAndPlots,mkMultiMeanReturn,unprecise,
-                                            mkTableValidArgs,unsafeMarshallP,unsafeMarshall,sortTOn,sortAOn,keepInRange,mkSortColArray)
-import Eval.FunctionEvalTestUtils1         (ExpOA(..),TableOA(..),AtomTA(..),ExpTS(..),applyFunc,p0)
-import Eval.FunctionEvalTestUtils2         (isNum)
-import Parser.MonolithicParserTestUtils    (P(..),NumTA(..),un)
-import Test.Framework                      (TestSuite,Property,makeTestSuite,makeQuickCheckTest,makeLoc,qcAssertion,(==>))
+import Prelude hiding (null)
 
-import Data.Vector                         (fromList)
-import Statistics.Sample                   (mean,variance,skewness,kurtosis)
+import qualified Data.Vector as V
+import qualified Prelude as P
 
-prop_Show (P p) a1ras' = let (fs,a1) = addFunc' "tablesAndPlots" a1r; (_,a1r) = mkO' a1rs; a1rs = tablesAndPlots a1ras'; expected = Right (ObjO p [("result",a1r)])
-                                    in  True ==> expected == applyFunc fs p "show" [a1] && expected == evalStateT (showF p a1r) []
+import Control.Monad.State
+import Data.Eval
+import Data.ExpObj
+import Data.ExpToken
+import Data.List
+import Eval.Engine
+import Eval.Engine.EngineTestUtils
 
-prop_Multi (P pf) (P pa) a1as = not (null a1as) ==>
+import Eval.Function.FunctionEvalTestUtils1
+import Eval.Function.FunctionEvalTestUtils2
+import Parser.MonolithicParserTestUtils
+import Test.Framework
+
+import Statistics.Sample
+
+prop_Show (P p) a1ras' = let (funs,a1) = addFunc' "tablesAndPlots" a1r; (_,a1r) = mkO' a1rs; a1rs = tablesAndPlots a1ras'; expected = Right (ObjO p [("result",a1r)])
+                         in  True ==> expected == applyFunc funs p "show" [a1] && expected == evalStateT (showF p a1r) []
+
+prop_Multi (P pf) (P pa) a1as = not (P.null a1as) ==>
   let (a1,a1rs) = mkMultiMeanReturn a1as pa; expected = Right $ NumO pf $ product $ map (\(NumO _ x)->x) $ filter isNum a1rs in  not (null a1as) ==>
       expected == applyFunc funcs pf "multi" [a1]  &&
       expected == evalStateT (multiF pf a1rs) []
@@ -33,7 +37,7 @@ prop_Mean  (P pf) (P pa) a1as = not (null a1as) ==>
 prop_Desc (P pf) (P pa) a1as = length a1as >= 2 ==>
   let (a1,a1rs) = mkMultiMeanReturn a1as pa
       ns  = map (\(NumO _ x)->x) $ filter isNum a1rs
-      ns' = fromList ns
+      ns' = V.fromList ns
       sExpected = show expected
       expected :: Eval ExpObj
       expected = Right $ TableO pf [map (StrO pf) ["count",                 "sum",  "mean",  "variance",   "skewness",   "kurtosis"],
@@ -44,7 +48,7 @@ prop_Desc (P pf) (P pa) a1as = length a1as >= 2 ==>
        sExpected == show (evalStateT (descF pf a1rs) []))
 
 prop_Table (P pf) (TableValidArgs g1ss g2s) useHeader = any (not.null) g1ss ==>
-  let (g1@(ArrayT _ _ es),g2@(ObjT _ _ ps),expected) = mkTableValidArgs pf g1ss g2s useHeader in
+  let (g1@(ArrT _ _ es),g2@(ObjT _ _ ps),expected) = mkTableValidArgs pf g1ss g2s useHeader in
    expected == applyFunc funcs pf "table" [g1, g2] &&
    expected == evalStateT (tableF pf (map unsafeMarshall es) (map unsafeMarshallP ps)) []
 

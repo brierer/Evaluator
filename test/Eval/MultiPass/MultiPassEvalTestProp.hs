@@ -1,11 +1,11 @@
 {-# OPTIONS_GHC -F -pgmF htfpp #-}
-module Eval.MultiPassEvalTestProp where
+module Eval.MultiPass.MultiPassEvalTestProp where
 
 import Data.Eval
 import Data.EvalError
 import Data.ExpToken
 import Eval.MultiPass
-import Eval.MultiPassEvalTestUtils
+import Eval.MultiPass.MultiPassEvalTestUtils
 import Test.Framework
 
 {-# ANN module "HLint: ignore Use camelCase" #-}

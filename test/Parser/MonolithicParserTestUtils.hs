@@ -163,15 +163,15 @@ mW = liftM W
 mkProg   = ProgT
 mkForm p = FormT      .mkId p
 mkPair p = PairT      .mkId p
-mkId   p = IdT   p w2
-mkFunc p = FuncT   w1 .mkId p
-mkArr  p = ArrT  p w2
-mkObj  p = ObjT  p w2
+mkId   p = IdT   p ws2
+mkFunc p = FuncT   ws1 .mkId p
+mkArr  p = ArrT  p ws2
+mkObj  p = ObjT  p ws2
 mkVar  p = VarT       .mkId p
-mkStr  p = StrT  p w2
-mkNum  p = NumT  p w2
-mkBool p = BoolT p w2
-mkNull p = NullT p w2
+mkStr  p = StrT  p ws2
+mkNum  p = NumT  p ws2
+mkBool p = BoolT p ws2
+mkNull p = NullT p ws2
 
 liftMF2 g f1 f2       x1 x2        = g <$> liftM f1 x1 <*> liftM f2 x2
 liftMF3 g f1 f2 f3    x1 x2 x3     = g <$> liftM f1 x1 <*> liftM f2 x2 <*> liftM f3 x3
@@ -193,8 +193,8 @@ unsafeRight (Right x) = x
 unsafeRight x         = error $ "MonolithicParserTestUtils::unsafeRight [UnexpectedPattern ["++show x++"]]"
 
 p0 = (0,0) :: Pos
-w1 = ""
-w2 = ("","")
+ws1 = ""
+ws2 = ("","")
 
 {-| Mandatory type signatures -}
 mProgTA :: (Applicative m, Monad m) => m P               -> m [FormTA]              -> m ProgTA
