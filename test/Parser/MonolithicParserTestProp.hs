@@ -15,9 +15,9 @@ prop_Id   (IdTA i)         = i    .= testCase idT i
 prop_Exp  (ExpTA e)        = e    .= testCase expT e
 
 -- Composite expressions
-prop_Func  (FuncTA func)   = func  .= testCase funcT func
-prop_Array (ArrayTA array) = array .= testCase arrayT array
-prop_Obj   (ObjTA obj)     = obj   .= testCase objT obj
+prop_Func  (FuncTA func)   = func .= testCase funcT func
+prop_Array (ArrTA  arr)    = arr  .= testCase arrT  arr
+prop_Obj   (ObjTA  obj)    = obj  .= testCase objT  obj
 
 -- Atomic expressions
 prop_Var    (VarTA var)    = var .= testCase varT var

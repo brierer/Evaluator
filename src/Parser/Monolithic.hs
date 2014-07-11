@@ -1,7 +1,7 @@
 module Parser.Monolithic
 ( Unparse(unparse)
 , progT,formT,pairT,idT,expT
-, funcT,arrayT,objT,varT,strT,numT,boolT,nullT
+, funcT,arrT,objT,varT,strT,numT,boolT,nullT
 ) where
 
 import Prelude hiding                ((^),(>))
@@ -28,15 +28,15 @@ pairT = PairT ^ idT > (char ':' >> expT)
 -- idT -> idS
 idT = commonT IdT idS
 
--- expT ->                     nullT | boolT | numT | strT | funcT | arrayT | objT | varT
-expT = foldl1 (<|>) $ map try [nullT , boolT , numT , strT , funcT , arrayT , objT , varT]
+-- expT ->                     nullT | boolT | numT | strT | funcT | arrT | objT | varT
+expT = foldl1 (<|>) $ map try [nullT , boolT , numT , strT , funcT , arrT , objT , varT]
 
 {-| Composite expressions -}
 -- funcT -> idT '(' COMM_SEP expT ')'
 funcT  = mkFunc ^ idT > (char '(' >> commaSep expT) > (char ')' >> ws) where mkFunc i es wa = FuncT wa i es
 
--- arrayT -> '[' COMM_SEP expT ']'
-arrayT = commonT ArrayT $ between (char '[') (char ']') $ commaSep expT
+-- arrT -> '[' COMM_SEP expT ']'
+arrT = commonT ArrT $ between (char '[') (char ']') $ commaSep expT
 
 -- objT -> '{' COMM_SEP pairT '}'
 objT   = commonT ObjT $ between (char '{') (char '}') $ commaSep pairT
@@ -77,14 +77,14 @@ instance Unparse PairToken where unparse (PairT s e)  = unparse s ++ ":" ++ unpa
 instance Unparse IdToken   where unparse (IdT _ w s)  = withWS w s
 instance Unparse ExpToken  where 
  unparse e = case e of
-  FuncT    w i es -> withWS ("",w)  $ unparse i ++ "(" ++ unparses es ++ ")"
-  ArrayT _ w es   -> withWS  w      $ "[" ++ unparses es ++ "]"
-  ObjT   _ w ps   -> withWS  w      $ "{" ++ unparses ps ++ "}"
-  VarT       v    -> withWS ("","") $ unparse v
-  StrT   _ w s    -> withWS  w      $ show s                    
-  NumT   _ w o _  -> withWS  w      o                         
-  BoolT  _ w b    -> withWS  w      $ map toLower (show b)      
-  NullT  _ w      -> withWS  w      "null"                     
+  FuncT   w i es -> withWS ("",w)  $ unparse i ++ "(" ++ unparses es ++ ")"
+  ArrT  _ w es   -> withWS  w      $ "[" ++ unparses es ++ "]"
+  ObjT  _ w ps   -> withWS  w      $ "{" ++ unparses ps ++ "}"
+  VarT      v    -> withWS ("","") $ unparse v
+  StrT  _ w s    -> withWS  w      $ show s                    
+  NumT  _ w o _  -> withWS  w      o                         
+  BoolT _ w b    -> withWS  w      $ map toLower (show b)      
+  NullT _ w      -> withWS  w      "null"                     
 
 {-| Utils -}
 (^) = (<$>)
@@ -108,15 +108,15 @@ formT  :: Parser FormToken
 pairT  :: Parser PairToken
 idT    :: Parser IdToken
 
-expT   :: Parser ExpToken
-funcT  :: Parser ExpToken
-arrayT :: Parser ExpToken
-objT   :: Parser ExpToken
-varT   :: Parser ExpToken
-strT   :: Parser ExpToken
-numT   :: Parser ExpToken
-boolT  :: Parser ExpToken
-nullT  :: Parser ExpToken
+expT  :: Parser ExpToken
+funcT :: Parser ExpToken
+arrT  :: Parser ExpToken
+objT  :: Parser ExpToken
+varT  :: Parser ExpToken
+strT  :: Parser ExpToken
+numT  :: Parser ExpToken
+boolT :: Parser ExpToken
+nullT :: Parser ExpToken
 
 idS :: Parser IdS
 integerS :: Parser IntegerS
