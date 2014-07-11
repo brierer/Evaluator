@@ -4,8 +4,7 @@ module Data.ExpToken
 , PairToken(..)
 , IdToken(..)
 , ExpToken(..)
-, Pos
-, IntegerS
+, Pos,IdS,IntegerS,W1,W2
 ) where
 
 data ProgToken = ProgT Pos [FormToken]       deriving (   Show)
@@ -37,7 +36,8 @@ instance Eq ExpToken where
   (NullT _  a1)       == (NullT _  a2)       =  a1        ==  a2
   _                   == _                   = False
 
-type Pos = (Int,Int)
+type Pos      = (Int,Int)
+type IdS      = String
 type IntegerS = String
 
 type W1 =  String

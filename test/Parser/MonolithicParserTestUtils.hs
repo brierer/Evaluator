@@ -1,42 +1,45 @@
 {-# LANGUAGE MultiParamTypeClasses, FlexibleInstances #-}
-{-# OPTIONS_GHC -fno-warn-incomplete-patterns  #-}
+{-# OPTIONS_GHC -fno-warn-incomplete-patterns -fno-warn-orphans #-}
 module Parser.MonolithicParserTestUtils where
 
-import Data.ExpToken                   (ProgToken(..),FormToken(..),PairToken(..),IdToken(..),ExpToken(..))
-import Data.List                       ((\\))
-import Control.Applicative             (Applicative,(<$>),(<*>))
-import Control.Monad                   (liftM,liftM2,join,replicateM)
-import Numeric                         (showEFloat)
-import Parser.Monolithic               (unparse)
-import Test.Framework                  (Arbitrary,Gen,Positive(..),arbitrary,shrink,elements,sized,listOf,choose)
-import Text.ParserCombinators.Parsec   (parse)
+import Data.ExpToken                   
+import Data.List                       
+import Control.Applicative             
+import Control.Monad                   
+import Numeric                         
+import Parser.Monolithic               
+import Test.Framework                  
+import Text.ParserCombinators.Parsec
+import Text.ParserCombinators.Parsec.Error      
+
+instance Eq ParseError where a == b = errorMessages a == errorMessages b
 
 class Unto a b where to :: b -> a; un :: a -> b
 class Tall a   where tall :: Int -> Gen a
 
 data ProgTA = ProgTA ProgToken deriving (Eq,Show)
 instance Arbitrary ProgTA where arbitrary = sized1 tall; shrink (ProgTA (ProgT p fs)) = mProgTA (tShrink p) (tShrinks fs)
-instance Tall      ProgTA where                                                tall n =  mProgTA  arbitrary  (sizes n)
-mProgTA = liftMF2 mkProg un uns where mkProg x = ProgTA . ProgT x
+instance Tall      ProgTA where                                                tall n = mProgTA  arbitrary  (sizes n)
+mProgTA = liftMF2 mk un (map un) where mk x = ProgTA . ProgT x
 
 data FormTA = FormTA FormToken deriving (Show)
 instance Unto FormTA FormToken where to = FormTA; un (FormTA f) = f
 instance Arbitrary FormTA where arbitrary = sized1 tall; shrink (FormTA (FormT i e)) = mFormTA (tShrink i) (tShrink e)
 instance Tall      FormTA where                                               tall n = mFormTA arbitrary  (tall n)
-mFormTA = liftMF2 mkForm un un where mkForm x = FormTA .FormT x
+mFormTA = liftMF2 mk un un where mk x = FormTA .FormT x
 
 data PairTA = PairTA PairToken deriving (Show)
 instance Unto PairTA PairToken where to = PairTA; un (PairTA p) = p
 instance Arbitrary PairTA where arbitrary = sized1 tall; shrink (PairTA (PairT i v)) = mPairTA (tShrink i) (tShrink v)
 instance Tall      PairTA where                                               tall n = mPairTA  arbitrary  (tall n)
-mPairTA = liftMF2 mkPair un un where mkPair x = PairTA .PairT x
+mPairTA = liftMF2 mk un un where mk x = PairTA .PairT x
 
 data IdTA =   IdTA IdToken deriving (Show)
 instance Unto IdTA IdToken where to = IdTA; un (IdTA s) = s
 instance Arbitrary IdTA where
   arbitrary                 = mIdTA  arbitrary   arbitrary  (liftM2 (:) (elements alpha) $ sListOf $ elements alphaDigit)
   shrink (IdTA (IdT p w s)) = mIdTA (tShrink p) (tShrink w) (sList $ filter validId $ sShrink s)
-mIdTA = liftMF3 mkId un un id where mkId x y = IdTA .IdT x y
+mIdTA = liftMF3 mk un un id where mk x y = IdTA .IdT x y
 validId s =  all (`elem` alphaDigit) s && not (null s) && head s `elem` alpha
 alpha = ['a'..'z']++['A'..'Z']
 alphaDigit = alpha ++ ['0'..'9']
@@ -70,19 +73,19 @@ data FuncTA = FuncTA ExpToken deriving (Show)
 instance Unto FuncTA ExpToken where to = FuncTA; un (FuncTA f) = f
 instance Arbitrary FuncTA where arbitrary = sized1 tall; shrink (FuncTA (FuncT w i es)) = mFuncTA (tShrink w) (tShrink i) (tShrinks es)
 instance Tall      FuncTA where                                                  tall n = mFuncTA  arbitrary   arbitrary  (sizes n)
-mFuncTA = liftMF3 mkFunc un un uns where mkFunc x y = FuncTA .FuncT x y
+mFuncTA = liftMF3 mk un un (map un) where mk x y = FuncTA .FuncT x y
 
 data ArrayTA = ArrayTA ExpToken deriving (Show)
 instance Unto  ArrayTA ExpToken where to = ArrayTA; un (ArrayTA a) = a
 instance Arbitrary ArrayTA where arbitrary = sized1 tall; shrink (ArrayTA (ArrayT p w es)) = mArrayTA (tShrink p) (tShrink w) (tShrinks es)
-instance Tall      ArrayTA where                                                    tall n =  mArrayTA  arbitrary   arbitrary  (sizes n)
-mArrayTA = liftMF3 mkArray un un uns where mkArray x y = ArrayTA .ArrayT x y
+instance Tall      ArrayTA where                                                    tall n = mArrayTA  arbitrary   arbitrary  (sizes n)
+mArrayTA = liftMF3 mk un un (map un) where mk x y = ArrayTA .ArrayT x y
 
 data ObjTA =  ObjTA ExpToken deriving (Show)
 instance Unto ObjTA ExpToken where to = ObjTA; un (ObjTA o) = o
 instance Arbitrary ObjTA where arbitrary = sized1 tall; shrink (ObjTA (ObjT p w ps)) = mObjTA (sShrink $ to p) (sShrink $ to w) (tShrinks ps)
-instance Tall      ObjTA where                                                tall n =  mObjTA arbitrary        arbitrary        (sizes n)
-mObjTA = liftMF3 mkObj un un uns where mkObj x y = ObjTA .ObjT x y
+instance Tall      ObjTA where                                                tall n = mObjTA arbitrary        arbitrary        (sizes n)
+mObjTA = liftMF3 mk un un (map un) where mk x y = ObjTA .ObjT x y
 
 data VarTA =  VarTA ExpToken deriving (Show)
 instance Unto VarTA ExpToken where to = VarTA; un (VarTA v) = v
@@ -96,7 +99,7 @@ instance Unto StrTA ExpToken where to = StrTA; un (StrTA s) = s
 instance Arbitrary StrTA where
   arbitrary                   = mStrTA  arbitrary   arbitrary  (sListOf $ elements valids)
   shrink (StrTA (StrT p w s)) = mStrTA (tShrink p) (tShrink w) (liftM (filter (`elem` valids)) $ sShrink s)
-mStrTA = liftMF3 mkStr un un id where mkStr x y = StrTA .StrT x y
+mStrTA = liftMF3 mk un un id where mk x y = StrTA .StrT x y
 valids = [' '..'~'] \\ "\"\\"
 
 data NumType = Int | Flt | Exp deriving (Eq,Show)
@@ -104,9 +107,9 @@ data NumTA = NumTA NumType ExpToken deriving (Show)
 instance Unto NumTA ExpToken where
   un (NumTA _ n) = n
   to n@(NumT _ _ s v)
-   | s == showInt (floor v) = NumTA Int n
-   | s == showFlt        v  = NumTA Flt n
-   | s == showExp        v  = NumTA Exp n
+   | s == showAsInt (floor v) = NumTA Int n
+   | s == showASFlt        v  = NumTA Flt n
+   | s == showAsExp        v  = NumTA Exp n
    | otherwise              = error $ "Invalid num string ["++s++"]"
 
 instance Arbitrary NumTA where
@@ -117,28 +120,28 @@ mNumTA pa wa va ta = do
   w <- wa
   t <- ta
   (v,vs) <- case t of
-    Int -> do x <- fmap floor va; return (fromIntegral x, showInt x)
-    Flt -> do x <- va;            return (             x, showFlt x)
-    Exp -> do x <- va;            return (             x, showExp x)
+    Int -> do x <- fmap floor va; return (fromIntegral x, showAsInt x)
+    Flt -> do x <- va;            return (             x, showASFlt x)
+    Exp -> do x <- va;            return (             x, showAsExp x)
   return $ NumTA t $ NumT (un p) (un w) vs v
 
-showExp x = showEFloat Nothing x ""
-showFlt x = show (x :: Double)
-showInt x = show (x :: Integer)
+showAsInt x = show (x :: Integer)
+showASFlt x = show (x :: Double)
+showAsExp x = showEFloat Nothing x ""
 
 data BoolTA = BoolTA ExpToken deriving (Show)
 instance Unto BoolTA ExpToken where to = BoolTA; un (BoolTA b) = b
 instance Arbitrary BoolTA where
   arbitrary                     = mBoolTA  arbitrary   arbitrary   arbitrary
   shrink (BoolTA (BoolT p w v)) = mBoolTA (tShrink p) (tShrink w) (sShrink v)
-mBoolTA = liftMF3 mkBool un un id where mkBool x y = BoolTA .BoolT x y
+mBoolTA = liftMF3 mk un un id where mk x y = BoolTA .BoolT x y
 
 data NullTA = NullTA ExpToken deriving (Show)
 instance Unto NullTA ExpToken where to = NullTA; un (NullTA n) = n
 instance Arbitrary NullTA where
   arbitrary                   = mNullTA  arbitrary   arbitrary
   shrink (NullTA (NullT p w)) = mNullTA (tShrink p) (tShrink w)
-mNullTA = liftMF2 mkNull un un where mkNull x = NullTA .NullT x
+mNullTA = liftMF2 mk un un where mk x = NullTA .NullT x
 
 data P = P (Int,Int) deriving (Show)
 instance Unto P (Int,Int) where to = P; un (P p) = p
@@ -158,6 +161,21 @@ instance Arbitrary W where
   shrink (W w) = mW $ filter (`elem` " \t\n\v") <$> sShrink w
 mW = liftM W
 
+simpleParse p = parse p ""
+
+mkProg   = ProgT p0
+mkForm n = FormT $ mkId n
+mkPair n = PairT $ mkId n
+mkId     = IdT   p0 w2
+mkFunc n = FuncT "" $ mkId n
+mkArray  = ArrayT p0 w2
+mkObj    = ObjT   p0 w2
+mkVar    = VarT .mkId
+mkStr    = StrT  p0 w2
+mkNum    = NumT  p0 w2
+mkBool   = BoolT p0 w2
+mkNull   = NullT p0 w2
+
 testCase p = (\(Right x) -> x) . parse p "" . unparse
 
 liftMF2 g f1 f2       x1 x2        = g <$> liftM f1 x1 <*> liftM f2 x2
@@ -170,18 +188,16 @@ sized1 p = sized f where f i = p $ i `mod` 3
 sListOf = liftM sList . listOf
 sList = take 10
 
-sShrink :: Arbitrary a => a -> [a]
-sShrink = take 1.shrink
-
-tShrink :: (Arbitrary b, Unto b a) => a -> [b]
-tShrink = sShrink.to
-
-tShrinks :: (Arbitrary b,Unto b a) => [a] -> [[b]]
+sShrink  = take 1.shrink
+tShrink  = sShrink.to
 tShrinks = sShrink.map to
 
-uns :: Unto a b => [a] -> [b]
-uns = map un
+p0 = (0,0)
+w2 = ("","")
 
+
+
+{-| Mandatory type signatures -}
 mProgTA  :: (Applicative m, Monad m) => m P               -> m [FormTA]              -> m ProgTA
 mFormTA  :: (Applicative m, Monad m) =>                      m IdTA     -> m ExpTA   -> m FormTA
 mPairTA  :: (Applicative m, Monad m) =>                      m IdTA     -> m ExpTA   -> m PairTA
@@ -199,3 +215,6 @@ mNullTA  :: (Applicative m, Monad m) => m P -> m (W,W)                          
 mP       :: (Applicative m, Monad m) => m Int      -> m Int -> m P
 mW       :: (Applicative m, Monad m) => m String            -> m W
 
+sShrink :: Arbitrary a => a -> [a]
+tShrink :: (Arbitrary b, Unto b a) => a -> [b]
+tShrinks :: (Arbitrary b,Unto b a) => [a] -> [[b]]
