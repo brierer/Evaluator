@@ -1,23 +1,21 @@
 {-# OPTIONS_GHC -fno-warn-orphans  #-}
 module Eval.MultiPassEvalTestUtils where
 
-import qualified Data.Map as M             (fromList)
-import qualified Data.Set as S             (empty,toList,insert)
+import qualified Data.Map as M             
+import qualified Data.Set as S             
 
-import Data.Eval                           (Table)
-import Data.ExpToken                       (ProgToken(..),FormToken(..),PairToken(..),IdToken(..),ExpToken(..),Pos)
-import Data.Function                       (on)
-import Data.List                           (nubBy,sort,nub)
-import Data.Maybe                          (fromMaybe)
-import Control.Applicative                 ((<$>),(<*>))
-import Control.Monad                       (liftM,zipWithM)
-import Control.Monad.State                 (State,runState,get,put)
-import Eval.MultiPass                      (initTable,formVal,pairVal,mapPair,mapMPair)
-import Parser.MonolithicParserTestUtils    (ProgTA(..),sShrink)
-import Test.Framework                      (Arbitrary,arbitrary,shrink,elements)
-import Text.ParserCombinators.Parsec.Error (ParseError,errorMessages)
-
-instance Eq ParseError where (==) a b = errorMessages a == errorMessages b
+import Control.Applicative                 
+import Control.Monad                       
+import Control.Monad.State                 
+import Data.Eval                           
+import Data.ExpToken                       
+import Data.Function                       
+import Data.List                           
+import Data.Maybe                          
+import Eval.MultiPass                      
+import Parser.Monolithic
+import Parser.MonolithicParserTestUtils    
+import Test.Framework                      
 
 class HasProg a where
   forms     :: a -> [FormToken]
@@ -40,9 +38,9 @@ data MultiDefs  = MultiDefs UniqueDefs Pos String deriving (Eq,Show)
 instance Arbitrary MultiDefs where
   arbitrary                   = mMultiDefs arbitrary
   shrink (MultiDefs prog _ _) = mMultiDefs (sShrink prog)
-mMultiDefs pa = let empty = MultiDefs (fromForms []) p0 "" in do
+mMultiDefs pa = let emptyProg = MultiDefs (fromForms []) p0 "" in do
   fs <- liftM forms pa
-  nullGuard fs empty $ do
+  nullGuard fs emptyProg $ do
     let (FormT (IdT p _ n) _) = head fs
         fs' = FormT (IdT p0 w2 n) (NullT p0 w2):tail fs
     return $ MultiDefs (fromForms $ fs'++fs++fs') p n
@@ -73,13 +71,13 @@ data UndefVars = UndefVars ValidVars Pos String deriving (Show)
 instance Arbitrary UndefVars where
   arbitrary                   = mUndefVars arbitrary                           elements elements
   shrink (UndefVars prog _ _) = mUndefVars (sShrink $ removeUnderscoresV prog) id       id
-mUndefVars pa f1 f2 = let empty = UndefVars (fromForms []) p0 "" in do
+mUndefVars pa f1 f2 = let emptyProg = UndefVars (fromForms []) p0 "" in do
   fs <- liftM forms pa
   let ns = getRefed fs
-  nullGuard ns empty $ do
+  nullGuard ns emptyProg $ do
     n <- f1 ns
     let fs' = filter (usesVar n) fs
-    nullGuard fs' empty $ do
+    nullGuard fs' emptyProg $ do
       moo <- f2 fs'
       let n' = n ++ "_"
           (f,p) = flip runState p0 $ replaceOneVar n n' moo
@@ -133,9 +131,9 @@ data CycleVars = CycleVars ValidVars [(Pos,String)] deriving (Show)
 instance Arbitrary CycleVars where
   arbitrary                 = mCycleVars arbitrary      elements
   shrink (CycleVars prog _) = mCycleVars (sShrink prog) id
-mCycleVars pa f = let empty = CycleVars (fromForms []) [] in do
+mCycleVars pa f = let emptyProg = CycleVars (fromForms []) [] in do
   fs <- liftM (filter hasVarF.forms) pa
-  nullGuard fs empty $ do
+  nullGuard fs emptyProg $ do
     let ns = map formName fs
     fs' <- zipWithM (makeCycle f) fs $ tail $ cycle ns
     return $ CycleVars (fromForms fs') (flipZip $ sort $ zip ns $ map formPos fs) where flipZip = uncurry (flip zip).unzip
@@ -176,9 +174,9 @@ data UndefFuncs = UndefFuncs ValidFuncs Pos String deriving (Eq,Show)
 instance Arbitrary UndefFuncs where
   arbitrary                      =          mUndefFuncs arbitrary                          elements    elements
   shrink p@(UndefFuncs prog _ _) = diff p $ mUndefFuncs (sShrink $ removeUnderscores prog) tail        tail
-mUndefFuncs pa f1 f2 = let empty = UndefFuncs (fromForms []) p0 "" in do
+mUndefFuncs pa f1 f2 = let emptyProg = UndefFuncs (fromForms []) p0 "" in do
   ValidFuncs prog fns <- pa
-  nullGuard fns empty $ do
+  nullGuard fns emptyProg $ do
     fn <- f1 fns
     let fs = forms prog
         fn' = fn ++ "_"
@@ -216,9 +214,9 @@ data NonTopShowFuncs = NonTopShowFuncs ValidFuncs Pos deriving (Eq,Show)
 instance Arbitrary NonTopShowFuncs where
   arbitrary                         =          mNonTopShowFuncs arbitrary                    elements    elements
   shrink p@(NonTopShowFuncs prog _) = diff p $ mNonTopShowFuncs (sShrink $ removeShows prog) tail        tail
-mNonTopShowFuncs pa f1 f2 = let empty = NonTopShowFuncs (fromForms []) p0 in do
+mNonTopShowFuncs pa f1 f2 = let emptyProg = NonTopShowFuncs (fromForms []) p0 in do
   ValidFuncs prog fns <- pa
-  nullGuard fns empty $ do
+  nullGuard fns emptyProg $ do
     fn <- f1 fns
     let fs = forms prog
     moo <- f2 $ filter (usesFuncNonTop fn) fs
@@ -252,10 +250,12 @@ instance Arbitrary NoShowFuncs where
 mNoShowFuncs = liftM (fromForms.removeTopShow.forms)
 
 {- | Utils -}
+unsafeProg = unsafeParse progT
+
 fromProgForms = M.fromList.map toTriple.forms
 derefValidProg = fromForms.derefAll.forms
 derefValidProg' = initTable'.derefValidProg
-initTable' = (\(Right x)->x).initTable.toToken
+initTable' = unsafeRight.initTable.toToken
 
 derefAll []             = []
 derefAll (FormT n v:fs) = let moo1 = FormT n (derefOne fs v):derefAll fs
@@ -286,8 +286,6 @@ formPos = snd.snd.toTriple
 nonEmpty = not.null.forms
 
 diff x = filter (/= x)
-w2 = ("","")
-p0 = (0,0)
 
 type ChooseString m = ([String] -> m String)
 type ChooseForm m   = ([FormToken] -> m FormToken)

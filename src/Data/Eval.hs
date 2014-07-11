@@ -1,5 +1,5 @@
 module Data.Eval
-( State
+( DerefState
 , Table
 , Eval
 , EvalFunc
@@ -15,8 +15,8 @@ import Data.EvalError          (EvalError)
 import Data.ExpToken           (ExpToken,Pos)
 import Data.ExpObj             (ExpObj)
 
-type State = (Table,Table)
 type Table = M.Map String (ExpToken,Pos)
+type DerefState = (Table,Table)
 type Eval = Either EvalError
 
 type EvalFunc = StateT [FuncEntry] Eval

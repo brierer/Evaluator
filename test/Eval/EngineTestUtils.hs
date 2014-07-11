@@ -14,23 +14,23 @@ import Eval.Engine                                 (funcs)
 import Eval.Function                               (table,num,(<|>),nonEmpty,arrayOf,atom,withFuncs)
 import Eval.FunctionEvalTestUtils1                 (ExpOA,TableOA(..),AtomTA,ExpTS(..),p0,ws2,applyFunc)
 import Eval.FunctionEvalTestUtils2                 (isTable,isPlot,isArray,isNum,isAtom)
-import Parser.MonolithicParserTestUtils            (Unto,P(..),NumTA(..),StrTA(..),to,uns,tShrinks,sListOf)
+import Parser.MonolithicParserTestUtils            (Unto(..),P(..),NumTA(..),StrTA(..),sListOf,tShrinks)
 import Test.Framework                              (Arbitrary(..),(==>))
 
 fs = flip map funcs $ \(n,(typeValidators,_)) -> (n,(typeValidators, Func $ \_ _ -> lift $ success n))
 
-mk  p ts = let es = uns ts; arg = ArrayT p FU.w2 es in (es,arg)
-mkO p ts = let es = uns ts; arg = ArrayO p       es in (es,arg)
+mk  p ts = let es = map un ts; arg = ArrayT p FU.w2 es in (es,arg)
+mkO p ts = let es = map un ts; arg = ArrayO p       es in (es,arg)
 
 {-# ANN mk'   "HLint: ignore Eta reduce" #-}
 {-# ANN mkO'  "HLint: ignore Eta reduce" #-}
 {-# ANN mkObj "HLint: ignore Eta reduce" #-}
 mk'  ts = mk p0 ts
 mkO' ts = mkO p0 ts
-mkObj  ps = let (ss,tss) = unzip ps; ess = map uns tss in (concat ess,ObjT p0 ws2 $ map (\(x,ys)->PairT (IdT p0 ws2 x) $ ArrayT p0 ws2 ys) $ zip ss ess)
-mkObj' ps = let (ss,ts)  = unzip ps; es  = uns ts      in (es,        ObjT p0 ws2 $ map (\(x,y) ->PairT (IdT p0 ws2 x) y)                  $ zip ss es)
+mkObj  ps = let (ss,tss) = unzip ps; ess = map (map un) tss in (concat ess,ObjT p0 ws2 $ map (\(x,ys)->PairT (IdT p0 ws2 x) $ ArrayT p0 ws2 ys) $ zip ss ess)
+mkObj' ps = let (ss,ts)  = unzip ps; es  = map un ts      in (es,        ObjT p0 ws2 $ map (\(x,y) ->PairT (IdT p0 ws2 x) y)                  $ zip ss es)
 
-oneArrayOf g1ras w1as = let es = uns g1ras; g1 = ArrayT p0 ws2 es; (w1s,w1) = mk' w1as in (fs,g1,w1s,w1)
+oneArrayOf g1ras w1as = let es = map un g1ras; g1 = ArrayT p0 ws2 es; (w1s,w1) = mk' w1as in (fs,g1,w1s,w1)
 
 addFunc  fn r = let xs' = (fn,([],Func $ \_ _ -> return r)):fs;    g = FuncT "" (IdT p0 ("","") fn) [] in (xs',g)
 addFunc' fn r = let xs' = (fn,([],Func $ \_ _ -> return r)):funcs; g = FuncT "" (IdT p0 ("","") fn) [] in (xs',g)
@@ -40,10 +40,10 @@ success n = return $ StrO p0 $ "Mocked Success ["++n++"]"
 toArray (x,y) e = ArrayT p0 FU.w2 $ replicate ((x+y) `mod` 100) e
 
 tablesAndPlots :: [ExpOA] -> [ExpOA]
-tablesAndPlots xs = let ys = uns xs :: [ExpObj] in  map to (filter ((||) <$> isTable <*> isPlot) ys)
+tablesAndPlots xs = let ys = map un xs :: [ExpObj] in  map to (filter ((||) <$> isTable <*> isPlot) ys)
 
 typeMismatchSortColCase name (P p) (NumTA _ g1) (TableValidArgs g2ss _) (TableOA g2r) (ExpTS w1) w2ass w2'as (ExpTS w2'') =
-  let g2 = ArrayT p0 ws2 $ map (ArrayT p0 ws2) g2ss; w2ss = map uns w2ass 
+  let g2 = ArrayT p0 ws2 $ map (ArrayT p0 ws2) g2ss; w2ss = map (map un) w2ass 
       w2 = ArrayT p0 ws2 $ map (ArrayT p0 ws2) w2ss; (w2's,w2') = mk' w2'as; (xs,g2') = addFunc "table" g2r in 
   not (isNum w1) && any (not.null) g2ss && any (not.isAtom) (concat w2ss) && any (not.isArray) w2's && not (isArray w2'') ==>
     withFuncs xs  num                 w1   == applyFunc xs p name [w1,g2]   &&
@@ -84,7 +84,7 @@ tableHeaderLengthCase pa (TableValidArgs g1ss _) (TableValidArgs _ g2s) =
 
 equalize g1ss = map (take l) g1ss where l = minimum $ map length g1ss
 
-mkMultiMeanReturn a1as pa = let a1s = uns a1as; a1rs = map (\(NumT q _ _ x) -> NumO q x) $ filter isNum a1s; a1 = ArrayT pa ("","") a1s in (a1,a1rs)
+mkMultiMeanReturn a1as pa = let a1s = map un a1as; a1rs = map (\(NumT q _ _ x) -> NumO q x) $ filter isNum a1s; a1 = ArrayT pa ("","") a1s in (a1,a1rs)
 
 unprecise :: Monad m => m ExpObj -> m ExpObj
 unprecise = liftM moo where
@@ -95,7 +95,7 @@ data TableValidArgs = TableValidArgs [[ExpToken]] [ExpToken] deriving (Show)
 instance Arbitrary TableValidArgs where 
   arbitrary                      = mTableValidArgs (sListOf $ sListOf arbitrary)  arbitrary
   shrink (TableValidArgs ess es) = mTableValidArgs (shrink $ map (map to) ess)   (tShrinks es)
-mTableValidArgs tssa tsa = do tss <- tssa; ts <- tsa; let l = minimum [length tss, length ts] in return $ TableValidArgs (equalize $ map uns $ take l tss) $ uns $ take l ts
+mTableValidArgs tssa tsa = do tss <- tssa; ts <- tsa; let l = minimum [length tss, length ts] in return $ TableValidArgs (equalize $ map (map un) $ take l tss) $ map un $ take l ts
 mTableValidArgs :: Monad m => m [[AtomTA]] -> m [StrTA] -> m TableValidArgs
 
 mkTableValidArgs pf g1ss g2s useHeader =

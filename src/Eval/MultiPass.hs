@@ -11,7 +11,7 @@ module Eval.MultiPass
 import qualified Data.Map as M (empty,lookup,insert,null,toList,keys,delete,elems)
 
 import Control.Monad           (foldM,liftM,liftM2)
-import Data.Eval               (Eval,State,Table)
+import Data.Eval               (Eval,DerefState,Table)
 import Data.EvalError          (EvalError(..))
 import Data.ExpToken           (ProgToken(..),FormToken(..),PairToken(..),IdToken(..),ExpToken(..),Pos)
 
@@ -28,7 +28,7 @@ derefVars = flip f M.empty where
   if M.null newPending      then return newFinished       else
    if pending /= newPending then f newPending newFinished else Left $ CycleInDefinitions $ zip (map snd $ M.elems pending) (M.keys pending)
 
-derefVar :: State -> (String,(ExpToken,Pos)) -> Eval State
+derefVar :: DerefState -> (String,(ExpToken,Pos)) -> Eval DerefState
 derefVar (pending,finished) (n,(v,p)) = do
   v' <- deref pending finished v
   return $ uncurry (,) $ if hasAnyVar v' then (M.insert n (v',p) pending,finished) else (M.delete n pending,M.insert n (v',p) finished)

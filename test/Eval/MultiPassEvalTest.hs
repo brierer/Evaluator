@@ -1,12 +1,22 @@
 {-# OPTIONS_GHC -F -pgmF htfpp #-}
 module Eval.MultiPassEvalTest where
 
-import Data.EvalError              (EvalError(..))
-import Eval.MultiPassEvalTestUtils (HasProg,UniqueDefs(..),MultiDefs(..),ValidVars(..),UndefVars(..),CycleVars(..),ValidFuncs(..),UndefFuncs(..),NonTopShowFuncs(..),NoShowFuncs(..),
-                                    initTable',derefValidProg',nonEmpty,fromProgForms,toToken)
-import Eval.MultiPass              (initTable,derefVars,validateFunctions)
-import Test.Framework              (TestSuite,makeTestSuite,makeQuickCheckTest,makeLoc,qcAssertion,(==>))
+import qualified Data.Map as M
 
+import Data.EvalError
+import Eval.MultiPass
+import Eval.MultiPassEvalTestUtils
+import Parser.MonolithicParserTestUtils
+import Test.Framework
+
+{-# ANN module "HLint: ignore Use camelCase" #-}
+
+{-| Units -}
+test_MultiDefs = do
+  assertEqual (Left (MultipleDefinitions (1,8) "x"))                                $ initTable $ unsafeProg "x=null;x=true"
+  assertEqual (Right $ M.fromList [("x",(mkNull,(1,1))),("y",(mkBool True,(1,8)))]) $ initTable $ unsafeProg "x=null;y=true"
+
+{-| Props -}
 prop_MultiDefs (MultiDefs  prog p x)                        = nonEmpty prog ==> Left (MultipleDefinitions p x) == initTable (toToken prog)
 prop_ValidDefs (UniqueDefs prog)                            =                   Right (fromProgForms prog)     == initTable (toToken prog)
 

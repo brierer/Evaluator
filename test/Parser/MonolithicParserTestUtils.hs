@@ -2,15 +2,15 @@
 {-# OPTIONS_GHC -fno-warn-incomplete-patterns -fno-warn-orphans #-}
 module Parser.MonolithicParserTestUtils where
 
-import Data.ExpToken                   
-import Data.List                       
-import Control.Applicative             
-import Control.Monad                   
-import Numeric                         
-import Parser.Monolithic               
-import Test.Framework                  
+import Data.ExpToken
+import Data.List
+import Control.Applicative
+import Control.Monad
+import Numeric
+import Parser.Monolithic
+import Test.Framework
 import Text.ParserCombinators.Parsec
-import Text.ParserCombinators.Parsec.Error      
+import Text.ParserCombinators.Parsec.Error
 
 instance Eq ParseError where a == b = errorMessages a == errorMessages b
 
@@ -161,22 +161,38 @@ instance Arbitrary W where
   shrink (W w) = mW $ filter (`elem` " \t\n\v") <$> sShrink w
 mW = liftM W
 
-simpleParse p = parse p ""
+class NoPos a where noPos :: a -> a
+instance NoPos ProgToken where noPos (ProgT _ fs) = ProgT p0 $ map noPos fs
+instance NoPos FormToken where noPos (FormT i e)  = FormT (noPos i) (noPos e)
+instance NoPos PairToken where noPos (PairT i e)  = PairT (noPos i) (noPos e)
+instance NoPos IdToken   where noPos (IdT _ w i)  = IdT   p0 w i
+instance NoPos ExpToken  where
+  noPos(FuncT    w  i es) = FuncT     w (noPos i) $ map noPos es
+  noPos(ArrayT _ w    es) = ArrayT p0 w           $ map noPos es
+  noPos(ObjT   _ w    ps) = ObjT   p0 w           $ map noPos ps
+  noPos(VarT        i   ) = VarT        (noPos i)
+  noPos(StrT   _ w   v  ) = StrT   p0 w   v
+  noPos(NumT   _ w s v  ) = NumT   p0 w s v
+  noPos(BoolT  _ w   v  ) = BoolT  p0 w   v
+  noPos(NullT  _ w      ) = NullT  p0 w
 
-mkProg   = ProgT p0
-mkForm n = FormT $ mkId n
-mkPair n = PairT $ mkId n
-mkId     = IdT   p0 w2
-mkFunc n = FuncT "" $ mkId n
-mkArray  = ArrayT p0 w2
-mkObj    = ObjT   p0 w2
-mkVar    = VarT .mkId
-mkStr    = StrT  p0 w2
-mkNum    = NumT  p0 w2
-mkBool   = BoolT p0 w2
-mkNull   = NullT p0 w2
+testCase p = unsafeRight . parse p "" . unparse
+a .= b = noPos a == noPos b
 
-testCase p = (\(Right x) -> x) . parse p "" . unparse
+unsafeParse p = unsafeRight . parse p ""
+
+mkProg    = ProgT
+mkForm  p = FormT       .mkId p
+mkPair  p = PairT       .mkId p
+mkId    p = IdT    p w2
+mkFunc  p = FuncT    w1 .mkId p
+mkArray p = ArrayT p w2
+mkObj   p = ObjT   p w2
+mkVar   p = VarT        .mkId p
+mkStr   p = StrT   p w2
+mkNum   p = NumT   p w2
+mkBool  p = BoolT  p w2
+mkNull  p = NullT  p w2
 
 liftMF2 g f1 f2       x1 x2        = g <$> liftM f1 x1 <*> liftM f2 x2
 liftMF3 g f1 f2 f3    x1 x2 x3     = g <$> liftM f1 x1 <*> liftM f2 x2 <*> liftM f3 x3
@@ -192,7 +208,11 @@ sShrink  = take 1.shrink
 tShrink  = sShrink.to
 tShrinks = sShrink.map to
 
+unsafeRight (Right x) = x
+unsafeRight x         = error $ "MonolithicParserTestUtils::unsafeRight [UnexpectedPattern ["++show x++"]]"
+
 p0 = (0,0)
+w1 = ""
 w2 = ("","")
 
 

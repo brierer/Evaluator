@@ -15,7 +15,7 @@ import Eval.Function                    (any,withFuncs)
 import Data.List                        ((\\))
 import Eval.MultiPass                   (mapPair)
 import Parser.MonolithicParserTestUtils (ArrayTA (..),BoolTA (..),ExpTA (..),IdTA (..),NullTA (..),NumType(..),NumTA (..),ObjTA (..),P (..),StrTA (..),Tall (..),Unto(..),
-                                         liftMF2,liftMF3,sListOf,sShrink,sized1,sizes,tShrink,tShrinks,uns)
+                                         liftMF2,liftMF3,sListOf,sShrink,sized1,sizes,tShrink,tShrinks)
 import Test.Framework                   (Arbitrary (..),Gen,elements)
 
 data TestToks = TestToks [ExpToken] deriving (Show)
@@ -62,7 +62,7 @@ data TableOA = TableOA ExpObj deriving (Show)
 instance Unto  TableOA ExpObj where to = TableOA; un (TableOA t) = t
 instance Arbitrary TableOA where arbitrary = sized1 tall; shrink (TableOA (TableO p ess es)) = mTableOA (tShrink p) (shrink $ map (map to) ess)  (tShrinks es)
 instance Tall TableOA      where                                                      tall n = mTableOA  arbitrary  (sListOf $ sListOf $ tall n) (sListOf $ tall n)
-mTableOA = liftMF3 mkTable un (equalize.map (map un)) uns where mkTable x y = TableOA .TableO x y
+mTableOA = liftMF3 mkTable un (equalize.map (map un)) (map un) where mkTable x y = TableOA .TableO x y
 
 equalize xss = let n = minimum $ map length xss in map (take n) xss
 
@@ -70,7 +70,7 @@ data PlotOA = PlotOA ExpObj deriving (Show)
 instance Unto PlotOA ExpObj where to = PlotOA; un (PlotOA p) = p
 instance Arbitrary PlotOA where arbitrary = sized1 tall; shrink (PlotOA (PlotO p ps o)) = mPlotOA (tShrink p) (tShrinks ps)      (tShrinks o)
 instance Tall      PlotOA where                                                  tall n = mPlotOA  arbitrary  (sListOf $ tall n) (sListOf $ tall n)
-mPlotOA = liftMF3 mkPlot un uns uns where mkPlot x y = PlotOA .PlotO x y
+mPlotOA = liftMF3 mkPlot un (map un) (map un) where mkPlot x y = PlotOA .PlotO x y
 instance Unto (ExpOA,ExpOA) (ExpObj,ExpObj) where un (x,y) = (un x, un y); to (x,y) = (to x, to y)
 instance Tall (ExpOA,ExpOA) where tall n =  liftM2 (,) (tall n) (tall n)
 
@@ -78,7 +78,7 @@ data ArrayOA = ArrayOA ExpObj deriving (Show)
 instance Unto  ArrayOA ExpObj where to = ArrayOA; un (ArrayOA a) = a
 instance Arbitrary ArrayOA where arbitrary = sized1 tall; shrink (ArrayOA (ArrayO p es)) = mArrayOA (tShrink p) (tShrinks es)
 instance Tall      ArrayOA where                                                  tall n = mArrayOA  arbitrary  (sizes n)
-mArrayOA = liftMF2 mkArray un uns where mkArray x = ArrayOA .ArrayO x
+mArrayOA = liftMF2 mkArray un (map un) where mkArray x = ArrayOA .ArrayO x
 
 data ObjOA =  ObjOA ExpObj deriving (Show)
 instance Unto ObjOA ExpObj where to = ObjOA; un (ObjOA o) = o
