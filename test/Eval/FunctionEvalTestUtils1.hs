@@ -14,7 +14,7 @@ import Data.ExpToken                    (ExpToken (..),IdToken (..),PairToken (.
 import Eval.Function                    (any,withFuncs)
 import Data.List                        ((\\))
 import Eval.MultiPass                   (mapPair)
-import Parser.MonolithicParserTestUtils (ArrayTA (..),BoolTA (..),ExpTA (..),IdTA (..),NullTA (..),NumTA (..),ObjTA (..),P (..),StrTA (..),Tall (..),Unto (..),
+import Parser.MonolithicParserTestUtils (ArrayTA (..),BoolTA (..),ExpTA (..),IdTA (..),NullTA (..),NumType(..),NumTA (..),ObjTA (..),P (..),StrTA (..),Tall (..),Unto(..),
                                          liftMF2,liftMF3,sListOf,sShrink,sized1,sizes,tShrink,tShrinks,uns)
 import Test.Framework                   (Arbitrary (..),Gen,elements)
 
@@ -125,13 +125,13 @@ mExpTS = liftM (ExpTS .simplify.un)
 data ArrayTS = ArrayTS ExpToken deriving (Show)
 instance Unto ArrayTS ExpToken where to = ArrayTS; un (ArrayTS a) = a
 instance Arbitrary ArrayTS where arbitrary = sized1 tall; shrink (ArrayTS e) = mArrayTS (tShrink e)
-instance Tall      ArrayTS where                                      tall n =  mArrayTS (tall n)
+instance Tall      ArrayTS where                                      tall n = mArrayTS (tall n)
 mArrayTS = liftM (ArrayTS .simplify.un)
 
 data ObjTS = ObjTS ExpToken deriving (Show)
 instance Unto ObjTS ExpToken where to = ObjTS; un (ObjTS o) = o
 instance Arbitrary ObjTS where arbitrary = sized1 tall; shrink (ObjTS e) = mObjTS (tShrink e)
-instance Tall      ObjTS where                                    tall n =  mObjTS (tall n)
+instance Tall      ObjTS where                                    tall n = mObjTS (tall n)
 mObjTS = liftM (ObjTS .simplify.un)
 
 simplify (FuncT{})          = NullT p0 w2
@@ -139,6 +139,31 @@ simplify (ArrayT p w es)    = ArrayT p w $ map  simplify          es
 simplify (ObjT p w ps)      = ObjT   p w $ map (mapPair simplify) ps
 simplify (VarT (IdT p w _)) = NullT  p w
 simplify e                  = e
+
+data AtomType = S | I | F | E | B | N deriving (Show)
+data AtomTA = AtomTA ExpToken AtomType deriving (Show)
+instance Unto AtomTA ExpToken where 
+  un (AtomTA e _) = e
+  to e = AtomTA e $ case e of
+    StrT{}  -> S
+    NumT{}  -> let (NumTA t _) = to e in case t of Int -> I; Flt -> F; Exp -> E
+    BoolT{} -> B
+    NullT{} -> N
+instance Arbitrary AtomTA where
+  arbitrary = do
+    StrTA s    <- arbitrary
+    NumTA t nb <- arbitrary
+    BoolTA b   <- arbitrary
+    NullTA nu  <- arbitrary
+    let nt = case t of Int -> I; Flt -> F; Exp -> E
+    liftM (uncurry AtomTA) $ elements [(s,S),(nb,nt),(b,B),(nu,N)]
+  shrink (AtomTA e t) = liftM (flip AtomTA t) $ case t of
+    S -> liftM un $ shrink $ StrTA e
+    I -> liftM un $ shrink $ NumTA Int e
+    F -> liftM un $ shrink $ NumTA Flt e
+    E -> liftM un $ shrink $ NumTA Exp e
+    B -> liftM un $ shrink $ BoolTA e
+    N -> liftM un $ shrink $ NullTA e
 
 data ArrayTF =  ArrayTF ExpToken ExpObj IdToken deriving (Show)
 instance Arbitrary ArrayTF where arbitrary = sized1 tall; shrink (ArrayTF e o i) = mArrayTF (tShrink e) (tShrink o) (tShrink i)

@@ -25,15 +25,15 @@ import Data.ExpToken              (Pos)
 import Data.List                  (sort,transpose)
 import Data.Maybe                 (maybeToList)
 import Data.Vector                (Vector,fromList,toList)
-import Eval.Function              (table,plot,array,str,num,arrayOf,objOf,nonEmpty,(<|>),evalError)
+import Eval.Function              (table,plot,array,str,num,atom,arrayOf,objOf,nonEmpty,(<|>),evalError)
 import Statistics.Sample          (mean,variance,skewness,kurtosis)
 
 funcs :: [FuncEntry]
 funcs = -- 1 arg functions
         [ ("show",       ([showables                                  ], Func showL))
-        , ("multi",      ([nums1                                      ], Func multiL))
-        , ("mean",       ([nums1                                      ], Func meanL))
-        , ("descriptive",([nums1                                      ], Func descL))
+        , ("multi",      ([atoms1                                     ], Func multiL))
+        , ("mean",       ([atoms1                                     ], Func meanL))
+        , ("descriptive",([atoms1                                     ], Func descL))
           -- 2 arg functions                                          
         , ("table",      ([tableArg   , objOf $ arrayOf str           ], Func tableL))
         , ("nTimes",     ([num        , num                           ], Func nTimesL))
@@ -44,8 +44,8 @@ funcs = -- 1 arg functions
         , ("plot",       ([arrayOf num, arrayOf num        , objOf str], Func plotL))
         ] 
   where showables = arrayOf $ table <|> plot 
-        nums1     = nonEmpty $ arrayOf num
-        tableArg  = nonEmpty $ arrayOf $ nonEmpty array
+        atoms1    = nonEmpty $ arrayOf atom
+        tableArg  = nonEmpty $ arrayOf $ nonEmpty $ arrayOf atom
 
 {-| Function stubs: extract from list and call the actual function -}
 showL      :: Pos -> [ExpObj] -> EvalFunc ExpObj
@@ -87,7 +87,9 @@ multiF :: Pos -> [ExpObj] -> EvalFunc ExpObj
 multiF p ns = return $ NumO p $ product $ getNums ns
 
 getNums :: [ExpObj] -> [Double]
-getNums = map (\(NumO _ x)->x)
+getNums = map (\(NumO _ x)->x).filter f where 
+  f (NumO{}) = True
+  f _        = False
 
 --Take the mean of he given numbers
 meanF :: Pos -> [ExpObj] -> EvalFunc ExpObj

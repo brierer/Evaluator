@@ -7,11 +7,12 @@ import Data.ExpObj                         (ExpObj(..))
 import Data.ExpToken                       (ExpToken(..))
 import Data.List                           (genericLength)
 import Eval.Engine                         (funcs,showF,multiF,meanF,descF,tableF,nTimesF,takeTF,takeAF,sortTF,sortAF,colTF,colAF)
-import Eval.EngineTestUtils                (TableValidArgs(..),addFunc',mk',mkO',tablesAndPlots,emptyArray,mkMultiMeanReturn,unprecise,
+import Eval.EngineTestUtils                (TableValidArgs(..),addFunc',mk',mkO',tablesAndPlots,mkMultiMeanReturn,unprecise,
                                             mkTableValidArgs,unsafeMarshallP,unsafeMarshall,sortTOn,sortAOn,keepInRange,mkSortColArray)
-import Eval.FunctionEvalTestUtils1         (ExpOA(..),TableOA(..),ExpTS(..),ArrayTS(..),applyFunc,p0)
-import Parser.MonolithicParserTestUtils  --  (P(..),NumTA(..),un)
-import Test.Framework                    --  (TestSuite,Property,makeTestSuite,makeQuickCheckTest,makeLoc,qcAssertion,(==>))
+import Eval.FunctionEvalTestUtils1         (ExpOA(..),TableOA(..),AtomTA(..),ExpTS(..),applyFunc,p0)
+import Eval.FunctionEvalTestUtils2         (isNum)
+import Parser.MonolithicParserTestUtils    (P(..),NumTA(..),un)
+import Test.Framework                      (TestSuite,Property,makeTestSuite,makeQuickCheckTest,makeLoc,qcAssertion,(==>))
 
 import Data.Vector                         (fromList)
 import Statistics.Sample                   (mean,variance,skewness,kurtosis)
@@ -20,18 +21,18 @@ prop_Show (P p) a1ras' = let (fs,a1) = addFunc' "tablesAndPlots" a1r; (_,a1r) = 
                                     in  True ==> expected == applyFunc fs p "show" [a1] && expected == evalStateT (showF p a1r) []
 
 prop_Multi (P pf) (P pa) a1as = not (null a1as) ==>
-  let (a1,a1rs) = mkMultiMeanReturn a1as pa; expected = Right $ NumO pf $ product $ map (\(NumO _ x)->x) a1rs in  not (null a1as) ==>
+  let (a1,a1rs) = mkMultiMeanReturn a1as pa; expected = Right $ NumO pf $ product $ map (\(NumO _ x)->x) $ filter isNum a1rs in  not (null a1as) ==>
       expected == applyFunc funcs pf "multi" [a1]  &&
       expected == evalStateT (multiF pf a1rs) []
 
 prop_Mean  (P pf) (P pa) a1as = not (null a1as) ==>
-  let (a1,a1rs) = mkMultiMeanReturn a1as pa; expected = Right $ NumO pf $ sum (map (\(NumO _ x)->x) a1rs) / genericLength a1rs in not (null a1as) ==>
+  let (a1,a1rs) = mkMultiMeanReturn a1as pa; expected = Right $ NumO pf $ sum (map (\(NumO _ x)->x) $ filter isNum a1rs) / genericLength a1rs in not (null a1as) ==>
       unprecise expected == unprecise (applyFunc funcs pf "mean" [a1])  &&
       unprecise expected == unprecise (evalStateT (meanF pf a1rs) [])
 
 prop_Desc (P pf) (P pa) a1as = length a1as >= 2 ==>
   let (a1,a1rs) = mkMultiMeanReturn a1as pa
-      ns  = map (\(NumO _ x)->x) a1rs
+      ns  = map (\(NumO _ x)->x) $ filter isNum a1rs
       ns' = fromList ns
       sExpected = show expected
       expected :: Eval ExpObj
@@ -71,8 +72,8 @@ prop_SortTable (P pf) (NumTA _ a1') (TableOA a2tr@(TableO _ cols header)) = any 
    expected == evalStateT (sortTF pf p0 n cols header) []
 prop_SortTable _ x y = error $ "EngineTest::prop_Take [Unexpected pattern ["++show x++"] and ["++show y++"]]"
 
-prop_SortArray (P pf) (NumTA _ a1') a2as = any (not.emptyArray.un) a2as ==>
-  let (n, a1,aOfArrays,arrays,mArrays) = mkSortColArray a1' a2as; expected = Right $ ArrayO pf (sortAOn n $ map unsafeMarshall arrays)in
+prop_SortArray (P pf) (NumTA _ a1') (TableValidArgs g2ss _) = any (not.null) g2ss ==>
+  let (n, a1,aOfArrays,arrays,mArrays) = mkSortColArray a1' g2ss; expected = Right $ ArrayO pf (sortAOn n $ map unsafeMarshall arrays)in
    expected == applyFunc funcs pf "sort" [a1,aOfArrays] &&
    expected == evalStateT (sortAF pf p0 n mArrays) []
 
@@ -82,20 +83,20 @@ prop_ColTable (P pf) (NumTA _ a1') (TableOA a2tr@(TableO _ cols _)) = any (not.n
    expected == evalStateT (colTF pf p0 n cols) []
 prop_ColTable _ x y = error $ "EngineTest::prop_Take [Unexpected pattern ["++show x++"] and ["++show y++"]]"
 
-prop_ColArray (P pf) (NumTA _ a1') a2as = any (not.emptyArray.un) a2as ==>
-  let (n, a1,aOfArrays,arrays,mArrays) = mkSortColArray a1' a2as; expected = Right $ let ArrayO _ es = unsafeMarshall $ arrays !! n in ArrayO pf es in
+prop_ColArray (P pf) (NumTA _ a1') (TableValidArgs g2ss _) = any (not.null) g2ss ==>
+  let (n, a1,aOfArrays,arrays,mArrays) = mkSortColArray a1' g2ss; expected = Right $ let ArrayO _ es = unsafeMarshall $ arrays !! n in ArrayO pf es in
    expected == applyFunc funcs pf "col" [a1,aOfArrays] &&
    expected == evalStateT (colAF pf p0 n mArrays) []
 
 {-| Mandatory type signatures -}
-prop_Show      :: P      -> [ExpOA]           -> Property
-prop_Multi     :: P -> P -> [NumTA]           -> Property
-prop_Mean      :: P -> P -> [NumTA]           -> Property
-prop_Desc      :: P -> P -> [NumTA]           -> Property
-prop_Table     :: P -> TableValidArgs -> Bool -> Property
-prop_TakeTable :: P -> NumTA -> TableOA       -> Property
-prop_TakeArray :: P -> NumTA -> [ExpTS]       -> Property
-prop_SortTable :: P -> NumTA ->  TableOA      -> Property
-prop_SortArray :: P -> NumTA -> [ArrayTS]     -> Property
-prop_ColTable :: P -> NumTA ->  TableOA      -> Property
-prop_ColArray :: P -> NumTA -> [ArrayTS]     -> Property
+prop_Show      :: P      -> [ExpOA]            -> Property
+prop_Multi     :: P -> P -> [AtomTA]           -> Property
+prop_Mean      :: P -> P -> [AtomTA]           -> Property
+prop_Desc      :: P -> P -> [AtomTA]           -> Property
+prop_Table     :: P -> TableValidArgs -> Bool  -> Property
+prop_TakeTable :: P -> NumTA -> TableOA        -> Property
+prop_TakeArray :: P -> NumTA -> [ExpTS]        -> Property
+prop_SortTable :: P -> NumTA ->  TableOA       -> Property
+prop_SortArray :: P -> NumTA -> TableValidArgs -> Property
+prop_ColTable :: P -> NumTA ->  TableOA        -> Property
+prop_ColArray :: P -> NumTA -> TableValidArgs  -> Property
