@@ -136,7 +136,7 @@ instance Arbitrary ObjTS where arbitrary = sized1 tall; shrink (ObjTS e) = mObjT
 instance Tall      ObjTS where                                    tall n = mObjTS (tall n)
 mObjTS = liftM (ObjTS .simplify.un)
 
-simplify (FuncT{})          = mkNull p0
+simplify (FuncT{})          = mkNull
 simplify (ArrT p w es)      = ArrT p w $ map  simplify          es
 simplify (ObjT p w ps)      = ObjT   p w $ map (mapPair simplify) ps
 simplify (VarT (IdT p w _)) = NullT  p w
@@ -185,7 +185,7 @@ simplifyF i (ObjT p w ps)      = ObjT   p w $ map (mapPair $ simplifyF i) ps
 simplifyF _ (VarT (IdT p w _)) = NullT  p w
 simplifyF _ e                  = e
 
-applyFunc fs p n es = withFuncs fs any (mkFunc p n es)
+applyFunc fs p n es = withFuncs fs any (mkFunc' p n es)
 
 testFunc os es p n = fromRight $ applyFunc (mkFuncs os es) p n []
 

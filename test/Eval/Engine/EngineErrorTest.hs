@@ -60,8 +60,8 @@ prop_TypeMismatchDesc (P p) g1ras w1as (ExpTS w1') =
     success "descriptive"                == applyFunc fs p "descriptive" [g1]
 
 prop_TypeMismatchTable (P p) (TableValidArgs g1ss g2s) w1as (ExpTS w1') w2as (ExpTS w2') =
-  let g1 = mkArr p0 $ map (mkArr p0) g1ss
-      g2 = mkObj p0 [mkPair p0 "col" $ mkArr p0 g2s]
+  let g1 = mkArr $ map mkArr g1ss
+      g2 = mkObj [mkPair "col" $ mkArr g2s]
       (w1s,w1) = mk' w1as; (w2s,w2) = mkObjFrom w2as in
     P.any (not.P.null) g1ss && not (P.null g2s) && P.any (not.isArray) w1s && not (isArray w1') && P.any (not.isStr) w2s && not (isObj w2') ==>
     withFuncs funcMocks (arrayOf $ arrayOf atom) w1  == applyFunc funcMocks p "table" [w1 ,g2]  &&
@@ -116,8 +116,8 @@ prop_EmptyArgDesc (P pf) (P pa) g1as = not (P.null g1as) ==>
       success "descriptive"  == applyFunc funcMocks pf "descriptive" [g1]
 
 prop_EmptyArgTable (P pf) (P pa) (TableValidArgs g1ss _) g2as  =
-  let g1  = mkArr p0 $ map (mkArr p0) g1ss
-      w1' = mkArr p0 $ map (mkArr p0) g1ss ++ [w1]
+  let g1  = mkArr $ map mkArr g1ss
+      w1' = mkArr $ map mkArr g1ss ++ [w1]
       (_,o) = mkObjFrom g2as; (_,w1) = mk pa ([] :: [ExpTS]) in P.any (not.P.null) g1ss ==>
     Left (IllegalEmpty pa) == applyFunc funcMocks pf "table" [w1 , o] &&
     Left (IllegalEmpty pa) == applyFunc funcMocks pf "table" [w1', o] &&

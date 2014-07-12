@@ -1,12 +1,14 @@
 {-# OPTIONS_GHC -F -pgmF htfpp -fno-warn-incomplete-patterns #-}
 module Eval.Function.FunctionEvalTest where
 
+import Control.Applicative hiding ((<|>))
 import Prelude        hiding (any,null)
 import Test.Framework hiding (forAll)
 
 import qualified Prelude as P
 
 import Control.Arrow
+import Control.Monad.State
 import Data.Eval
 import Data.EvalError
 import Data.ExpObj
@@ -15,8 +17,40 @@ import Eval.Function
 import Eval.Function.FunctionEvalTestUtils1
 import Eval.Function.FunctionEvalTestUtils2
 import Eval.MultiPass.MultiPassEvalTestUtils
+import Parser.Monolithic
 import Parser.MonolithicParserTestUtils
 
+{-# ANN module "HLint: ignore Use camelCase" #-}
+
+mockValidators = flip replicate null
+mockFunc = mockResult mkNullO
+mockResult x = Func $ \_ _ -> return x 
+
+mkNumO  = NumO p0
+mkBoolO = BoolO p0
+mkNullO = NullO p0
+
+runFuncWith s = evalStateT (marshall $ unsafeParse funcT s)
+
+
+
+test_NbArgs = do assertEqual (Left $ InvalidNbOfArgs (1,1) "f" 0 1) $ runFuncWith "f(0)"   [("f",(mockValidators 0,mockFunc))]
+                 assertEqual (Left $ InvalidNbOfArgs (1,1) "f" 0 2) $ runFuncWith "f(0,1)" [("f",(mockValidators 0,mockFunc))]
+                 assertEqual (Left $ InvalidNbOfArgs (1,1) "f" 1 0) $ runFuncWith "f()"    [("f",(mockValidators 1,mockFunc))]
+                 assertEqual (Left $ InvalidNbOfArgs (1,1) "f" 1 2) $ runFuncWith "f(0,1)" [("f",(mockValidators 1,mockFunc))]
+                 assertEqual (Left $ InvalidNbOfArgs (1,1) "f" 2 0) $ runFuncWith "f()"    [("f",(mockValidators 2,mockFunc))]
+                 assertEqual (Left $ InvalidNbOfArgs (1,1) "f" 2 1) $ runFuncWith "f(0)"   [("f",(mockValidators 2,mockFunc))]
+                 assertEqual (Right mkNullO)                        $ runFuncWith "f()"    [("f",([]       ,mockResult mkNullO))]
+                 assertEqual (Right $ mkBoolO True)                 $ runFuncWith "f(0)"   [("f",([any]    ,mockResult $ mkBoolO True))]
+                 assertEqual (Right $ mkNumO 1)                     $ runFuncWith "f(0,1)" [("f",([any,any],mockResult $ mkNumO 1))]
+                
+test_Or = do assertEqual (Left $ TypeMismatch (1,3) Bool Num)           $ runFuncWith "f(0)"    [("f",([null <|> bool                 ],mockFunc))]
+             assertEqual (Left $ TypeMismatch (1,3) Bool Str)           $ runFuncWith "f(\"\")" [("f",([null <|> bool                 ],mockFunc))]
+             assertEqual (Left $ TypeMismatch (1,3) (Or Null Bool) Num) $ runFuncWith "f(0)"    [("f",([null <|> bool <!> Or Null Bool],mockFunc))]
+             assertEqual (Right mkNullO)                                $ runFuncWith "f(null)" [("f",([null <|> bool                 ],mockResult mkNullO))]
+             assertEqual (Right $ mkBoolO True)                         $ runFuncWith "f(true)" [("f",([null <|> bool                 ],mockResult $ mkBoolO True))]
+             assertEqual (Right $ mkNumO 1)                             $ runFuncWith "f(null)" [("f",([null <|> bool <!> Or Null Bool],mockResult $ mkNumO 1))]
+                 
 {-| Number of args validation -}
 prop_NbArgs (InvalidArgsNb nbParams nbArgs p name goodFunc badFunc fs) = Left (InvalidNbOfArgs p name nbParams nbArgs) == withFuncs fs any badFunc && Right (NullO p) == withFuncs fs any goodFunc
 
@@ -27,12 +61,12 @@ prop_OrObj (TestIndexesO os  indexes rest) = orCase os [table,plot,array,obj,str
 
 prop_ArrayOfLit :: P -> [ExpTS] -> ValA ExpToken -> Bool
 prop_ArrayOfObj :: P -> [ExpOA] -> ValA ExpObj   -> Bool
-prop_ArrayOfLit p ts (ValA _ v) = caseArrayOf (un p) v (map un ts) testS mkArr
+prop_ArrayOfLit p ts (ValA _ v) = caseArrayOf (un p) v (map un ts) testS mkArr'
 prop_ArrayOfObj p ts (ValA _ v) = caseArrayOf (un p) v (map un ts) Right ArrayO
 
 prop_ObjOfLit :: P -> [(String,ExpTS)] -> ValA ExpToken -> Bool
 prop_ObjOfObj :: P -> [(String,ExpOA)] -> ValA ExpObj   -> Bool
-prop_ObjOfLit p ps (ValA _ v) = caseObjOf (un p) v (map (second un) ps) testS $ \pos -> mkObj pos . map (uncurry $ mkPair p0)
+prop_ObjOfLit p ps (ValA _ v) = caseObjOf (un p) v (map (second un) ps) testS $ \pos -> mkObj' pos . map (uncurry mkPair)
 prop_ObjOfObj p ps (ValA _ v) = caseObjOf (un p) v (map (second un) ps) Right ObjO
 
 prop_NonEmptyLit (TestToks [a@(ArrT pa wa es), o@(ObjT po wo pairs), s@(StrT ps ws v), nb, b, nu]) =
@@ -58,7 +92,7 @@ prop_NonEmptyObj n (TestObjs [t@(TableO pt ess oT), p@(PlotO pp pairsP oP)])
 prop_NonEmptyFunc n name (P pos)
                  (TestObjs [t@(TableO _ ess oT), p@(PlotO _ pairsP oP)])
                  (ArrayOA a@(ArrayO _ es)) (ObjOA o@(ObjO _ pairsO)) (StrOA s@(StrO _ v)) (NumOA nb) (BoolOA b) (NullOA nu) =
-  let f x = withFuncs [(name,([],Func $ \_ _ -> return x))] (nonEmpty any) $ mkFunc pos name []
+  let f x = withFuncs [(name,([],Func $ \_ _ -> return x))] (nonEmpty any) $ mkFunc' pos name []
   in  P.any (not . P.null) ess && not (P.null pairsP) && not (P.null es) && not (P.null pairsO) && not (P.null v) ==>
     Left (IllegalEmpty pos) == f (TableO pos (replicate (n`mod`1000) []) oT) &&
     Left (IllegalEmpty pos) == f (PlotO  pos [] oP) &&
@@ -69,7 +103,7 @@ prop_NonEmptyFunc n name (P pos)
     Right a  == f a  && Right o  == f o  && Right s  == f s &&
     Right nb == f nb && Right b  == f b  && Right nu == f nu
 
-prop_ArgError (NonNegative n') name (ArgErrorA e) = Left (ArgError n name e) == withFuncs (map args fs) any (mkFunc p0 name $ replicate (n+1) (mkNull p0))
+prop_ArgError (NonNegative n') name (ArgErrorA e) = Left (ArgError n name e) == withFuncs (map args fs) any (mkFunc name $ replicate (n+1) mkNull)
   where fs = [(name,(replicate n any ++ [TypeVal $ \_ -> evalError e], f))]
         f = Func $ \_ -> error "FunctionEvalTest::prop_ArgError [Should not be called]"
         n = n' `mod` 1000

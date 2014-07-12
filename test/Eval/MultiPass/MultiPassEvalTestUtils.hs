@@ -39,7 +39,7 @@ mMultiDefs pa = let emptyProg = MultiDefs (fromForms []) p0 "" in do
   fs <- liftM forms pa
   nullGuard fs emptyProg $ do
     let (FormT (IdT p _ n) _) = head fs
-        fs' = mkForm p0 n (mkNull p0):tail fs
+        fs' = mkForm n mkNull:tail fs
     return $ MultiDefs (fromForms $ fs'++fs++fs') p n
 
 data ValidVars = ValidVars UniqueDefs deriving (Eq,Show)
@@ -154,7 +154,7 @@ funcNames = concatMap f where
   f (ObjT _ _ ps)            = funcNames $ map pairVal ps
   f _                        = []
 
-insertTopShow fs = mkForm p0 "show" (mkFunc p0 "show" $ map formVal fs):fs
+insertTopShow fs = mkForm "show" (mkFunc "show" $ map formVal fs):fs
 
 replaceNonTopShows = map f where
   f (FormT n e)               = FormT n $ g e

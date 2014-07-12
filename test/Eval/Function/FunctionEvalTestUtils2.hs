@@ -73,8 +73,8 @@ instance Arbitrary InvalidArgsNb where
     let (nbParams,m') = (n `mod` 1000, m `mod` 1000)
     let nbArgs = if nbParams == m' then m' + 1 else m'
     IdT p w name <- liftM un (arbitrary :: Gen IdTA)
-    let badFunc  = mkFunc p name $ replicate nbArgs   $ NullT p w
-        goodFunc = mkFunc p name $ replicate nbParams $ NullT p w
+    let badFunc  = mkFunc' p name $ replicate nbArgs   $ NullT p w
+        goodFunc = mkFunc' p name $ replicate nbParams $ NullT p w
     return $ InvalidArgsNb nbParams nbArgs p name goodFunc badFunc [(name,(replicate nbParams null,Func $ \_ _ -> return $ NullO p))]
 
 data TokOrObj = MkTok ExpToken | MkObj ExpObj deriving (Eq,Show)
