@@ -1,17 +1,15 @@
 {-# LANGUAGE MultiParamTypeClasses, FlexibleInstances #-}
-{-# OPTIONS_GHC -fno-warn-incomplete-patterns -fno-warn-orphans #-}
-module Parser.MonolithicParserTestUtils where
+module Prop.Parser.MonolithicParserUtils where
 
 import Data.ExpToken
 import Data.List
 import Control.Applicative
 import Control.Monad
 import Numeric
+import Parser.Monolithic
 import Test.Framework
-import Text.ParserCombinators.Parsec
-import Text.ParserCombinators.Parsec.Error
 
-instance Eq ParseError where a == b = errorMessages a == errorMessages b
+import Common.Parser.MonolithicParserUtils
 
 class Unto a b where to :: b -> a; un :: a -> b
 class Tall a   where tall :: Int -> Gen a
@@ -145,12 +143,19 @@ mNullTA = liftMF2 mk un un where mk x = NullTA .NullT x
 data P = P (Int,Int) deriving (Show)
 instance Unto P (Int,Int) where to = P; un (P p) = p
 instance Arbitrary P where
-  arbitrary        = mP (choose validP)  (choose validP)
-  shrink (P (l,c)) = mP (shrinkValidP l) (shrinkValidP c)
-mP = liftMF2 mkP id id where mkP x = P.(,) x
-validP = (1,10000)
-shrinkValidP 0 = []
-shrinkValidP x = [x `div` 2, x -1]
+  arbitrary        = mP  arbitrary   arbitrary
+  shrink (P (l,c)) = mP (tShrink l) (tShrink c)
+mP = liftMF2 mkP un un where mkP x = P.(,) x
+
+data ValidInt = ValidInt Int deriving (Show)
+instance Unto   ValidInt Int where to = ValidInt; un (ValidInt n) = n
+instance Arbitrary ValidInt where
+  arbitrary           = mValidInt (choose validInts)
+  shrink (ValidInt i) = mValidInt (shrinkValidInts i)
+mValidInt = liftM ValidInt
+validInts = (0,1000)
+shrinkValidInts 0 = []
+shrinkValidInts x = [x `div` 2, x - 1]
 
 data W = W String deriving (Show)
 instance Unto W String where to  = W; un (W a) = a
@@ -160,30 +165,23 @@ instance Arbitrary W where
   shrink (W w) = mW $ filter (`elem` " \t\n\v") <$> sShrink w
 mW = liftM W
 
-mkProg = ProgT
-mkForm = FormT       .mkId
-mkPair = PairT       .mkId
-mkId   = IdT   p0 ws2
-mkFunc = FuncT    ws1.mkId
-mkArr  = ArrT  p0 ws2
-mkObj  = ObjT  p0 ws2
-mkVar  = VarT        .mkId
-mkStr  = StrT  p0 ws2
-mkNum  = NumT  p0 ws2
-mkBool = BoolT p0 ws2
-mkNull = NullT p0 ws2
+class    NoPos a         where noPos :: a -> a
+instance NoPos ProgToken where noPos (ProgT _ fs) = ProgT p0 $ map noPos fs
+instance NoPos FormToken where noPos (FormT i e)  = FormT (noPos i) (noPos e)
+instance NoPos PairToken where noPos (PairT i e)  = PairT (noPos i) (noPos e)
+instance NoPos IdToken   where noPos (IdT _ w i)  = IdT   p0 w i
+instance NoPos ExpToken  where
+  noPos(FuncT   w  i es) = FuncT    w (noPos i) $ map noPos es
+  noPos(ArrT  _ w    es) = ArrT  p0 w           $ map noPos es
+  noPos(ObjT  _ w    ps) = ObjT  p0 w           $ map noPos ps
+  noPos(VarT       i   ) = VarT       (noPos i)
+  noPos(StrT  _ w   v  ) = StrT  p0 w   v
+  noPos(NumT  _ w s v  ) = NumT  p0 w s v
+  noPos(BoolT _ w   v  ) = BoolT p0 w   v
+  noPos(NullT _ w      ) = NullT p0 w
 
-mkForm' p = FormT       .mkId' p
-mkPair' p = PairT       .mkId' p
-mkId'   p = IdT   p ws2
-mkFunc' p = FuncT   ws1.mkId' p
-mkArr'  p = ArrT  p ws2
-mkObj'  p = ObjT  p ws2
-mkVar'  p = VarT       .mkId' p
-mkStr'  p = StrT  p ws2
-mkNum'  p = NumT  p ws2
-mkBool' p = BoolT p ws2
-mkNull' p = NullT p ws2
+testCase p = unsafeParse p.unparse
+a .= b = noPos a == noPos b
 
 liftMF2 g f1 f2       x1 x2        = g <$> liftM f1 x1 <*> liftM f2 x2
 liftMF3 g f1 f2 f3    x1 x2 x3     = g <$> liftM f1 x1 <*> liftM f2 x2 <*> liftM f3 x3
@@ -198,15 +196,6 @@ sList = take 10
 sShrink  = take 1.shrink
 tShrink  = sShrink.to
 tShrinks = sShrink.map to
-
-unsafeParse p = unsafeRight . parse p ""
-
-unsafeRight (Right x) = x
-unsafeRight x         = error $ "MonolithicParserTestUtils::unsafeRight [UnexpectedPattern ["++show x++"]]"
-
-p0 = (0,0) :: Pos
-ws1 = ""
-ws2 = ("","")
 
 {-| Mandatory type signatures -}
 mProgTA :: (Applicative m, Monad m) => m P               -> m [FormTA]              -> m ProgTA
@@ -223,9 +212,10 @@ mNumTA  :: (Applicative m, Monad m) => m P -> m (W,W)    -> m Double   -> m NumT
 mBoolTA :: (Applicative m, Monad m) => m P -> m (W,W)    -> m Bool                  -> m BoolTA
 mNullTA :: (Applicative m, Monad m) => m P -> m (W,W)                               -> m NullTA
 
-mP      :: (Applicative m, Monad m) => m Int      -> m Int -> m P
-mW      :: (Applicative m, Monad m) => m String            -> m W
+mValidInt :: (Applicative m, Monad m) => m Int                    -> m ValidInt 
+mP        :: (Applicative m, Monad m) => m ValidInt -> m ValidInt -> m P
+mW        :: (Applicative m, Monad m) => m String                 -> m W
 
-sShrink  :: Arbitrary a => a -> [a]
-tShrink  :: (Arbitrary b,Unto b a) => a -> [b]
+sShrink   :: Arbitrary a => a -> [a]
+tShrink   :: (Arbitrary b,Unto b a) => a -> [b]
 tShrinks :: (Arbitrary b,Unto b a) => [a] -> [[b]]

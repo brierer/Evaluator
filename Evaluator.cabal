@@ -35,7 +35,7 @@ executable Evaluator
 test-suite Evaluator-tests
   type:           exitcode-stdio-1.0
   main-is:        MainTest.hs
-  ghc-options:    -Wall -rtsopts -fno-warn-missing-signatures
+  ghc-options:    -Wall -rtsopts -fno-warn-missing-signatures -fno-warn-incomplete-patterns -fno-warn-orphans
   build-depends:
                   base >= 4, HTF > 0.9,
                   pretty >=1.1.1 && <1.2,
@@ -47,13 +47,7 @@ test-suite Evaluator-tests
                  Parser.Monolithic,
                  Eval.MultiPass,
                  Data.Eval,
-                 Parser.MonolithicParserTestUtils,
                  Eval.Engine,
                  Data.EvalError,
-                 Parser.MonolithicParserTestProp,
-                 Eval.MultiPass.MultiPassEvalTestUtils,
-                 Eval.Function.FunctionEvalTestUtils1,
-                 Eval.Engine.EngineTestUtils
-lTestProp
-TestProp
-stProp
+                 Common.Eval.FunctionEvalUtils
+

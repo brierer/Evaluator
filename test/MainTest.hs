@@ -2,14 +2,13 @@
 module Main where
 import Test.Framework (TestSuite,makeTestSuite,htfMain)
 
-import {-@ HTF_TESTS @-} Parser.MonolithicParserTestUnit
-import {-@ HTF_TESTS @-} Eval.MultiPass.MultiPassEvalTestUnit
-import {-@ HTF_TESTS @-} Eval.Function.FunctionEvalTest
-import {-@ HTF_TESTS @-} Eval.Engine.EngineErrorTest
-import {-@ HTF_TESTS @-} Eval.Engine.EngineReturnValueTest
+import {-@ HTF_TESTS @-} Unit.Parser.MonolithicParserTest
+import {-@ HTF_TESTS @-} Unit.Eval.MultiPassEvalTest
+import {-@ HTF_TESTS @-} Unit.Eval.FunctionEvalTest
 
-import {-@ HTF_TESTS @-} Parser.MonolithicParserTestProp
-import {-@ HTF_TESTS @-} Eval.MultiPass.MultiPassEvalTestProp
+import {-@ HTF_TESTS @-} Prop.Parser.MonolithicParserTest
+import {-@ HTF_TESTS @-} Prop.Eval.MultiPassEvalTest
+import {-@ HTF_TESTS @-} Prop.Eval.FunctionEvalTest
 
 main :: IO ()
 main = htfMain htf_importedTests

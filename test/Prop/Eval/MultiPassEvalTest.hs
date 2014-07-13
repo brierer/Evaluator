@@ -1,12 +1,12 @@
 {-# OPTIONS_GHC -F -pgmF htfpp #-}
-module Eval.MultiPass.MultiPassEvalTestProp where
+module Prop.Eval.MultiPassEvalTest where
 
-import Data.Eval
 import Data.EvalError
-import Data.ExpToken
 import Eval.MultiPass
-import Eval.MultiPass.MultiPassEvalTestUtils
 import Test.Framework
+
+import Common.Eval.MultiPassEvalUtils
+import Prop.Eval.MultiPassEvalUtils
 
 {-# ANN module "HLint: ignore Use camelCase" #-}
 
@@ -21,14 +21,3 @@ prop_UndefFuncs (UndefFuncs      (ValidFuncs prog ns) p fn) = nonEmpty prog ==> 
 prop_NonTopShow (NonTopShowFuncs (ValidFuncs prog ns) p)    = nonEmpty prog ==> Left (NonTopLevelShow p)       == validateFunctions ns (unsafeInitProg prog)
 prop_NoShow     (NoShowFuncs     (ValidFuncs prog ns))      = nonEmpty prog ==> Left NoShow                    == validateFunctions ns (unsafeInitProg prog)
 prop_ValidFuncs (ValidFuncs      prog ns)                   =                   Right ()                       == validateFunctions ns (unsafeInitProg prog)
-
-{-| Utils -}
-nonEmpty        :: HasProg a => a -> Bool
-toToken         :: HasProg a => a -> ProgToken
-unsafeInitProg  :: HasProg a => a -> Table
-unsafeDerefVars :: HasProg a => a -> Table
-
-nonEmpty = not.null.forms
-toToken = fromForms.forms
-unsafeInitProg = unsafeInitTable.toToken
-unsafeDerefVars = unsafeInitTable.fromForms.derefAll.forms

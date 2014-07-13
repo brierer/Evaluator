@@ -1,10 +1,11 @@
 {-# OPTIONS_GHC -F -pgmF htfpp #-}
-module Parser.MonolithicParserTestUnit where
+module Unit.Parser.MonolithicParserTest where
 
-import Data.List
 import Parser.Monolithic
-import Parser.MonolithicParserTestUtils
 import Test.Framework
+
+import Common.Parser.MonolithicParserUtils
+import Unit.Parser.MonolithicParserUtils
 
 {-# ANN module "HLint: ignore Use camelCase" #-}
 
@@ -82,6 +83,3 @@ test_UnparseNum =  do assertEqual "10"                    $ unparse $ mkNum' (1,
 test_UnparseBool = do assertEqual "true"                  $ unparse $ mkBool' (1,1) True
                       assertEqual "false"                 $ unparse $ mkBool' (1,1) False
 test_UnparseNull =    assertEqual "null"                  $ unparse $ mkNull' (1,1)
-
-{-| Utils -}
-ascii = [' '..'~'] \\ "\"\\"

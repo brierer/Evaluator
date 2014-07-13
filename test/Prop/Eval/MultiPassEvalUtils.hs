@@ -1,20 +1,23 @@
-{-# OPTIONS_GHC -fno-warn-orphans  #-}
-module Eval.MultiPass.MultiPassEvalTestUtils where
+module Prop.Eval.MultiPassEvalUtils where
 
-import qualified Data.Map as M
 import qualified Data.Set as S
 
 import Control.Applicative
 import Control.Monad
 import Control.Monad.State
+import Data.Eval
 import Data.ExpToken
 import Data.Function
 import Data.List
 import Data.Maybe
 import Eval.MultiPass
-import Parser.Monolithic
-import Parser.MonolithicParserTestUtils
 import Test.Framework
+
+import Common.Eval.MultiPassEvalUtils
+import Common.Parser.MonolithicParserUtils
+import Prop.Parser.MonolithicParserUtils
+import Unit.Parser.MonolithicParserUtils
+
 
 class HasProg a where
   forms     :: a -> [FormToken]
@@ -246,11 +249,6 @@ instance Arbitrary NoShowFuncs where
   shrink (NoShowFuncs prog) = mNoShowFuncs (sShrink prog)
 mNoShowFuncs = liftM (fromForms.removeTopShow.forms)
 
-{- | Utils -}
-unsafeProg = unsafeParse progT
-formTable = M.fromList.map toTriple
-unsafeInitTable = unsafeRight.initTable
-
 derefAll []             = []
 derefAll (FormT i e:fs) = let form = FormT i (derefOne fs e):derefAll fs
                           in  if any hasVarF form then derefAll form else form
@@ -273,16 +271,20 @@ derefP   fs (PairT n e)        = PairT n $ derefOne fs e
 nullGuard xs ifNull action = if null xs then return ifNull else action
 
 toTuple (FormT (IdT _ _ a) b) = (a,b)
-toTriple(FormT (IdT p _ a) b) = (a,(b,p))
 formName = fst.toTuple
 formPos = snd.snd.toTriple
 
 diff x = filter (/= x)
 
+nonEmpty = not.null.forms
+toToken = fromForms.forms
+unsafeInitProg = unsafeInitTable.toToken
+unsafeDerefVars = unsafeInitTable.fromForms.derefAll.forms
+
 type ChooseString m = ([String] -> m String)
 type ChooseForm m   = ([FormToken] -> m FormToken)
 
-{-| Monomorphism restriction -}
+{-| Mandatory type signatures -}
 mUniqueDefs :: Monad m => m ProgTA     -> m UniqueDefs
 mMultiDefs  :: Monad m => m UniqueDefs -> m MultiDefs
 mValidVars  :: Monad m => m UniqueDefs -> ChooseString m -> m ValidVars
@@ -293,23 +295,8 @@ mValidFuncs  :: Monad m => m ValidVars  -> m ValidFuncs
 mUndefFuncs  :: Monad m => m ValidFuncs -> ChooseString m -> ChooseForm m -> m UndefFuncs
 mNoShowFuncs :: Monad m => m ValidFuncs -> m NoShowFuncs
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
+nonEmpty        :: HasProg a => a -> Bool
+toToken         :: HasProg a => a -> ProgToken
+unsafeInitProg  :: HasProg a => a -> Table
+unsafeDerefVars :: HasProg a => a -> Table
 

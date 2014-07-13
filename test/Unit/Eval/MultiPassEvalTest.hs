@@ -1,11 +1,11 @@
 {-# OPTIONS_GHC -F -pgmF htfpp #-}
-module Eval.MultiPass.MultiPassEvalTestUnit where
+module Unit.Eval.MultiPassEvalTest where
 
 import Data.EvalError
-import Eval.MultiPass
-import Eval.MultiPass.MultiPassEvalTestUtils
-import Parser.MonolithicParserTestUtils
 import Test.Framework
+
+import Unit.Eval.MultiPassEvalUtils
+import Unit.Parser.MonolithicParserUtils
 
 {-# ANN module "HLint: ignore Use camelCase" #-}
 
@@ -43,7 +43,3 @@ test_NoShow     = do assertEqual (Left NoShow)                                  
                      assertEqual (Left NoShow)                                           $ validateProg []    "show=null"
 test_ValidFuncs = do assertEqual (Right ())                                              $ validateProg []    "show=show()"
                      assertEqual (Right ())                                              $ validateProg []    "show=show(x,y,z);x=null;y=x;z=true"
-
-initProg = initTable.unsafeProg
-derefProg = derefVars.unsafeInitTable.unsafeProg
-validateProg fs = validateFunctions fs.unsafeInitTable.unsafeProg

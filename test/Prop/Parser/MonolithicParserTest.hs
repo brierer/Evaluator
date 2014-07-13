@@ -1,10 +1,10 @@
 {-# OPTIONS_GHC -F -pgmF htfpp #-}
-module Parser.MonolithicParserTestProp where
+module Prop.Parser.MonolithicParserTest where
 
-import Data.ExpToken
 import Parser.Monolithic
-import Parser.MonolithicParserTestUtils
 import Test.Framework
+
+import Prop.Parser.MonolithicParserUtils
 
 {-# ANN module "HLint: ignore Use camelCase" #-}
 
@@ -30,25 +30,3 @@ prop_Num_exp (NumTA t flt) = (t == Exp) ==> flt .= testCase numT flt
 
 prop_Bool (BoolTA b)       =                b   .= testCase boolT b
 prop_Null (NullTA n)       =                n   .= testCase nullT n
-
-{-| Utils -}
-testCase p = unsafeParse p.unparse
-a .= b = noPos a == noPos b
-
-class    NoPos a         where noPos :: a -> a
-instance NoPos ProgToken where noPos (ProgT _ fs) = ProgT p0 $ map noPos fs
-instance NoPos FormToken where noPos (FormT i e)  = FormT (noPos i) (noPos e)
-instance NoPos PairToken where noPos (PairT i e)  = PairT (noPos i) (noPos e)
-instance NoPos IdToken   where noPos (IdT _ w i)  = IdT   p0 w i
-instance NoPos ExpToken  where
-  noPos(FuncT   w  i es) = FuncT    w (noPos i) $ map noPos es
-  noPos(ArrT  _ w    es) = ArrT  p0 w           $ map noPos es
-  noPos(ObjT  _ w    ps) = ObjT  p0 w           $ map noPos ps
-  noPos(VarT       i   ) = VarT       (noPos i)
-  noPos(StrT  _ w   v  ) = StrT  p0 w   v
-  noPos(NumT  _ w s v  ) = NumT  p0 w s v
-  noPos(BoolT _ w   v  ) = BoolT p0 w   v
-  noPos(NullT _ w      ) = NullT p0 w
-
-
-
