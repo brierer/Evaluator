@@ -1,5 +1,4 @@
 {-# LANGUAGE FlexibleInstances, MultiParamTypeClasses #-}
-{-# OPTIONS_GHC -F -pgmF htfpp #-}
 module Prop.Eval.FunctionEvalUtils where
 
 import Prelude hiding (any)
@@ -14,64 +13,62 @@ import Test.Framework
 
 import Prop.Parser.MonolithicParserUtils
 
-{-# ANN module "HLint: ignore Use camelCase" #-}
-
 data NbArgs = NbArgs Pos String Int Int deriving (Show)
 instance Arbitrary NbArgs where
   arbitrary               = mNbArgs  arbitrary  arbitrary   arbitrary   arbitrary
   shrink (NbArgs p s n m) = mNbArgs (tShrink p) (shrink s) (tShrink n) (tShrink m)
 mNbArgs = liftMF4 NbArgs un id un un
 
-data TableTypeError = TableTypeError ExpObj deriving (Show)
-instance Arbitrary    TableTypeError where
-  arbitrary                 = mTableTypeError arbitrary arbitrary arbitrary arbitrary arbitrary arbitrary arbitrary
-  shrink (TableTypeError e) = mShrinkTypeError    TableTypeError $ tShrink e
-mTableTypeError             = mArbitraryTypeError TableTypeError  
+data TableTypeFailure = TableTypeFailure ExpObj deriving (Show)
+instance Arbitrary      TableTypeFailure where
+  arbitrary                 = mTableTypeFailure arbitrary arbitrary arbitrary arbitrary arbitrary arbitrary arbitrary
+  shrink (TableTypeFailure e) = mShrinkTypeFailure    TableTypeFailure $ tShrink e
+mTableTypeFailure             = mArbitraryTypeFailure TableTypeFailure  
   
-data PlotTypeError = PlotTypeError ExpObj deriving (Show)
-instance Arbitrary   PlotTypeError where
-  arbitrary                = mPlotTypeError arbitrary arbitrary arbitrary arbitrary arbitrary arbitrary arbitrary
-  shrink (PlotTypeError e) = mShrinkTypeError    PlotTypeError $ tShrink e
-mPlotTypeError             = mArbitraryTypeError PlotTypeError  
+data PlotTypeFailure = PlotTypeFailure ExpObj deriving (Show)
+instance Arbitrary     PlotTypeFailure where
+  arbitrary                = mPlotTypeFailure arbitrary arbitrary arbitrary arbitrary arbitrary arbitrary arbitrary
+  shrink (PlotTypeFailure e) = mShrinkTypeFailure    PlotTypeFailure $ tShrink e
+mPlotTypeFailure             = mArbitraryTypeFailure PlotTypeFailure  
 
-data ArrTypeError = ArrTypeError ExpObj deriving (Show)
-instance Arbitrary  ArrTypeError where
-  arbitrary               = mArrTypeError arbitrary arbitrary arbitrary arbitrary arbitrary arbitrary arbitrary
-  shrink (ArrTypeError e) = mShrinkTypeError    ArrTypeError $ tShrink e
-mArrTypeError             = mArbitraryTypeError ArrTypeError  
+data ArrTypeFailure = ArrTypeFailure ExpObj deriving (Show)
+instance Arbitrary    ArrTypeFailure where
+  arbitrary               = mArrTypeFailure arbitrary arbitrary arbitrary arbitrary arbitrary arbitrary arbitrary
+  shrink (ArrTypeFailure e) = mShrinkTypeFailure    ArrTypeFailure $ tShrink e
+mArrTypeFailure             = mArbitraryTypeFailure ArrTypeFailure  
   
-data ObjTypeError = ObjTypeError ExpObj deriving (Show)
-instance Arbitrary  ObjTypeError where
-  arbitrary               = mObjTypeError arbitrary arbitrary arbitrary arbitrary arbitrary arbitrary arbitrary
-  shrink (ObjTypeError e) = mShrinkTypeError    ObjTypeError $ tShrink e
-mObjTypeError             = mArbitraryTypeError ObjTypeError  
+data ObjTypeFailure = ObjTypeFailure ExpObj deriving (Show)
+instance Arbitrary    ObjTypeFailure where
+  arbitrary               = mObjTypeFailure arbitrary arbitrary arbitrary arbitrary arbitrary arbitrary arbitrary
+  shrink (ObjTypeFailure e) = mShrinkTypeFailure    ObjTypeFailure $ tShrink e
+mObjTypeFailure             = mArbitraryTypeFailure ObjTypeFailure  
   
-data StrTypeError = StrTypeError ExpObj deriving (Show)
-instance Arbitrary  StrTypeError where
-  arbitrary               = mStrTypeError arbitrary arbitrary arbitrary arbitrary arbitrary arbitrary arbitrary
-  shrink (StrTypeError e) = mShrinkTypeError    StrTypeError $ tShrink e
-mStrTypeError             = mArbitraryTypeError StrTypeError  
+data StrTypeFailure = StrTypeFailure ExpObj deriving (Show)
+instance Arbitrary    StrTypeFailure where
+  arbitrary               = mStrTypeFailure arbitrary arbitrary arbitrary arbitrary arbitrary arbitrary arbitrary
+  shrink (StrTypeFailure e) = mShrinkTypeFailure    StrTypeFailure $ tShrink e
+mStrTypeFailure             = mArbitraryTypeFailure StrTypeFailure  
   
-data NumTypeError = NumTypeError ExpObj deriving (Show)
-instance Arbitrary  NumTypeError where
-  arbitrary               = mNumTypeError arbitrary arbitrary arbitrary arbitrary arbitrary arbitrary arbitrary
-  shrink (NumTypeError e) = mShrinkTypeError    NumTypeError $ tShrink e
-mNumTypeError             = mArbitraryTypeError NumTypeError  
+data NumTypeFailure = NumTypeFailure ExpObj deriving (Show)
+instance Arbitrary    NumTypeFailure where
+  arbitrary               = mNumTypeFailure arbitrary arbitrary arbitrary arbitrary arbitrary arbitrary arbitrary
+  shrink (NumTypeFailure e) = mShrinkTypeFailure    NumTypeFailure $ tShrink e
+mNumTypeFailure             = mArbitraryTypeFailure NumTypeFailure  
   
-data BoolTypeError = BoolTypeError ExpObj deriving (Show)
-instance Arbitrary   BoolTypeError where
-  arbitrary                = mBoolTypeError arbitrary arbitrary arbitrary arbitrary arbitrary arbitrary arbitrary
-  shrink (BoolTypeError e) = mShrinkTypeError    BoolTypeError $ tShrink e
-mBoolTypeError             = mArbitraryTypeError BoolTypeError  
+data BoolTypeFailure = BoolTypeFailure ExpObj deriving (Show)
+instance Arbitrary     BoolTypeFailure where
+  arbitrary                = mBoolTypeFailure arbitrary arbitrary arbitrary arbitrary arbitrary arbitrary arbitrary
+  shrink (BoolTypeFailure e) = mShrinkTypeFailure    BoolTypeFailure $ tShrink e
+mBoolTypeFailure             = mArbitraryTypeFailure BoolTypeFailure  
   
-data NullTypeError = NullTypeError ExpObj deriving (Show)
-instance Arbitrary   NullTypeError where
-  arbitrary                = mNullTypeError arbitrary arbitrary arbitrary arbitrary arbitrary arbitrary arbitrary
-  shrink (NullTypeError e) = mShrinkTypeError    NullTypeError $ tShrink e
-mNullTypeError             = mArbitraryTypeError NullTypeError  
+data NullTypeFailure = NullTypeFailure ExpObj deriving (Show)
+instance Arbitrary     NullTypeFailure where
+  arbitrary                = mNullTypeFailure arbitrary arbitrary arbitrary arbitrary arbitrary arbitrary arbitrary
+  shrink (NullTypeFailure e) = mShrinkTypeFailure    NullTypeFailure $ tShrink e
+mNullTypeFailure             = mArbitraryTypeFailure NullTypeFailure  
 
-mArbitraryTypeError f a1 a2 a3 a4 a5 a6 a7 = (liftM f.elements) =<< sequence [liftM un a1,liftM un a2,liftM un a3,liftM un a4,liftM un a5,liftM un a6,liftM un a7]
-mShrinkTypeError f = map (f.un)
+mArbitraryTypeFailure f a1 a2 a3 a4 a5 a6 a7 = (liftM f.elements) =<< sequence [liftM un a1,liftM un a2,liftM un a3,liftM un a4,liftM un a5,liftM un a6,liftM un a7]
+mShrinkTypeFailure f = map (f.un)
 
 data ExpOA = ExpOA ExpObj deriving (Eq,Show)
 instance Unto ExpOA ExpObj where to = ExpOA; un (ExpOA e) = e
@@ -159,16 +156,16 @@ mNullOA = liftM (NullOA .NullO .un)
 {-| Mandatory type signatures -}
 mNbArgs :: (Applicative m, Monad m) => m P -> m String -> m ValidInt -> m ValidInt -> m NbArgs
 
-mTableTypeError  :: Gen PlotOA  -> Gen ArrOA  -> Gen ObjOA -> Gen StrOA -> Gen NumOA -> Gen BoolOA -> Gen NullOA -> Gen TableTypeError
-mPlotTypeError   :: Gen TableOA -> Gen ArrOA  -> Gen ObjOA -> Gen StrOA -> Gen NumOA -> Gen BoolOA -> Gen NullOA -> Gen PlotTypeError
-mArrTypeError    :: Gen TableOA -> Gen PlotOA -> Gen ObjOA -> Gen StrOA -> Gen NumOA -> Gen BoolOA -> Gen NullOA -> Gen ArrTypeError
-mObjTypeError    :: Gen TableOA -> Gen PlotOA -> Gen ArrOA -> Gen StrOA -> Gen NumOA -> Gen BoolOA -> Gen NullOA -> Gen ObjTypeError
-mStrTypeError    :: Gen TableOA -> Gen PlotOA -> Gen ArrOA -> Gen ObjOA -> Gen NumOA -> Gen BoolOA -> Gen NullOA -> Gen StrTypeError
-mNumTypeError    :: Gen TableOA -> Gen PlotOA -> Gen ArrOA -> Gen ObjOA -> Gen StrOA -> Gen BoolOA -> Gen NullOA -> Gen NumTypeError
-mBoolTypeError   :: Gen TableOA -> Gen PlotOA -> Gen ArrOA -> Gen ObjOA -> Gen StrOA -> Gen NumOA  -> Gen NullOA -> Gen BoolTypeError
-mNullTypeError   :: Gen TableOA -> Gen PlotOA -> Gen ArrOA -> Gen ObjOA -> Gen StrOA -> Gen NumOA  -> Gen BoolOA -> Gen NullTypeError
+mTableTypeFailure  :: Gen PlotOA  -> Gen ArrOA  -> Gen ObjOA -> Gen StrOA -> Gen NumOA -> Gen BoolOA -> Gen NullOA -> Gen TableTypeFailure
+mPlotTypeFailure   :: Gen TableOA -> Gen ArrOA  -> Gen ObjOA -> Gen StrOA -> Gen NumOA -> Gen BoolOA -> Gen NullOA -> Gen PlotTypeFailure
+mArrTypeFailure    :: Gen TableOA -> Gen PlotOA -> Gen ObjOA -> Gen StrOA -> Gen NumOA -> Gen BoolOA -> Gen NullOA -> Gen ArrTypeFailure
+mObjTypeFailure    :: Gen TableOA -> Gen PlotOA -> Gen ArrOA -> Gen StrOA -> Gen NumOA -> Gen BoolOA -> Gen NullOA -> Gen ObjTypeFailure
+mStrTypeFailure    :: Gen TableOA -> Gen PlotOA -> Gen ArrOA -> Gen ObjOA -> Gen NumOA -> Gen BoolOA -> Gen NullOA -> Gen StrTypeFailure
+mNumTypeFailure    :: Gen TableOA -> Gen PlotOA -> Gen ArrOA -> Gen ObjOA -> Gen StrOA -> Gen BoolOA -> Gen NullOA -> Gen NumTypeFailure
+mBoolTypeFailure   :: Gen TableOA -> Gen PlotOA -> Gen ArrOA -> Gen ObjOA -> Gen StrOA -> Gen NumOA  -> Gen NullOA -> Gen BoolTypeFailure
+mNullTypeFailure   :: Gen TableOA -> Gen PlotOA -> Gen ArrOA -> Gen ObjOA -> Gen StrOA -> Gen NumOA  -> Gen BoolOA -> Gen NullTypeFailure
 
-mShrinkTypeError :: (ExpObj -> b) -> [ExpOA] -> [b]
+mShrinkTypeFailure :: (ExpObj -> b) -> [ExpOA] -> [b]
 
 mExpOA   :: (Applicative m, Monad m) => m ExpObj                                       -> m ExpOA
 mTableOA :: (Applicative m, Monad m) => m P -> m [[ExpOA]]       -> m [ExpOA]          -> m TableOA

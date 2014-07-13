@@ -1,5 +1,4 @@
 {-# LANGUAGE FlexibleInstances, MultiParamTypeClasses #-}
-{-# OPTIONS_GHC -F -pgmF htfpp #-}
 module Unit.Eval.FunctionEvalUtils where
 
 import Prelude hiding (any)
@@ -16,8 +15,6 @@ import Test.Framework
 
 import Common.Parser.MonolithicParserUtils
 import Prop.Parser.MonolithicParserUtils
-
-{-# ANN module "HLint: ignore Use camelCase" #-}
 
 runFuncWith s = evalStateT .marshall $ unsafeParse funcT s
 

@@ -10,10 +10,10 @@ import Prelude hiding (any)
 import qualified Prelude  as P
 
 import Control.Monad.State
-import Data.Eval   
-import Data.EvalError           
-import Data.ExpObj            
-import Data.ExpToken          
+import Data.Eval
+import Data.EvalError
+import Data.ExpObj
+import Data.ExpToken
 
 class HasPos a where getPos   :: a -> Pos
 --
@@ -40,8 +40,9 @@ class HasTypeRoot a where getRoot :: a -> TypeRoot
 instance HasTypeRoot Type where
   getRoot (ArrOf _) = NodeArr
   getRoot (ObjOf _) = NodeObj
-  getRoot t         = Leaf t 
-  
+  getRoot (Or ts)   = NodeOr $ map getRoot ts
+  getRoot t         = Leaf t
+
 instance HasTypeRoot ExpObj where
   getRoot (TableO{}) = Leaf Table
   getRoot (PlotO{})  = Leaf Plot
@@ -57,13 +58,20 @@ none = Or []
 arr  = ArrOf any
 obj  = ObjOf any
 
+matchType  Table    x@(TableO{}) = return x
+matchType  Plot     x@(PlotO{})  = return x
 matchType (ArrOf t) (ArrO p es)  = liftM (ArrO p) $ mapM (matchType t) es
 matchType (ObjOf t) (ObjO p ps)  = liftM (ObjO p) $ mapM (\(x,y)->liftM2 (,) (return x) $ matchType t y) ps
 matchType  Str      x@(StrO{})   = return x
 matchType  Num      x@(NumO{})   = return x
 matchType  Bool     x@(BoolO{})  = return x
-matchType  Null     x@(NullO{})  = return x   
-matchType  t        x            = evalError $ TypeMismatch (getPos x) (getRoot t) (getRoot x)
+matchType  Null     x@(NullO{})  = return x
+matchType t@(Or ts) x            = do fs <- get; let rs = map (flip evalStateT fs.(`matchType`x)) ts in if P.any isRight rs then return x else typeMismatch t x
+matchType t         x            = typeMismatch t x
+
+isRight (Right _) = True
+isRight _         = False
+typeMismatch t x = evalError $ TypeMismatch (getPos x) (getRoot t) (getRoot x)
 
 marshall :: ExpToken -> EvalFunc ExpObj
 marshall (FuncT _ (IdT p _ i) es) = applyFunc p i es
@@ -75,16 +83,16 @@ marshall (BoolT p _ b)            = return $ BoolO p b
 marshall (NullT p _)              = return $ NullO p
 --marshall e                        = error $ "Eval.Function::marshall [Unexpected pattern ["++show e++"]]"
 
-applyFunc p i es = 
-  do fs <- get; 
-     case lookup' i fs of 
+applyFunc p i es =
+  do fs <- get;
+     case lookup' i fs of
        Nothing -> error $ "Function::applyFunc [Could not lookup function ["++i++"]]"
        Just (ts,Func _) -> do
          validateArgCount p i (length ts) (length es)
          _ <- zipWithM ($) (map matchType ts) =<< mapM marshall es
          error "Function::applyFunc [Function not implemented beyong arg validation]"
-      
-lookup' i = lookup i .map (\(x,y,z)->(x,(y,z)))       
+
+lookup' i = lookup i .map (\(x,y,z)->(x,(y,z)))
 validateArgCount p s l1 l2 = when (l1 /= l2) $ evalError $ ArgCountMismatch p s l1 l2
 evalError = lift.Left
 
