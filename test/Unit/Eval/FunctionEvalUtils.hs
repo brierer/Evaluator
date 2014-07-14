@@ -11,7 +11,6 @@ import Data.ExpToken
 import Data.ExpObj
 import Eval.Function
 import Parser.Monolithic
-import Test.Framework
 
 import Common.Parser.MonolithicParserUtils
 import Prop.Parser.MonolithicParserUtils

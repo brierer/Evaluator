@@ -12,6 +12,7 @@ import Common.Eval.FunctionEvalUtils
 import Unit.Eval.FunctionEvalUtils
 
 {-# ANN module "HLint: ignore Use camelCase" #-}
+{-# ANN module "HLint: ignore Reduce duplication" #-}
 
 test_NbArgs = do
   assertEqual (Left $ ArgCountMismatch (1,1) "f" 0 1) $ runFuncWith "f(0)"   $ nbArgEntry "f" 0
@@ -129,23 +130,78 @@ test_NullType = do  assertEqual (Left $ TypeMismatch (1,1) (Leaf Null)  (Leaf Ta
                     assertEqual (Left $ TypeMismatch (1,1) (Leaf Null)  (Leaf Bool))  $ matchTypeParse     Null "true"
                     assertEqual (Right $ NullO (1,1))                                 $ matchTypeParse     Null "null"
 
-                           
+test_AnyType = do   assertEqual (Right $ TableO (1,1) [] [])                    $ matchTypeParseWith any "f()" $ nullary "f" $ TableO (1,1) [] []
+                    assertEqual (Right $ PlotO (1,1) [] [])                     $ matchTypeParseWith any "f()" $ nullary "f" $ PlotO  (1,1) [] []
+                    assertEqual (Right $ ArrO (1,1) [])                         $ matchTypeParse     any "[]"
+                    assertEqual (Right $ ObjO (1,1) [])                         $ matchTypeParse     any "{}"
+                    assertEqual (Right $ StrO (1,1) "")                         $ matchTypeParse     any "\"\""
+                    assertEqual (Right $ NumO (1,1) 0)                          $ matchTypeParse     any "0"
+                    assertEqual (Right $ BoolO (1,1) True)                      $ matchTypeParse     any "true"
+                    assertEqual (Right $ NullO (1,1))                           $ matchTypeParse     any "null"
+
+                    assertEqual (Right $ ArrO (1,1) [TableO (1,2) [] []])       $ matchTypeParseWith any "[f()]" $ nullary "f" $ TableO (1,2) [] []
+                    assertEqual (Right $ ArrO (1,1) [PlotO (1,2) [] []])        $ matchTypeParseWith any "[f()]" $ nullary "f" $ PlotO  (1,2) [] []
+                    assertEqual (Right $ ArrO (1,1) [ArrO (1,2) []])            $ matchTypeParse     any "[[]]"
+                    assertEqual (Right $ ArrO (1,1) [ObjO (1,2) []])            $ matchTypeParse     any "[{}]"
+                    assertEqual (Right $ ArrO (1,1) [StrO (1,2) ""])            $ matchTypeParse     any "[\"\"]"
+                    assertEqual (Right $ ArrO (1,1) [NumO (1,2) 0])             $ matchTypeParse     any "[0]"
+                    assertEqual (Right $ ArrO (1,1) [BoolO (1,2) True])         $ matchTypeParse     any "[true]"
+                    assertEqual (Right $ ArrO (1,1) [NullO (1,2)])              $ matchTypeParse     any "[null]"
+
+                    assertEqual (Right $ ObjO (1,1) [("x",TableO (1,4) [] [])]) $ matchTypeParseWith any "{x:f()}" $ nullary "f" $ TableO (1,4) [] []
+                    assertEqual (Right $ ObjO (1,1) [("x",PlotO (1,4) [] [])])  $ matchTypeParseWith any "{x:f()}" $ nullary "f" $ PlotO  (1,4) [] []
+                    assertEqual (Right $ ObjO (1,1) [("x",ArrO (1,4) [])])      $ matchTypeParse     any "{x:[]}"
+                    assertEqual (Right $ ObjO (1,1) [("x",ObjO (1,4) [])])      $ matchTypeParse     any "{x:{}}"
+                    assertEqual (Right $ ObjO (1,1) [("x",StrO (1,4) "")])      $ matchTypeParse     any "{x:\"\"}"
+                    assertEqual (Right $ ObjO (1,1) [("x",NumO (1,4) 0)])       $ matchTypeParse     any "{x:0}"
+                    assertEqual (Right $ ObjO (1,1) [("x",BoolO (1,4) True)])   $ matchTypeParse     any "{x:true}"
+                    assertEqual (Right $ ObjO (1,1) [("x",NullO (1,4))])        $ matchTypeParse     any "{x:null}"
+
+test_NoneType = do  assertEqual (Left $ TypeMismatch (1,1) (getRoot none) (Leaf Table)) $ matchTypeParseWith none "f()" $ nullary "f" $ TableO (1,1) [] []
+                    assertEqual (Left $ TypeMismatch (1,1) (getRoot none) (Leaf Plot))  $ matchTypeParseWith none "f()" $ nullary "f" $ PlotO  (1,1) [] []
+                    assertEqual (Left $ TypeMismatch (1,1) (getRoot none)  NodeArr)     $ matchTypeParse     none "[]"
+                    assertEqual (Left $ TypeMismatch (1,1) (getRoot none)  NodeObj)     $ matchTypeParse     none "{}"
+                    assertEqual (Left $ TypeMismatch (1,1) (getRoot none) (Leaf Str))   $ matchTypeParse     none "\"\""
+                    assertEqual (Left $ TypeMismatch (1,1) (getRoot none) (Leaf Num))   $ matchTypeParse     none "0"
+                    assertEqual (Left $ TypeMismatch (1,1) (getRoot none) (Leaf Bool))  $ matchTypeParse     none "true"
+                    assertEqual (Left $ TypeMismatch (1,1) (getRoot none) (Leaf Null))  $ matchTypeParse     none "null"
+--
+                    assertEqual (Left $ TypeMismatch (1,2) (getRoot none) (Leaf Table)) $ matchTypeParseWith (ArrOf none) "[f()]" $ nullary "f" $ TableO (1,2) [] []
+                    assertEqual (Left $ TypeMismatch (1,2) (getRoot none) (Leaf Plot))  $ matchTypeParseWith (ArrOf none) "[f()]" $ nullary "f" $ PlotO  (1,2) [] []
+                    assertEqual (Left $ TypeMismatch (1,2) (getRoot none)  NodeArr)     $ matchTypeParse     (ArrOf none) "[[]]"
+                    assertEqual (Left $ TypeMismatch (1,2) (getRoot none)  NodeObj)     $ matchTypeParse     (ArrOf none) "[{}]"
+                    assertEqual (Left $ TypeMismatch (1,2) (getRoot none) (Leaf Str))   $ matchTypeParse     (ArrOf none) "[\"\"]"
+                    assertEqual (Left $ TypeMismatch (1,2) (getRoot none) (Leaf Num))   $ matchTypeParse     (ArrOf none) "[0]"
+                    assertEqual (Left $ TypeMismatch (1,2) (getRoot none) (Leaf Bool))  $ matchTypeParse     (ArrOf none) "[true]"
+                    assertEqual (Left $ TypeMismatch (1,2) (getRoot none) (Leaf Null))  $ matchTypeParse     (ArrOf none) "[null]"
+
+                    assertEqual (Left $ TypeMismatch (1,1) (getRoot none)  NodeArr)     $ matchTypeParseWith none "[f()]" $ nullary "f" $ TableO (1,2) [] []
+                    assertEqual (Left $ TypeMismatch (1,1) (getRoot none)  NodeArr)     $ matchTypeParseWith none "[f()]" $ nullary "f" $ PlotO  (1,2) [] []
+                    assertEqual (Left $ TypeMismatch (1,1) (getRoot none)  NodeArr)     $ matchTypeParse     none "[[]]"
+                    assertEqual (Left $ TypeMismatch (1,1) (getRoot none)  NodeArr)     $ matchTypeParse     none "[{}]"
+                    assertEqual (Left $ TypeMismatch (1,1) (getRoot none)  NodeArr)     $ matchTypeParse     none "[\"\"]"
+                    assertEqual (Left $ TypeMismatch (1,1) (getRoot none)  NodeArr)     $ matchTypeParse     none "[0]"
+                    assertEqual (Left $ TypeMismatch (1,1) (getRoot none)  NodeArr)     $ matchTypeParse     none "[true]"
+                    assertEqual (Left $ TypeMismatch (1,1) (getRoot none)  NodeArr)     $ matchTypeParse     none "[null]"
+
+                    assertEqual (Left $ TypeMismatch (1,4) (getRoot none) (Leaf Table)) $ matchTypeParseWith (ObjOf none) "{x:f()}" $ nullary "f" $ TableO (1,4) [] []
+                    assertEqual (Left $ TypeMismatch (1,4) (getRoot none) (Leaf Plot))  $ matchTypeParseWith (ObjOf none) "{x:f()}" $ nullary "f" $ PlotO  (1,4) [] []
+                    assertEqual (Left $ TypeMismatch (1,4) (getRoot none)  NodeArr)     $ matchTypeParse     (ObjOf none) "{x:[]}"
+                    assertEqual (Left $ TypeMismatch (1,4) (getRoot none)  NodeObj)     $ matchTypeParse     (ObjOf none) "{x:{}}"
+                    assertEqual (Left $ TypeMismatch (1,4) (getRoot none) (Leaf Str))   $ matchTypeParse     (ObjOf none) "{x:\"\"}"
+                    assertEqual (Left $ TypeMismatch (1,4) (getRoot none) (Leaf Num))   $ matchTypeParse     (ObjOf none) "{x:0}"
+                    assertEqual (Left $ TypeMismatch (1,4) (getRoot none) (Leaf Bool))  $ matchTypeParse     (ObjOf none) "{x:true}"
+                    assertEqual (Left $ TypeMismatch (1,4) (getRoot none) (Leaf Null))  $ matchTypeParse     (ObjOf none) "{x:null}"
+
+                    assertEqual (Left $ TypeMismatch (1,1) (getRoot none)  NodeObj)     $ matchTypeParseWith none "{x:f()}" $ nullary "f" $ TableO (1,4) [] []
+                    assertEqual (Left $ TypeMismatch (1,1) (getRoot none)  NodeObj)     $ matchTypeParseWith none "{x:f()}" $ nullary "f" $ PlotO  (1,4) [] []
+                    assertEqual (Left $ TypeMismatch (1,1) (getRoot none)  NodeObj)     $ matchTypeParse     none "{x:[]}"
+                    assertEqual (Left $ TypeMismatch (1,1) (getRoot none)  NodeObj)     $ matchTypeParse     none "{x:{}}"
+                    assertEqual (Left $ TypeMismatch (1,1) (getRoot none)  NodeObj)     $ matchTypeParse     none "{x:\"\"}"
+                    assertEqual (Left $ TypeMismatch (1,1) (getRoot none)  NodeObj)     $ matchTypeParse     none "{x:0}"
+                    assertEqual (Left $ TypeMismatch (1,1) (getRoot none)  NodeObj)     $ matchTypeParse     none "{x:true}"
+                    assertEqual (Left $ TypeMismatch (1,1) (getRoot none)  NodeObj)     $ matchTypeParse     none "{x:null}"
 
 
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
+                    
