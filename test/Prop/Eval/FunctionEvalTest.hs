@@ -37,5 +37,3 @@ prop_NullTypeSuccess  (NullOA   e) = Right e == simpleMatch e Null
 
 prop_AnySuccess  (ExpOA e) = Right e                                                   == simpleMatch e any
 prop_NoneFailure (ExpOA e) = Left (TypeMismatch (getPos e) (getRoot none) (getRoot e)) == simpleMatch e none
-
-simpleMatch e t = evalStateT (matchType t e) []

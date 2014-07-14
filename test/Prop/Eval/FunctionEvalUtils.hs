@@ -9,6 +9,7 @@ import Control.Applicative
 import Control.Monad.State
 import Data.ExpToken
 import Data.ExpObj
+import Eval.Function
 import Test.Framework
 
 import Prop.Parser.MonolithicParserUtils
@@ -152,6 +153,8 @@ instance Arbitrary NullOA where
   arbitrary                 = mNullOA arbitrary
   shrink (NullOA (NullO p)) = mNullOA (tShrink p)
 mNullOA = liftM (NullOA .NullO .un)
+
+simpleMatch e t = evalStateT (matchType t e) []
 
 {-| Mandatory type signatures -}
 mNbArgs :: (Applicative m, Monad m) => m P -> m String -> m ValidInt -> m ValidInt -> m NbArgs

@@ -8,6 +8,7 @@ module Eval.Function
 import Prelude hiding (any)
 
 import qualified Prelude  as P
+import qualified Data.Set as S
 
 import Control.Monad.State
 import Data.Eval
@@ -40,7 +41,7 @@ class HasTypeRoot a where getRoot :: a -> TypeRoot
 instance HasTypeRoot Type where
   getRoot (ArrOf _) = NodeArr
   getRoot (ObjOf _) = NodeObj
-  getRoot (Or ts)   = NodeOr $ map getRoot ts
+  getRoot (Or ts)   = NodeOr $ reverse $ S.toList $ S.fromList $ map getRoot ts
   getRoot t         = Leaf t
 
 instance HasTypeRoot ExpObj where
