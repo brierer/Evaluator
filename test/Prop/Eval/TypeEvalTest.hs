@@ -8,7 +8,8 @@ import qualified Prelude as P
 
 import Data.EvalError
 import Data.ExpObj
-import Eval.Function
+import Data.HasPos
+import Eval.Type
 import Test.Framework
 
 import Prop.Eval.TypeEvalUtils

@@ -12,7 +12,7 @@ import Control.Monad.State
 import Data.ExpToken
 import Data.ExpObj
 import Data.List
-import Eval.Function
+import Eval.Type
 import Test.Framework
 
 import Common.Parser.MonolithicParserUtils

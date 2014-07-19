@@ -9,7 +9,7 @@ import Control.Monad.State
 import Data.Eval
 import Data.ExpToken
 import Data.ExpObj
-import Eval.Function
+import Eval.Type
 import Parser.Monolithic
 
 import Common.Parser.MonolithicParserUtils

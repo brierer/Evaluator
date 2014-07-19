@@ -5,7 +5,7 @@ import Prelude hiding (any)
 
 import Data.EvalError
 import Data.ExpObj
-import Eval.Function
+import Eval.Type
 import Test.Framework
 
 import Unit.Eval.TypeEvalUtils
