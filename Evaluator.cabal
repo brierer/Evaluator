@@ -49,5 +49,6 @@ test-suite Evaluator-tests
                  Data.Eval,
                  Eval.Engine,
                  Data.EvalError,
-                 Common.Eval.FunctionEvalUtils
+                 Common.Eval.FunctionEvalUtils,
+                 Common.Eval.TypeEvalUtils
 

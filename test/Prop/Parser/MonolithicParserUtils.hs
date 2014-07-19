@@ -16,7 +16,7 @@ class Tall a   where tall :: Int -> Gen a
 
 data ProgTA = ProgTA ProgToken deriving (Eq,Show)
 instance Arbitrary ProgTA where arbitrary = sized1 tall; shrink (ProgTA (ProgT p fs)) = mProgTA (tShrink p) (tShrinks fs)
-instance Tall      ProgTA where                                                tall n = mProgTA  arbitrary  (sizes n)
+instance Tall      ProgTA where                                                tall n = mProgTA  arbitrary  (talls n)
 mProgTA = liftMF2 mk un (map un) where mk x = ProgTA . ProgT x
 
 data FormTA = FormTA FormToken deriving (Show)
@@ -69,19 +69,19 @@ shrinkT x@(NullT{}) = liftM un $ sShrink (to x :: NullTA)
 data FuncTA = FuncTA ExpToken deriving (Show)
 instance Unto FuncTA ExpToken where to = FuncTA; un (FuncTA f) = f
 instance Arbitrary FuncTA where arbitrary = sized1 tall; shrink (FuncTA (FuncT w i es)) = mFuncTA (tShrink w) (tShrink i) (tShrinks es)
-instance Tall      FuncTA where                                                  tall n = mFuncTA  arbitrary   arbitrary  (sizes n)
+instance Tall      FuncTA where                                                  tall n = mFuncTA  arbitrary   arbitrary  (talls n)
 mFuncTA = liftMF3 mk un un (map un) where mk x y = FuncTA .FuncT x y
 
 data ArrTA =  ArrTA ExpToken deriving (Show)
 instance Unto ArrTA ExpToken where to = ArrTA; un (ArrTA a) = a
 instance Arbitrary ArrTA where arbitrary = sized1 tall; shrink (ArrTA (ArrT p w es)) = mArrTA (tShrink p) (tShrink w) (tShrinks es)
-instance Tall      ArrTA where                                                tall n = mArrTA  arbitrary   arbitrary  (sizes n)
+instance Tall      ArrTA where                                                tall n = mArrTA  arbitrary   arbitrary  (talls n)
 mArrTA = liftMF3 mk un un (map un) where mk x y = ArrTA .ArrT x y
 
 data ObjTA =  ObjTA ExpToken deriving (Show)
 instance Unto ObjTA ExpToken where to = ObjTA; un (ObjTA o) = o
 instance Arbitrary ObjTA where arbitrary = sized1 tall; shrink (ObjTA (ObjT p w ps)) = mObjTA (sShrink $ to p) (sShrink $ to w) (tShrinks ps)
-instance Tall      ObjTA where                                                tall n = mObjTA arbitrary        arbitrary        (sizes n)
+instance Tall      ObjTA where                                                tall n = mObjTA arbitrary        arbitrary        (talls n)
 mObjTA = liftMF3 mk un un (map un) where mk x y = ObjTA .ObjT x y
 
 data VarTA =  VarTA ExpToken deriving (Show)
@@ -187,10 +187,11 @@ liftMF2 g f1 f2       x1 x2        = g <$> liftM f1 x1 <*> liftM f2 x2
 liftMF3 g f1 f2 f3    x1 x2 x3     = g <$> liftM f1 x1 <*> liftM f2 x2 <*> liftM f3 x3
 liftMF4 g f1 f2 f3 f4 x1 x2 x3 x4  = g <$> liftM f1 x1 <*> liftM f2 x2 <*> liftM f3 x3 <*> liftM f4 x4
 
-sizes p = do Positive m <- arbitrary; ps <- replicateM m $ tall p; return $ sList ps
+talls n = sListOf $ tall n
 
 sized1 p = sized f where f i = p $ i `mod` 3
-sListOf = liftM sList . listOf
+sListOf  = liftM sList . listOf
+sList1Of = liftM sList . listOf1
 sList = take 10
 
 sShrink  = take 1.shrink
