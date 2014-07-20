@@ -32,7 +32,8 @@ executable Evaluator
                    Eval.Engine,
                    Data.EvalError,
                    Eval.Type,
-                   Data.HasPos
+                   Data.HasPos,
+                   Data.Type
 
 test-suite Evaluator-tests
   type:           exitcode-stdio-1.0
@@ -54,5 +55,6 @@ test-suite Evaluator-tests
                  Common.Eval.FunctionEvalUtils,
                  Common.Eval.TypeEvalUtils,
                  Eval.Type,
-                 Data.HasPos
+                 Data.HasPos,
+                 Data.Type
 

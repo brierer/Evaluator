@@ -3,7 +3,7 @@ module Data.EvalError
 ) where
 
 import Data.ExpToken (Pos)
-import Data.ExpObj   (TypeRoot)
+import Data.Type     (TypeTree)
 
 data EvalError = MultipleDefinitions Pos String
                | UndefinedVariable Pos String
@@ -13,7 +13,7 @@ data EvalError = MultipleDefinitions Pos String
                | NoShow
                | ArgCountMismatch Pos String Int Int
                | ArgError Int String EvalError
-               | TypeMismatch Pos TypeRoot TypeRoot
+               | TypeMismatch Pos TypeTree TypeTree
                | IllegalEmpty Pos
                | TableColumnLengthMismatch Pos Int Int
                | TableHeaderLengthMismatch Pos Int Int

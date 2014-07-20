@@ -1,5 +1,5 @@
 module Eval.Type
-( HasTypeRoot(..)
+( HasType(..)
 , any,none,arr,obj
 , matchType
 ) where
@@ -14,23 +14,30 @@ import Data.Eval
 import Data.EvalError
 import Data.ExpObj
 import Data.HasPos
+import Data.Type
 
-class HasTypeRoot a where getRoot :: a -> TypeRoot
-instance HasTypeRoot Type where
+class HasType a where getRoot :: a -> TypeTree
+instance HasType Type where
+  getRoot  Table    = LeafTable
+  getRoot  Plot     = LeafPlot
+  getRoot  Str      = LeafStr
+  getRoot  Num      = LeafNum
+  getRoot  Bool     = LeafBool
+  getRoot  Null     = LeafNull
   getRoot (ArrOf _) = NodeArr
   getRoot (ObjOf _) = NodeObj
   getRoot (Or ts)   = NodeOr $ reverse $ S.toList $ S.fromList $ map getRoot ts
-  getRoot t         = Leaf t
 
-instance HasTypeRoot ExpObj where
-  getRoot (TableO{}) = Leaf Table
-  getRoot (PlotO{})  = Leaf Plot
+instance HasType ExpObj where
+  getRoot (TableO{}) = LeafTable
+  getRoot (PlotO{})  = LeafPlot
+  getRoot (StrO{})   = LeafStr
+  getRoot (NumO{})   = LeafNum
+  getRoot (BoolO{})  = LeafBool
+  getRoot (NullO{})  = LeafNull
+  
   getRoot (ArrO{})   = NodeArr
   getRoot (ObjO{})   = NodeObj
-  getRoot (StrO{})   = Leaf Str
-  getRoot (NumO{})   = Leaf Num
-  getRoot (BoolO{})  = Leaf Bool
-  getRoot (NullO{})  = Leaf Null
 
 any  :: Type
 none :: Type

@@ -9,20 +9,14 @@ import Control.Arrow  (second)
 
 import Control.Applicative
 import Control.Monad.State
-import Data.ExpToken
 import Data.ExpObj
 import Data.List
+import Data.Type
 import Eval.Type
 import Test.Framework
 
 import Common.Parser.MonolithicParserUtils
 import Prop.Parser.MonolithicParserUtils
-
-data NbArgs = NbArgs Pos String Int Int deriving (Show)
-instance Arbitrary NbArgs where
-  arbitrary               = mNbArgs  arbitrary  arbitrary   arbitrary   arbitrary
-  shrink (NbArgs p s n m) = mNbArgs (tShrink p) (shrink s) (tShrink n) (tShrink m)
-mNbArgs = liftMF4 NbArgs un id un un
 
 data TableTypeFailure = TableTypeFailure ExpObj deriving (Show)
 instance Arbitrary      TableTypeFailure where
@@ -233,7 +227,7 @@ mOrTypeSuccess t ts = do
 
 simpleMatch e t = evalStateT (matchType t e) []
 
-_          `accepts` (Or ts)    = error $ "FunctionEvalTestUtils::accepts [Cannot accept the Or of types "++show ts++"]"
+_          `accepts` (Or ts)    = error $ "TypeEvalUtils::accepts [Cannot accept the Or of types "++show ts++"]"
 (ArrOf t1) `accepts` (ArrOf t2) = t1 `accepts` t2
 (ObjOf t1) `accepts` (ObjOf t2) = t1 `accepts` t2
 (Or ts)    `accepts` t          = P.any (`accepts`t) ts
@@ -256,8 +250,6 @@ makeMatchingExp (ObjOf t) = ObjO p0 [("",makeMatchingExp t)]
 
 
 {-| Mandatory type signatures -}
-mNbArgs :: (Applicative m, Monad m) => m P -> m String -> m ValidInt -> m ValidInt -> m NbArgs
-
 mTableTypeFailure  :: Gen PlotOA  -> Gen ArrOA  -> Gen ObjOA -> Gen StrOA -> Gen NumOA -> Gen BoolOA -> Gen NullOA -> Gen TableTypeFailure
 mPlotTypeFailure   :: Gen TableOA -> Gen ArrOA  -> Gen ObjOA -> Gen StrOA -> Gen NumOA -> Gen BoolOA -> Gen NullOA -> Gen PlotTypeFailure
 mArrTypeFailure    :: Gen TableOA -> Gen PlotOA -> Gen ObjOA -> Gen StrOA -> Gen NumOA -> Gen BoolOA -> Gen NullOA -> Gen ArrTypeFailure

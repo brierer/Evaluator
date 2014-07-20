@@ -1,16 +1,8 @@
 module Data.ExpObj
-( Type(..)
-, TypeRoot(..)
-, ExpObj(..)
+( ExpObj(..)
 ) where
 
 import Data.ExpToken (Pos)
-
-data Type = Null | Bool | Num | Str | ObjOf Type | ArrOf Type | Plot | Table 
-          | Or [Type]
-            deriving (Eq,Ord,Show)
-            
-data TypeRoot = NodeObj | NodeArr | NodeOr [TypeRoot] | Leaf Type deriving (Eq,Ord,Show)
 
 data ExpObj = TableO Pos [[ExpObj]]         [ExpObj]
             | PlotO  Pos [(ExpObj,ExpObj)] [(String,ExpObj)]
