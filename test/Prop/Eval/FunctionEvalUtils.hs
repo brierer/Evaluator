@@ -109,19 +109,11 @@ instance Arbitrary  OrLitFailure where arbitrary = sized1 tall; shrink (OrLitFai
 instance Tall       OrLitFailure where                                                  tall n = mOrLitFailure (talls n)     elements elements
 mOrLitFailure esa chooseType chooseArg = let onEmpty = OrLitFailure [] (NullO p0) 0 Null in do
   es <- liftM (map un) esa
-  (t1,t2,toChoose) <- moo es id chooseType
+  (t1,t2,toChoose) <- getFailureOfOrTypes es id chooseType
   nullGuard es onEmpty $ nullGuard toChoose onEmpty $ do
     e <- chooseArg toChoose
     let Just i = elemIndex e es
     return $ OrLitFailure es (unsafeMarshall [] e) i $ Or [t1,t2]
-
-moo es f chooseType = do
-  let chooseT = chooseType [(arr,isArr),(obj,isObj),(Str,isStr),(Num,isNum),(Bool,isBool),(Null,isNull)]
-  (t1,isType1) <- chooseT
-  (t2,isType2) <- chooseT
-  let isOneOf x = isType1 x || isType2 x
-      toChoose = filter (not.isOneOf.f) es
-  return (t1,t2,toChoose)
 
 data TableFuncFailure = TableFuncFailure [(ExpToken,ExpObj)] ExpObj Int deriving (Show)
 instance Arbitrary      TableFuncFailure where arbitrary = sized1 tall; shrink (TableFuncFailure ts _ _) = mFuncFailure (tShrinks ts) id       isTable TableFuncFailure 
@@ -168,11 +160,35 @@ instance Arbitrary   OrFuncFailure where arbitrary = sized1 tall; shrink (OrFunc
 instance Tall        OrFuncFailure where                                                   tall n = mOrFuncFailure (talls n)     elements elements
 mOrFuncFailure tsa chooseType chooseArg = let onEmpty = OrFuncFailure [] (NullO p0) 0 Null in do
   ts <- liftM (map $ first clearParams . un) tsa 
-  (t1,t2,toChoose) <- moo ts snd chooseType
+  (t1,t2,toChoose) <- getFailureOfOrTypes ts snd chooseType
   nullGuard ts onEmpty $ nullGuard toChoose onEmpty $ do
     t <- chooseArg toChoose
     let Just i = elemIndex t ts
     return $ OrFuncFailure ts (snd t) i $ Or [t1,t2]
+
+data ArrLitSuccess = ArrLitSuccess [ExpToken] ExpObj deriving (Show)
+instance Arbitrary   ArrLitSuccess where arbitrary = sized1 tall; shrink (ArrLitSuccess es e) = mLitSuccess isArr ArrLitSuccess (tShrinks es) (tShrink e)
+instance Tall        ArrLitSuccess where                                               tall n = mLitSuccess isArr ArrLitSuccess (talls n)     (tall n)   
+
+data ObjLitSuccess = ObjLitSuccess [ExpToken] ExpObj deriving (Show)
+instance Arbitrary   ObjLitSuccess where arbitrary = sized1 tall; shrink (ObjLitSuccess es e) = mLitSuccess isObj ObjLitSuccess (tShrinks es) (tShrink e)
+instance Tall        ObjLitSuccess where                                               tall n = mLitSuccess isObj ObjLitSuccess (talls n)     (tall n)   
+
+data StrLitSuccess = StrLitSuccess [ExpToken] ExpObj deriving (Show)
+instance Arbitrary   StrLitSuccess where arbitrary = sized1 tall; shrink (StrLitSuccess es e) = mLitSuccess isStr StrLitSuccess (tShrinks es) (tShrink e)
+instance Tall        StrLitSuccess where                                               tall n = mLitSuccess isStr StrLitSuccess (talls n)     (tall n)   
+
+data NumLitSuccess = NumLitSuccess [ExpToken] ExpObj deriving (Show)
+instance Arbitrary   NumLitSuccess where arbitrary = sized1 tall; shrink (NumLitSuccess es e) = mLitSuccess isNum NumLitSuccess (tShrinks es) (tShrink e)
+instance Tall        NumLitSuccess where                                               tall n = mLitSuccess isNum NumLitSuccess (talls n)     (tall n)   
+
+data BoolLitSuccess = BoolLitSuccess [ExpToken] ExpObj deriving (Show)
+instance Arbitrary    BoolLitSuccess where arbitrary = sized1 tall; shrink (BoolLitSuccess es e) = mLitSuccess isBool BoolLitSuccess (tShrinks es) (tShrink e)
+instance Tall         BoolLitSuccess where                                                tall n = mLitSuccess isBool BoolLitSuccess (talls n)     (tall n)   
+
+data NullLitSuccess = NullLitSuccess [ExpToken] ExpObj deriving (Show)
+instance Arbitrary    NullLitSuccess where arbitrary = sized1 tall; shrink (NullLitSuccess es e) = mLitSuccess isNull NullLitSuccess (tShrinks es) (tShrink e)
+instance Tall         NullLitSuccess where                                                tall n = mLitSuccess isNull NullLitSuccess (talls n)     (tall n)   
 
 instance Unto b ExpObj    => Unto (FuncTA,b) (ExpToken,ExpObj) where un (x,y) = (un x,un y); to (x,y) = (to x,to y)
 instance (Tall a, Tall b) => Tall (a,b)                        where tall n = liftM2 (,) (tall n) (tall n)
@@ -231,7 +247,15 @@ mOfFuncFailure tsa chooseType chooseArg mk = let onEmpty = mk [] (NullO p0) 0 Nu
         e      = head $ filter (not.isType) $ elemsOf $ snd t
     return $ mk ts e i ty
     
-caseLitFailure  tree t s es e i =                   not (null es) ==> Left (TypeMismatch (getPos e) tree  $ getRoot e) == evalStateT (marshall $ mkFunc s es) (litFailure s es i t)
+getFailureOfOrTypes es f chooseType = do
+  let chooseT = chooseType [(arr,isArr),(obj,isObj),(Str,isStr),(Num,isNum),(Bool,isBool),(Null,isNull)]
+  (t1,isType1) <- chooseT
+  (t2,isType2) <- chooseT
+  let isOneOf x = isType1 x || isType2 x
+      toChoose = filter (not.isOneOf.f) es
+  return (t1,t2,toChoose)
+    
+caseLitFailure  tree t s es e i =                     not (null es) ==> Left (TypeMismatch (getPos e) tree  $ getRoot e) == evalStateT (marshall $ mkFunc s es) (litFailure s es i t)
 caseFuncFailure tree t s ts e i = validFuncs  s ts && not (null ts) ==> Left (TypeMismatch (getPos e) tree  $ getRoot e) == evalStateT (marshall $ mkFunc s es) (litFailure s es i t ++ entries) where
   (es,entries) = mkUtils ts
 
@@ -262,14 +286,33 @@ removeVarsAndFuncs x                       = x
     
 litFailure s es i t = [(s,zipWith f [0..] $ replicate (length es) any, error "FunctionEvalUtils::litFailure::func [Should not be called]")] where f j e | i == j = t | otherwise = e
 
+{-| Success -}
+mLitSuccess isType mk = liftMF2 mk (filter isType.map un) un
+
+caseLitSuccess  _ t s es e =                      Right e == evalStateT (marshall $ mkFunc s es) (litSuccess s es e t)
+caseFuncSuccess _ t s ts e = validFuncs  s ts ==> Right e == evalStateT (marshall $ mkFunc s es) (litSuccess s es e t ++ entries) where
+  (es,entries) = mkUtils ts
+
+caseOfLitSuccess  t s es e mkT =                     Right e == evalStateT (marshall $ mkFunc s es) (litSuccess s es e $ mkT t)
+caseOfFuncSuccess t s ts e mkT = validFuncs s ts ==> Right e == evalStateT (marshall $ mkFunc s es) (litSuccess s es e (mkT t) ++ entries) where
+  (es,entries) = mkUtils ts
+  
+caseOrLitSuccess  t s es e =                    Right e == evalStateT (marshall $ mkFunc s es) (litSuccess s es e t)
+caseOrFuncSuccess t s ts e = validFuncs s ts && Right e == evalStateT (marshall $ mkFunc s es) (litSuccess s es e t ++ entries) where
+  (es,entries) = mkUtils ts
+
+litSuccess s es e t = [(s,replicate (length es) t, Func $ \_ _ -> return e)]
+
 {-| Mandatory type signatures -}
 mNbArgs        :: (Applicative m, Monad m) => m P -> m String -> m ValidInt -> m ValidInt -> m NbArgs
 mLitFailure    :: (Applicative m, Monad m) => m [ExpTS]          -> ([ExpToken] -> m ExpToken)                   -> (ExpToken -> Bool) -> ([ExpToken]          -> ExpObj -> Int -> a) -> m a
 mFuncFailure   :: (Applicative m, Monad m) => m [(FuncTA,ExpOA)] -> ([(ExpToken,ExpObj)] -> m (ExpToken,ExpObj)) -> (ExpObj -> Bool)   -> ([(ExpToken,ExpObj)] -> ExpObj -> Int -> a) -> m a
-mOfLitFailure  :: (Unto b ExpToken, Applicative m, Monad m) => m [b]          -> ([(Type,ExpToken  -> Bool)] -> m (Type,ExpToken -> Bool)) -> ([ ExpToken]         -> m ExpToken)          -> ([ExpToken]          -> ExpObj -> Int -> Type -> a) -> m a
-mOfFuncFailure :: (Unto b ExpObj,   Applicative m, Monad m) => m [(FuncTA,b)] -> ([(Type,ExpObj    -> Bool)] -> m (Type,ExpObj   -> Bool)) -> ([(ExpToken,ExpObj)] -> m (ExpToken,ExpObj)) -> ([(ExpToken,ExpObj)] -> ExpObj -> Int -> Type -> a) -> m a
+mOfLitFailure  :: (Applicative m, Monad m, Unto b ExpToken) => m [b]          -> ([(Type,ExpToken  -> Bool)] -> m (Type,ExpToken -> Bool)) -> ([ ExpToken]         -> m ExpToken)          -> ([ExpToken]          -> ExpObj -> Int -> Type -> a) -> m a
+mOfFuncFailure :: (Applicative m, Monad m, Unto b ExpObj)   => m [(FuncTA,b)] -> ([(Type,ExpObj    -> Bool)] -> m (Type,ExpObj   -> Bool)) -> ([(ExpToken,ExpObj)] -> m (ExpToken,ExpObj)) -> ([(ExpToken,ExpObj)] -> ExpObj -> Int -> Type -> a) -> m a
 mOrLitFailure  :: (Applicative m, Monad m) => m [ExpTS]          -> ([(Type,ExpToken -> Bool)] -> m (Type,ExpToken -> Bool)) -> ([ExpToken] -> m ExpToken)                   -> m OrLitFailure
 mOrFuncFailure :: (Applicative m, Monad m) => m [(FuncTA,ExpOA)] -> ([(Type,ExpObj   -> Bool)] -> m (Type,ExpObj   -> Bool)) -> ([(ExpToken,ExpObj)] -> m (ExpToken,ExpObj)) -> m OrFuncFailure
+
+mLitSuccess    :: (Applicative m, Monad m) => (ExpToken -> Bool) -> ([ExpToken] -> ExpObj -> a) -> m [ExpTS] -> m ExpOA -> m a 
 mExpTS         :: (Applicative m, Monad m) => m ExpTA -> m ExpTS
 mArrTS         :: (Applicative m, Monad m) => m ArrTA -> m ArrTS
 mObjTS         :: (Applicative m, Monad m) => m ObjTA -> m ObjTS
