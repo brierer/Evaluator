@@ -1,4 +1,3 @@
-{-# LANGUAGE MultiParamTypeClasses, FlexibleInstances, FlexibleContexts #-}
 {-# OPTIONS_GHC -F -pgmF htfpp #-}
 module Prop.Eval.FunctionEvalTest where
 
@@ -15,9 +14,7 @@ import Eval.Type
 import Test.Framework
 
 import Common.Eval.FunctionEvalUtils
-
 import Prop.Eval.FunctionEvalUtils
-
 import Unit.Parser.MonolithicParserUtils
 
 {-# ANN module "HLint: ignore Use camelCase"#-}
@@ -48,26 +45,29 @@ prop_ArrOfFuncFailure s (ArrOfFuncFailure ts e i t) = caseOfFuncFailure t s ts e
 prop_ObjOfFuncFailure s (ObjOfFuncFailure ts e i t) = caseOfFuncFailure t s ts e i ObjOf
 prop_OrFuncFailure    s (OrFuncFailure    ts e i t) = caseOrFuncFailure t s ts e i
 --
-prop_ArrLitSuccess  s (ArrLitSuccess  es e) = caseLitSuccess NodeArr  arr  s es e
-prop_ObjLitSuccess  s (ObjLitSuccess  es e) = caseLitSuccess NodeObj  obj  s es e
-prop_StrLitSuccess  s (StrLitSuccess  es e) = caseLitSuccess LeafStr  Str  s es e    
-prop_NumLitSuccess  s (NumLitSuccess  es e) = caseLitSuccess LeafNum  Num  s es e
-prop_BoolLitSuccess s (BoolLitSuccess es e) = caseLitSuccess LeafBool Bool s es e
-prop_NullLitSuccess s (NullLitSuccess es e) = caseLitSuccess LeafNull Null s es e
---
+prop_ArrLitSuccess  s (ArrLitSuccess  es e) = caseLitSuccess arr  s es e
+prop_ObjLitSuccess  s (ObjLitSuccess  es e) = caseLitSuccess obj  s es e
+prop_StrLitSuccess  s (StrLitSuccess  es e) = caseLitSuccess Str  s es e    
+prop_NumLitSuccess  s (NumLitSuccess  es e) = caseLitSuccess Num  s es e
+prop_BoolLitSuccess s (BoolLitSuccess es e) = caseLitSuccess Bool s es e
+prop_NullLitSuccess s (NullLitSuccess es e) = caseLitSuccess Null s es e
+
 --prop_ArrOfLitSuccess s (ArrOfLitSuccess es e t) = caseOfLitSuccess t s es e ArrOf
 --prop_ObjOfLitSuccess s (ObjOfLitSuccess es e t) = caseOfLitSuccess t s es e ObjOf
 --prop_OrLitSuccess    s (OrLitSuccess    es e t) = caseOrLitSuccess t s es e 
---
---prop_TableFuncSuccess s (TableFuncSuccess ts e) = caseFuncSuccess LeafTable Table s ts e
---prop_PlotFuncSuccess  s (PlotFuncSuccess  ts e) = caseFuncSuccess LeafPlot  Plot  s ts e
---prop_ArrFuncSuccess   s (ArrFuncSuccess   ts e) = caseFuncSuccess NodeArr   arr   s ts e
---prop_ObjFuncSuccess   s (ObjFuncSuccess   ts e) = caseFuncSuccess NodeObj   obj   s ts e
---prop_StrFuncSuccess   s (StrFuncSuccess   ts e) = caseFuncSuccess LeafStr   Str   s ts e    
---prop_NumFuncSuccess   s (NumFuncSuccess   ts e) = caseFuncSuccess LeafNum   Num   s ts e
---prop_BoolFuncSuccess  s (BoolFuncSuccess  ts e) = caseFuncSuccess LeafBool  Bool  s ts e
---prop_NullFuncSuccess  s (NullFuncSuccess  ts e) = caseFuncSuccess LeafNull  Null  s ts e
---
+
+prop_TableFuncSuccess s (TableFuncSuccess ts e) = caseFuncSuccess Table s ts e
+prop_PlotFuncSuccess  s (PlotFuncSuccess  ts e) = caseFuncSuccess Plot  s ts e
+prop_ArrFuncSuccess   s (ArrFuncSuccess   ts e) = caseFuncSuccess arr   s ts e
+prop_ObjFuncSuccess   s (ObjFuncSuccess   ts e) = caseFuncSuccess obj   s ts e
+prop_StrFuncSuccess   s (StrFuncSuccess   ts e) = caseFuncSuccess Str   s ts e    
+prop_NumFuncSuccess   s (NumFuncSuccess   ts e) = caseFuncSuccess Num   s ts e
+prop_BoolFuncSuccess  s (BoolFuncSuccess  ts e) = caseFuncSuccess Bool  s ts e
+prop_NullFuncSuccess  s (NullFuncSuccess  ts e) = caseFuncSuccess Null  s ts e
+
 --prop_ArrOfFuncSuccess s (ArrOfFuncSuccess ts e t) = caseOfFuncSuccess t s ts e ArrOf
 --prop_ObjOfFuncSuccess s (ObjOfFuncSuccess ts e t) = caseOfFuncSuccess t s ts e ObjOf
 --prop_OrFuncSuccess    s (OrFuncSuccess    ts e t) = caseOrFuncSuccess t s ts e 
+
+
+

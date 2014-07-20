@@ -190,6 +190,38 @@ data NullLitSuccess = NullLitSuccess [ExpToken] ExpObj deriving (Show)
 instance Arbitrary    NullLitSuccess where arbitrary = sized1 tall; shrink (NullLitSuccess es e) = mLitSuccess isNull NullLitSuccess (tShrinks es) (tShrink e)
 instance Tall         NullLitSuccess where                                                tall n = mLitSuccess isNull NullLitSuccess (talls n)     (tall n)   
 
+data TableFuncSuccess = TableFuncSuccess [(ExpToken,ExpObj)] ExpObj deriving (Show)
+instance Arbitrary      TableFuncSuccess where arbitrary = sized1 tall; shrink (TableFuncSuccess ts e) = mFuncSuccess isTable TableFuncSuccess (tShrinks ts) (tShrink e)
+instance Tall           TableFuncSuccess where                                                  tall n = mFuncSuccess isTable TableFuncSuccess (talls n)     (tall n)   
+
+data PlotFuncSuccess = PlotFuncSuccess [(ExpToken,ExpObj)] ExpObj deriving (Show)
+instance Arbitrary     PlotFuncSuccess where arbitrary = sized1 tall; shrink (PlotFuncSuccess ts e) = mFuncSuccess isPlot PlotFuncSuccess (tShrinks ts) (tShrink e)
+instance Tall          PlotFuncSuccess where                                                 tall n = mFuncSuccess isPlot PlotFuncSuccess (talls n)     (tall n)   
+
+data ArrFuncSuccess = ArrFuncSuccess [(ExpToken,ExpObj)] ExpObj deriving (Show)
+instance Arbitrary    ArrFuncSuccess where arbitrary = sized1 tall; shrink (ArrFuncSuccess ts e) = mFuncSuccess isArr ArrFuncSuccess (tShrinks ts) (tShrink e)
+instance Tall         ArrFuncSuccess where                                                tall n = mFuncSuccess isArr ArrFuncSuccess (talls n)     (tall n)   
+
+data ObjFuncSuccess = ObjFuncSuccess [(ExpToken,ExpObj)] ExpObj deriving (Show)
+instance Arbitrary    ObjFuncSuccess where arbitrary = sized1 tall; shrink (ObjFuncSuccess ts e) = mFuncSuccess isObj ObjFuncSuccess (tShrinks ts) (tShrink e)
+instance Tall         ObjFuncSuccess where                                                tall n = mFuncSuccess isObj ObjFuncSuccess (talls n)     (tall n)   
+
+data StrFuncSuccess = StrFuncSuccess [(ExpToken,ExpObj)] ExpObj deriving (Show)
+instance Arbitrary    StrFuncSuccess where arbitrary = sized1 tall; shrink (StrFuncSuccess ts e) = mFuncSuccess isStr StrFuncSuccess (tShrinks ts) (tShrink e)
+instance Tall         StrFuncSuccess where                                                tall n = mFuncSuccess isStr StrFuncSuccess (talls n)     (tall n)   
+
+data NumFuncSuccess = NumFuncSuccess [(ExpToken,ExpObj)] ExpObj deriving (Show)
+instance Arbitrary    NumFuncSuccess where arbitrary = sized1 tall; shrink (NumFuncSuccess ts e) = mFuncSuccess isNum NumFuncSuccess (tShrinks ts) (tShrink e)
+instance Tall         NumFuncSuccess where                                                tall n = mFuncSuccess isNum NumFuncSuccess (talls n)     (tall n)   
+
+data BoolFuncSuccess = BoolFuncSuccess [(ExpToken,ExpObj)] ExpObj deriving (Show)
+instance Arbitrary     BoolFuncSuccess where arbitrary = sized1 tall; shrink (BoolFuncSuccess ts e) = mFuncSuccess isBool BoolFuncSuccess (tShrinks ts) (tShrink e)
+instance Tall          BoolFuncSuccess where                                                 tall n = mFuncSuccess isBool BoolFuncSuccess (talls n)     (tall n)   
+
+data NullFuncSuccess = NullFuncSuccess [(ExpToken,ExpObj)] ExpObj deriving (Show)
+instance Arbitrary     NullFuncSuccess where arbitrary = sized1 tall; shrink (NullFuncSuccess ts e) = mFuncSuccess isNull NullFuncSuccess (tShrinks ts) (tShrink e)
+instance Tall          NullFuncSuccess where                                                 tall n = mFuncSuccess isNull NullFuncSuccess (talls n)     (tall n)   
+
 instance Unto b ExpObj    => Unto (FuncTA,b) (ExpToken,ExpObj) where un (x,y) = (un x,un y); to (x,y) = (to x,to y)
 instance (Tall a, Tall b) => Tall (a,b)                        where tall n = liftM2 (,) (tall n) (tall n)
 
@@ -287,10 +319,11 @@ removeVarsAndFuncs x                       = x
 litFailure s es i t = [(s,zipWith f [0..] $ replicate (length es) any, error "FunctionEvalUtils::litFailure::func [Should not be called]")] where f j e | i == j = t | otherwise = e
 
 {-| Success -}
-mLitSuccess isType mk = liftMF2 mk (filter isType.map un) un
+mLitSuccess  isType mk = liftMF2 mk (filter isType.map un) un
+mFuncSuccess isType mk = liftMF2 mk (filter (isType.snd).map (first clearParams.un)) un
 
-caseLitSuccess  _ t s es e =                      Right e == evalStateT (marshall $ mkFunc s es) (litSuccess s es e t)
-caseFuncSuccess _ t s ts e = validFuncs  s ts ==> Right e == evalStateT (marshall $ mkFunc s es) (litSuccess s es e t ++ entries) where
+caseLitSuccess  t s es e =                      Right e == evalStateT (marshall $ mkFunc s es) (litSuccess s es e t)
+caseFuncSuccess t s ts e = validFuncs  s ts ==> Right e == evalStateT (marshall $ mkFunc s es) (litSuccess s es e t ++ entries) where
   (es,entries) = mkUtils ts
 
 caseOfLitSuccess  t s es e mkT =                     Right e == evalStateT (marshall $ mkFunc s es) (litSuccess s es e $ mkT t)
@@ -312,7 +345,8 @@ mOfFuncFailure :: (Applicative m, Monad m, Unto b ExpObj)   => m [(FuncTA,b)] ->
 mOrLitFailure  :: (Applicative m, Monad m) => m [ExpTS]          -> ([(Type,ExpToken -> Bool)] -> m (Type,ExpToken -> Bool)) -> ([ExpToken] -> m ExpToken)                   -> m OrLitFailure
 mOrFuncFailure :: (Applicative m, Monad m) => m [(FuncTA,ExpOA)] -> ([(Type,ExpObj   -> Bool)] -> m (Type,ExpObj   -> Bool)) -> ([(ExpToken,ExpObj)] -> m (ExpToken,ExpObj)) -> m OrFuncFailure
 
-mLitSuccess    :: (Applicative m, Monad m) => (ExpToken -> Bool) -> ([ExpToken] -> ExpObj -> a) -> m [ExpTS] -> m ExpOA -> m a 
+mLitSuccess    :: (Applicative m, Monad m) => (ExpToken -> Bool) -> ([ ExpToken]         -> ExpObj -> a) -> m [ExpTS]          -> m ExpOA -> m a 
+mFuncSuccess   :: (Applicative m, Monad m) => (ExpObj   -> Bool) -> ([(ExpToken,ExpObj)] -> ExpObj -> a) -> m [(FuncTA,ExpOA)] -> m ExpOA -> m a
 mExpTS         :: (Applicative m, Monad m) => m ExpTA -> m ExpTS
 mArrTS         :: (Applicative m, Monad m) => m ArrTA -> m ArrTS
 mObjTS         :: (Applicative m, Monad m) => m ObjTA -> m ObjTS
