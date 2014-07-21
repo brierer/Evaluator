@@ -44,7 +44,7 @@ prop_NullFuncFailure  s (NullFuncFailure  ts e i) = caseFuncFailure LeafNull  Nu
 prop_ArrOfFuncFailure s (ArrOfFuncFailure ts e i t) = caseOfFuncFailure t s ts e i ArrOf
 prop_ObjOfFuncFailure s (ObjOfFuncFailure ts e i t) = caseOfFuncFailure t s ts e i ObjOf
 prop_OrFuncFailure    s (OrFuncFailure    ts e i t) = caseOrFuncFailure t s ts e i
---
+
 prop_ArrLitSuccess  s (ArrLitSuccess  es e) = caseLitSuccess arr  s es e
 prop_ObjLitSuccess  s (ObjLitSuccess  es e) = caseLitSuccess obj  s es e
 prop_StrLitSuccess  s (StrLitSuccess  es e) = caseLitSuccess Str  s es e    
@@ -52,9 +52,9 @@ prop_NumLitSuccess  s (NumLitSuccess  es e) = caseLitSuccess Num  s es e
 prop_BoolLitSuccess s (BoolLitSuccess es e) = caseLitSuccess Bool s es e
 prop_NullLitSuccess s (NullLitSuccess es e) = caseLitSuccess Null s es e
 
---prop_ArrOfLitSuccess s (ArrOfLitSuccess es e t) = caseOfLitSuccess t s es e ArrOf
---prop_ObjOfLitSuccess s (ObjOfLitSuccess es e t) = caseOfLitSuccess t s es e ObjOf
---prop_OrLitSuccess    s (OrLitSuccess    es e t) = caseOrLitSuccess t s es e 
+prop_ArrOfLitSuccess s (ArrOfLitSuccess es e t) = caseOfLitSuccess t s es e ArrOf
+prop_ObjOfLitSuccess s (ObjOfLitSuccess es e t) = caseOfLitSuccess t s es e ObjOf
+prop_OrLitSuccess    s (OrLitSuccess    es e t) = caseOrLitSuccess t s es e 
 
 prop_TableFuncSuccess s (TableFuncSuccess ts e) = caseFuncSuccess Table s ts e
 prop_PlotFuncSuccess  s (PlotFuncSuccess  ts e) = caseFuncSuccess Plot  s ts e
@@ -65,9 +65,7 @@ prop_NumFuncSuccess   s (NumFuncSuccess   ts e) = caseFuncSuccess Num   s ts e
 prop_BoolFuncSuccess  s (BoolFuncSuccess  ts e) = caseFuncSuccess Bool  s ts e
 prop_NullFuncSuccess  s (NullFuncSuccess  ts e) = caseFuncSuccess Null  s ts e
 
---prop_ArrOfFuncSuccess s (ArrOfFuncSuccess ts e t) = caseOfFuncSuccess t s ts e ArrOf
---prop_ObjOfFuncSuccess s (ObjOfFuncSuccess ts e t) = caseOfFuncSuccess t s ts e ObjOf
---prop_OrFuncSuccess    s (OrFuncSuccess    ts e t) = caseOrFuncSuccess t s ts e 
-
-
+prop_ArrOfFuncSuccess s (ArrOfFuncSuccess ts e t) = caseOfFuncSuccess t s ts e ArrOf
+prop_ObjOfFuncSuccess s (ObjOfFuncSuccess ts e t) = caseOfFuncSuccess t s ts e ObjOf
+prop_OrFuncSuccess    s (OrFuncSuccess    ts e t) = caseOrFuncSuccess t s ts e 
 
