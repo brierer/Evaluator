@@ -25,13 +25,8 @@ executable Evaluator
                    QuickCheck >=2.6 && <2.7
   ghc-options:     -Wall
   other-modules:   
-                   Parser.Monolithic,
-                   Eval.MultiPass,
-                   Eval.Function,
                    Data.Eval,
-                   Eval.Engine,
                    Data.EvalError,
-                   Eval.Type,
                    Data.HasPos,
                    Data.Type
 
@@ -47,14 +42,8 @@ test-suite Evaluator-tests
                  src,
                  test
   other-modules: 
-                 Parser.Monolithic,
-                 Eval.MultiPass,
                  Data.Eval,
-                 Eval.Engine,
                  Data.EvalError,
-                 Common.Eval.FunctionEvalUtils,
-                 Common.Eval.TypeEvalUtils,
-                 Eval.Type,
                  Data.HasPos,
                  Data.Type
 

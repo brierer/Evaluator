@@ -2,15 +2,21 @@
 module Main where
 import Test.Framework (TestSuite,makeTestSuite,htfMain)
 
-import {-@ HTF_TESTS @-} Unit.Parser.MonolithicParserTest
-import {-@ HTF_TESTS @-} Unit.Eval.MultiPassEvalTest
-import {-@ HTF_TESTS @-} Unit.Eval.TypeEvalTest
-import {-@ HTF_TESTS @-} Unit.Eval.FunctionEvalTest
+--import {-@ HTF_TESTS @-} Engine.EngineUnitFailure
+--import {-@ HTF_TESTS @-} Engine.EngineUnitSuccess
+import {-@ HTF_TESTS @-} Marshall.MarshallUnit
+import {-@ HTF_TESTS @-} MultiPass.MultiPassUnit
+import {-@ HTF_TESTS @-} Parser.ParserUnit
+import {-@ HTF_TESTS @-} MatchType.MatchTypeUnitFailure
+import {-@ HTF_TESTS @-} MatchType.MatchTypeUnitSuccess
 
-import {-@ HTF_TESTS @-} Prop.Parser.MonolithicParserTest
-import {-@ HTF_TESTS @-} Prop.Eval.MultiPassEvalTest
-import {-@ HTF_TESTS @-} Prop.Eval.TypeEvalTest
-import {-@ HTF_TESTS @-} Prop.Eval.FunctionEvalTest
+--import {-@ HTF_TESTS @-} Engine.EnginePropFailure
+--import {-@ HTF_TESTS @-} Engine.EnginePropSuccess
+import {-@ HTF_TESTS @-} Marshall.MarshallPropFailure
+import {-@ HTF_TESTS @-} Marshall.MarshallPropSuccess
+import {-@ HTF_TESTS @-} MultiPass.MultiPassProp
+import {-@ HTF_TESTS @-} Parser.ParserProp
+import {-@ HTF_TESTS @-} MatchType.MatchTypeProp
 
 main :: IO ()
 main = htfMain htf_importedTests
