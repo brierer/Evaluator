@@ -303,7 +303,7 @@ test_OrType = do     assertEqual (Left $ TypeMismatch (1,1) (NodeOr [LeafBool,Le
                      assertEqual (Left $ TypeMismatch (1,1) (NodeOr [LeafBool,LeafNull]) NodeObj)   $ matchTypeParse     (Or [Null,Bool]) "{}"
                      assertEqual (Left $ TypeMismatch (1,1) (NodeOr [LeafBool,LeafNull]) LeafStr)   $ matchTypeParse     (Or [Bool,Null]) "\"\""
                      assertEqual (Left $ TypeMismatch (1,1) (NodeOr [LeafBool,LeafNull]) LeafNum)   $ matchTypeParse     (Or [Null,Bool]) "0"
-                     
+
                      assertEqual (Left $ TypeMismatch (1,1) (NodeOr [LeafStr,LeafNum]) LeafTable) $ matchTypeParseWith (Or [Str,Num]) "f()" $ nullary "f" $ TableO (1,1) [] []
                      assertEqual (Left $ TypeMismatch (1,1) (NodeOr [LeafStr,LeafNum]) LeafPlot)  $ matchTypeParseWith (Or [Num,Str]) "f()" $ nullary "f" $ PlotO (1,1) [] []
                      assertEqual (Left $ TypeMismatch (1,1) (NodeOr [LeafStr,LeafNum]) NodeArr)   $ matchTypeParse     (Or [Str,Num]) "[]"
@@ -319,7 +319,7 @@ test_OrType = do     assertEqual (Left $ TypeMismatch (1,1) (NodeOr [LeafBool,Le
                      assertEqual (Left $ TypeMismatch (1,1) (NodeOr [NodeArr,NodeObj]) LeafNull)  $ matchTypeParse     (Or [obj,arr]) "null"
 
                      assertEqual (Left $ TypeMismatch (1,1) (NodeOr [LeafTable,LeafPlot])  NodeArr)  $ matchTypeParse     (Or [Table,Plot]) "[]"
-                     assertEqual (Left $ TypeMismatch (1,1) (NodeOr [LeafTable,LeafPlot])  NodeObj)  $ matchTypeParse     (Or [Plot,Table]) "{}" 
+                     assertEqual (Left $ TypeMismatch (1,1) (NodeOr [LeafTable,LeafPlot])  NodeObj)  $ matchTypeParse     (Or [Plot,Table]) "{}"
                      assertEqual (Left $ TypeMismatch (1,1) (NodeOr [LeafTable,LeafPlot]) LeafStr)   $ matchTypeParse     (Or [Table,Plot]) "\"\""
                      assertEqual (Left $ TypeMismatch (1,1) (NodeOr [LeafTable,LeafPlot]) LeafNum)   $ matchTypeParse     (Or [Plot,Table]) "0"
                      assertEqual (Left $ TypeMismatch (1,1) (NodeOr [LeafTable,LeafPlot]) LeafBool)  $ matchTypeParse     (Or [Table,Plot]) "false"

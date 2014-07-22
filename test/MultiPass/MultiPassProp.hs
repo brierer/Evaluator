@@ -8,8 +8,6 @@ import Test.Framework
 import MultiPass.MultiPassPropUtils
 import MultiPass.MultiPassUtils
 
-{-# ANN module "HLint: ignore Use camelCase" #-}
-
 prop_MultiDefs (MultiDefs  prog p x)                        = nonEmpty prog ==> Left (MultipleDefinitions p x) == initTable (toToken prog)
 prop_ValidDefs (UniqueDefs prog)                            =                   Right (formTable $ forms prog) == initTable (toToken prog)
 

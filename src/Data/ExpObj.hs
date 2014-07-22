@@ -11,5 +11,5 @@ data ExpObj = TableO Pos [[ExpObj]]         [ExpObj]
             | StrO   Pos   String
             | NumO   Pos   Double
             | BoolO  Pos   Bool
-            | NullO  Pos  
+            | NullO  Pos
               deriving (Eq,Ord,Show)

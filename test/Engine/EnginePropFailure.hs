@@ -87,7 +87,7 @@ module Engine.EnginePropFailure where
 --
 --prop_TypeMismatchSort = typeMismatchSortColCase "sort"
 --prop_TypeMismatchCol  = typeMismatchSortColCase "col"
---    
+--
 --prop_TypeMismatchPlotLine (P p) g1as g2as g3as w1as (ExpTS w1') w2as (ExpTS w2') w3as (ExpTS w3') =
 --  let (_,g1) = mk' g1as; (_,g2) = mk' g2as; (_,g3) = mkObj' g3as; (w1s,w1) = mk' w1as; (w2s,w2) = mk' w2as; (w3s,w3) = mkObj' w3as in
 --  any (not.isNum) w1s && not (isArray w1') && any (not.isNum) w2s && not (isArray w2') && any (not.isStr) w3s && not (isObj w3') ==>

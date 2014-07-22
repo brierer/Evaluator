@@ -69,42 +69,42 @@ instance Arbitrary  OrLit where arbitrary = sized1 tall; shrink (OrLit es _ _ _)
 instance Tall       OrLit where                                                  tall n = mOrLit (talls n)     elements elements
 
 data TableFunc = TableFunc [(ExpToken,ExpObj)] ExpObj Int deriving (Show)
-instance Arbitrary      TableFunc where arbitrary = sized1 tall; shrink (TableFunc ts _ _) = mFunc (tShrinks ts) id       isTable TableFunc 
+instance Arbitrary      TableFunc where arbitrary = sized1 tall; shrink (TableFunc ts _ _) = mFunc (tShrinks ts) id       isTable TableFunc
 instance Tall           TableFunc where                                                    tall n = mFunc (talls n)     elements isTable TableFunc
 
 data PlotFunc = PlotFunc [(ExpToken,ExpObj)] ExpObj Int deriving (Show)
-instance Arbitrary     PlotFunc where arbitrary = sized1 tall; shrink (PlotFunc ts _ _) = mFunc (tShrinks ts) id       isPlot PlotFunc 
+instance Arbitrary     PlotFunc where arbitrary = sized1 tall; shrink (PlotFunc ts _ _) = mFunc (tShrinks ts) id       isPlot PlotFunc
 instance Tall          PlotFunc where                                                   tall n = mFunc (talls n)     elements isPlot PlotFunc
 
 data ArrFunc = ArrFunc [(ExpToken,ExpObj)] ExpObj Int deriving (Show)
-instance Arbitrary    ArrFunc where arbitrary = sized1 tall; shrink (ArrFunc ts _ _) = mFunc (tShrinks ts) id       isArr ArrFunc 
+instance Arbitrary    ArrFunc where arbitrary = sized1 tall; shrink (ArrFunc ts _ _) = mFunc (tShrinks ts) id       isArr ArrFunc
 instance Tall         ArrFunc where                                                  tall n = mFunc (talls n)     elements isArr ArrFunc
 
 data ObjFunc = ObjFunc [(ExpToken,ExpObj)] ExpObj Int deriving (Show)
-instance Arbitrary    ObjFunc where arbitrary = sized1 tall; shrink (ObjFunc ts _ _) = mFunc (tShrinks ts) id       isObj ObjFunc 
+instance Arbitrary    ObjFunc where arbitrary = sized1 tall; shrink (ObjFunc ts _ _) = mFunc (tShrinks ts) id       isObj ObjFunc
 instance Tall         ObjFunc where                                                  tall n = mFunc (talls n)     elements isObj ObjFunc
 
 data StrFunc = StrFunc [(ExpToken,ExpObj)] ExpObj Int deriving (Show)
-instance Arbitrary    StrFunc where arbitrary = sized1 tall; shrink (StrFunc ts _ _) = mFunc (tShrinks ts) id       isStr StrFunc 
+instance Arbitrary    StrFunc where arbitrary = sized1 tall; shrink (StrFunc ts _ _) = mFunc (tShrinks ts) id       isStr StrFunc
 instance Tall         StrFunc where                                                  tall n = mFunc (talls n)     elements isStr StrFunc
 
 data NumFunc = NumFunc [(ExpToken,ExpObj)] ExpObj Int deriving (Show)
-instance Arbitrary    NumFunc where arbitrary = sized1 tall; shrink (NumFunc ts _ _) = mFunc (tShrinks ts) id       isNum NumFunc 
+instance Arbitrary    NumFunc where arbitrary = sized1 tall; shrink (NumFunc ts _ _) = mFunc (tShrinks ts) id       isNum NumFunc
 instance Tall         NumFunc where                                                  tall n = mFunc (talls n)     elements isNum NumFunc
 
 data BoolFunc = BoolFunc [(ExpToken,ExpObj)] ExpObj Int deriving (Show)
-instance Arbitrary     BoolFunc where arbitrary = sized1 tall; shrink (BoolFunc ts _ _) = mFunc (tShrinks ts) id       isBool BoolFunc 
+instance Arbitrary     BoolFunc where arbitrary = sized1 tall; shrink (BoolFunc ts _ _) = mFunc (tShrinks ts) id       isBool BoolFunc
 instance Tall          BoolFunc where                                                   tall n = mFunc (talls n)     elements isBool BoolFunc
 
 data NullFunc = NullFunc [(ExpToken,ExpObj)] ExpObj Int deriving (Show)
-instance Arbitrary     NullFunc where arbitrary = sized1 tall; shrink (NullFunc ts _ _) = mFunc (tShrinks ts) id       isNull NullFunc 
+instance Arbitrary     NullFunc where arbitrary = sized1 tall; shrink (NullFunc ts _ _) = mFunc (tShrinks ts) id       isNull NullFunc
 instance Tall          NullFunc where                                                   tall n = mFunc (talls n)     elements isNull NullFunc
 
 data ArrOfFunc = ArrOfFunc [(ExpToken,ExpObj)] ExpObj Int Type deriving (Show)
 instance Arbitrary      ArrOfFunc where arbitrary = sized1 tall; shrink (ArrOfFunc ts _ _ _) = mOfFunc (tShrinks ts :: []  [(FuncTA,ArrOA)]) id       id       ArrOfFunc
 instance Tall           ArrOfFunc where                                                      tall n = mOfFunc (talls (n-1) :: Gen [(FuncTA,ArrOA)]) elements elements ArrOfFunc
-                                                                                                                                                       
-data ObjOfFunc = ObjOfFunc [(ExpToken,ExpObj)] ExpObj Int Type deriving (Show)                                                           
+
+data ObjOfFunc = ObjOfFunc [(ExpToken,ExpObj)] ExpObj Int Type deriving (Show)
 instance Arbitrary      ObjOfFunc where arbitrary = sized1 tall; shrink (ObjOfFunc ts _ _ _) = mOfFunc (tShrinks ts :: []  [(FuncTA,ObjOA)]) id       id       ObjOfFunc
 instance Tall           ObjOfFunc where                                                      tall n = mOfFunc (talls (n-1) :: Gen [(FuncTA,ObjOA)]) elements elements ObjOfFunc
 
@@ -131,7 +131,7 @@ mOfLit asa chooseType chooseArg mk = let onEmpty = mk [] (NullO p0) 0 Null in do
     return $ mk args (unsafeMarshall [] e) i t
 
 mFunc tsa f isType mk = let onEmpty = mk [] (NullO p0) 0 in do
-  ts <- liftM (map $ first clearParams . un) tsa 
+  ts <- liftM (map $ first clearParams . un) tsa
   let toChoose = filter (not.isType.snd) ts
   nullGuard ts onEmpty $ nullGuard toChoose onEmpty $ do
     t <- f toChoose
@@ -147,7 +147,7 @@ mOfFunc tsa chooseType chooseArg mk = let onEmpty = mk [] (NullO p0) 0 Null in d
     let Just i = elemIndex t ts
         e      = head $ filter (not.isType) $ elemsOf $ snd t
     return $ mk ts e i ty
-    
+
 mOrLit esa chooseType chooseArg = let onEmpty = OrLit [] (NullO p0) 0 Null in do
   es <- liftM (map un) esa
   (t1,t2,toChoose) <- getOfOrTypes es id chooseType
@@ -155,22 +155,22 @@ mOrLit esa chooseType chooseArg = let onEmpty = OrLit [] (NullO p0) 0 Null in do
     e <- chooseArg toChoose
     let Just i = elemIndex e es
     return $ OrLit es (unsafeMarshall [] e) i $ Or [t1,t2]
-    
+
 mOrFunc tsa chooseType chooseArg = let onEmpty = OrFunc [] (NullO p0) 0 Null in do
-  ts <- liftM (map $ first clearParams . un) tsa 
+  ts <- liftM (map $ first clearParams . un) tsa
   (t1,t2,toChoose) <- getOfOrTypes ts snd chooseType
   nullGuard ts onEmpty $ nullGuard toChoose onEmpty $ do
     t <- chooseArg toChoose
     let Just i = elemIndex t ts
-    return $ OrFunc ts (snd t) i $ Or [t1,t2]    
-    
+    return $ OrFunc ts (snd t) i $ Or [t1,t2]
+
 getOfOrTypes es f chooseType = do
   (t1,isType1) <- chooseT chooseType
   (t2,isType2) <- chooseT chooseType
   let isOneOf x = isType1 x || isType2 x
       toChoose = filter (not.isOneOf.f) es
   return (t1,t2,toChoose)
-    
+
 caseLit  tree t s es e i =                     not (null es) ==> Left (TypeMismatch (getPos e) tree  $ getRoot e) == evalStateT (marshall $ mkFunc s es) (lit s es i t)
 caseFunc tree t s ts e i = validFuncs  s ts && not (null ts) ==> Left (TypeMismatch (getPos e) tree  $ getRoot e) == evalStateT (marshall $ mkFunc s es) (lit s es i t ++ entries) where
   (es,entries) = mkUtils ts
@@ -178,7 +178,7 @@ caseFunc tree t s ts e i = validFuncs  s ts && not (null ts) ==> Left (TypeMisma
 caseOfLit  t s es e i mkT =                    not (null es) ==> Left (TypeMismatch (getPos e) (getRoot t) (getRoot e)) == evalStateT (marshall $ mkFunc s es) (lit s es i $ mkT t)
 caseOfFunc t s ts e i mkT = validFuncs s ts && not (null ts) ==> Left (TypeMismatch (getPos e) (getRoot t) (getRoot e)) == evalStateT (marshall $ mkFunc s es) (lit s es i (mkT t) ++ entries) where
   (es,entries) = mkUtils ts
-  
+
 caseOrLit  t s es e i =                    not (null es) ==> Left (TypeMismatch (getPos e) (getRoot t) $ getRoot e) == evalStateT (marshall $ mkFunc s es) (lit s es i t)
 caseOrFunc t s ts e i = validFuncs s ts && not (null ts) ==> Left (TypeMismatch (getPos e) (getRoot t) $ getRoot e) == evalStateT (marshall $ mkFunc s es) (lit s es i t ++ entries) where
   (es,entries) = mkUtils ts

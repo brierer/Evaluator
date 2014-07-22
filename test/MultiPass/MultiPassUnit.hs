@@ -7,15 +7,13 @@ import Test.Framework
 import MultiPass.MultiPassUnitUtils
 import Parser.ParserUnitUtils
 
-{-# ANN module "HLint: ignore Use camelCase" #-}
-
 test_MultiDefs = do assertEqual (Left  $ MultipleDefinitions (1,8)  "x")                 $ initProg "x=null;x=true"
                     assertEqual (Left  $ MultipleDefinitions (1,15) "x")                 $ initProg "x=null;y=true;x=null"
 test_ValidDefs = do assertEqual (Right $ formTable [])                                   $ initProg ""
                     assertEqual (Right $ formTable [mkForm' (1,1) "x" $ mkNull' (1,3)])  $ initProg "x=null"
                     assertEqual (Right $ formTable [mkForm' (1,1) "x" $ mkNull' (1,3)
                                                    ,mkForm' (1,8) "y" $ mkNull' (1,10)]) $ initProg "x=null;y=null"
-                                                                                                    
+
 test_UndefVars = do assertEqual (Left  $ UndefinedVariable (1,3) "y")                    $ derefProg "x=y"
                     assertEqual (Left  $ UndefinedVariable (1,5) "y")                    $ derefProg "x=f(y)"
                     assertEqual (Left  $ UndefinedVariable (1,4) "y")                    $ derefProg "x=[y]"
@@ -25,7 +23,7 @@ test_CycleVars = do assertEqual (Left  $ CycleInDefinitions [((1,1),"x")])      
                     assertEqual (Left  $ CycleInDefinitions [((1,1),"x"),((1,8),"y")
                                                                         ,((1,14),"z")])  $ derefProg "x=f(y);y=[z];z={a:y}"
 test_ValidVars = do assertEqual (Right $ formTable [])                                   $ derefProg ""
-                    assertEqual (Right $ formTable [mkForm' (1,1) "x" $ mkNull' (1,7)       
+                    assertEqual (Right $ formTable [mkForm' (1,1) "x" $ mkNull' (1,7)
                                                    ,mkForm' (1,5) "y" $ mkNull' (1,7)])  $ derefProg "x=y;y=null"
 
 test_UndefFuncs = do assertEqual (Left $ UndefinedFunction (1,3) "f")                    $ validateProg []    "x=f()"

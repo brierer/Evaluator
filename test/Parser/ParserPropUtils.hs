@@ -213,7 +213,7 @@ mNumTA  :: (Applicative m, Monad m) => m P -> m (W,W)    -> m Double   -> m NumT
 mBoolTA :: (Applicative m, Monad m) => m P -> m (W,W)    -> m Bool                  -> m BoolTA
 mNullTA :: (Applicative m, Monad m) => m P -> m (W,W)                               -> m NullTA
 
-mValidInt :: (Applicative m, Monad m) => m Int                    -> m ValidInt 
+mValidInt :: (Applicative m, Monad m) => m Int                    -> m ValidInt
 mP        :: (Applicative m, Monad m) => m ValidInt -> m ValidInt -> m P
 mW        :: (Applicative m, Monad m) => m String                 -> m W
 

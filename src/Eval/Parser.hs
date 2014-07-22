@@ -49,9 +49,9 @@ varT = mkVar ^ idT > notFollowedBy (oneOf "(:") where mkVar i _ = VarT i
 strT = commonT StrT $ between (char '"') (char '"') $ many $ noneOf "\""
 
 -- numT -> integerS ('.' $digit+)? ([eE] integerS)?
-numT = commonT mk $ do n <- getNum; return (n,read n) where 
+numT = commonT mk $ do n <- getNum; return (n,read n) where
   mk x y    = uncurry $ NumT x y
-  getNum    = liftM concat $ sequence [integerS, char '.' <:> many1 digit, oneOf "eE" <:> integerS] 
+  getNum    = liftM concat $ sequence [integerS, char '.' <:> many1 digit, oneOf "eE" <:> integerS]
   (<:>) x y = option "" $ liftM2 (:) x y
 
 -- boolT -> 'true' | 'false'
@@ -75,16 +75,16 @@ instance Unparse ProgToken where unparse (ProgT _ fs) = unparses' ";" fs
 instance Unparse FormToken where unparse (FormT s e)  = unparse s ++ "=" ++ unparse e
 instance Unparse PairToken where unparse (PairT s e)  = unparse s ++ ":" ++ unparse e
 instance Unparse IdToken   where unparse (IdT _ w s)  = withWS w s
-instance Unparse ExpToken  where 
+instance Unparse ExpToken  where
  unparse e = case e of
   FuncT   w i es -> withWS ("",w)  $ unparse i ++ "(" ++ unparses es ++ ")"
   ArrT  _ w es   -> withWS  w      $ "[" ++ unparses es ++ "]"
   ObjT  _ w ps   -> withWS  w      $ "{" ++ unparses ps ++ "}"
   VarT      v    -> withWS ("","") $ unparse v
-  StrT  _ w s    -> withWS  w      $ show s                    
-  NumT  _ w o _  -> withWS  w      o                         
-  BoolT _ w b    -> withWS  w      $ map toLower (show b)      
-  NullT _ w      -> withWS  w      "null"                     
+  StrT  _ w s    -> withWS  w      $ show s
+  NumT  _ w o _  -> withWS  w      o
+  BoolT _ w b    -> withWS  w      $ map toLower (show b)
+  NullT _ w      -> withWS  w      "null"
 
 {-| Utils -}
 (^) = (<$>)
@@ -92,7 +92,7 @@ instance Unparse ExpToken  where
 infixl 4 ^
 infixl 4 >
 
-commonT f p = mkAtom ^ ws > pos > p > ws where mkAtom wb po r wa = f po (wb,wa) r 
+commonT f p = mkAtom ^ ws > pos > p > ws where mkAtom wb po r wa = f po (wb,wa) r
 ws = many space
 pos = ((,) ^ sourceLine > sourceColumn) ^ getPosition
 kw s = string s >> notFollowedBy (noneOf ")}],; \v\f\t\r\n")

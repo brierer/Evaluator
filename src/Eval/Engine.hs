@@ -1,5 +1,5 @@
 module Eval.Engine
-( 
+(
 {-funcs
 , showF
 , multiF
@@ -35,7 +35,7 @@ module Eval.Engine
 --        , ("multi",      ([atoms1                                     ], Func multiL))
 --        , ("mean",       ([atoms1                                     ], Func meanL))
 --        , ("descriptive",([atoms1                                     ], Func descL))
---          -- 2 arg functions                                          
+--          -- 2 arg functions
 --        , ("table",      ([tableArg   , objOf $ arrayOf str           ], Func tableL))
 --        , ("nTimes",     ([num        , num                           ], Func nTimesL))
 --        , ("take",       ([num        , table <|> array               ], Func takeL))
@@ -43,8 +43,8 @@ module Eval.Engine
 --        , ("col",        ([num        , table <|> tableArg            ], Func colL))
 --          -- 3 arg functions
 --        , ("plot",       ([arrayOf num, arrayOf num        , objOf str], Func plotL))
---        ] 
---  where showables = arrayOf $ table <|> plot 
+--        ]
+--  where showables = arrayOf $ table <|> plot
 --        atoms1    = nonEmpty $ arrayOf atom
 --        tableArg  = nonEmpty $ arrayOf $ nonEmpty $ arrayOf atom
 --
@@ -88,7 +88,7 @@ module Eval.Engine
 --multiF p ns = return $ NumO p $ product $ getNums ns
 --
 --getNums :: [ExpObj] -> [Double]
---getNums = map (\(NumO _ x)->x).filter f where 
+--getNums = map (\(NumO _ x)->x).filter f where
 --  f (NumO{}) = True
 --  f _        = False
 --
@@ -181,6 +181,6 @@ module Eval.Engine
 --
 --get :: [(String, ExpObj)] -> String -> [(String, ExpObj)]
 --get ps n = maybeToList $ do r <- lookup n ps; return (n,r)
-        
-        
+
+
         

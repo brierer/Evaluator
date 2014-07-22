@@ -18,7 +18,7 @@ import Parser.ParserUtils
 matchTypeParse t s = matchTypeParseWith t s []
 matchTypeParseWith t s fs = flip evalStateT [] $ matchType t $ unsafeMarshall fs $ unsafeParse expT s
 
-unsafeMarshall fs (FuncT _ (IdT p _ n) es) = let Just (_,Func func) = lookup' n fs in unsafeRight $ evalStateT (func p $ map (unsafeMarshall fs) es) [] 
+unsafeMarshall fs (FuncT _ (IdT p _ n) es) = let Just (_,Func func) = lookup' n fs in unsafeRight $ evalStateT (func p $ map (unsafeMarshall fs) es) []
 unsafeMarshall fs (ArrT p _ es)            = ArrO p $ map (unsafeMarshall fs) es
 unsafeMarshall fs (ObjT p _ ps)            = ObjO p $ map (second (unsafeMarshall fs).un) ps
 unsafeMarshall _  (StrT p _ v)             = StrO p v

@@ -35,7 +35,7 @@ instance HasType ExpObj where
   getRoot (NumO{})   = LeafNum
   getRoot (BoolO{})  = LeafBool
   getRoot (NullO{})  = LeafNull
-  
+
   getRoot (ArrO{})   = NodeArr
   getRoot (ObjO{})   = NodeObj
 
