@@ -42,16 +42,3 @@ prop_OrTypeFailure    (OrTypeFailure      e _ ts) = Left (TypeMismatch (getPos e
 prop_ArrOfTypeSuccess (ArrOfTypeSuccess a t) = Right a == simpleMatch a (ArrOf t)
 prop_ObjOfTypeSuccess (ObjOfTypeSuccess a t) = Right a == simpleMatch a (ObjOf t)
 prop_OrTypeSuccess    (OrTypeSuccess e _ ts) = Right e == simpleMatch e (Or ts)
-
-
-
-
-
-
-
-
-
-
-
-
-

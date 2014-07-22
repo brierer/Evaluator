@@ -1,8 +1,8 @@
 {-# OPTIONS_GHC -F -pgmF htfpp #-}
 module Marshall.MarshallPropFailure where
 
-import Data.List     hiding (any)
-import Prelude       hiding (any)
+import Data.List hiding (any)
+import Prelude   hiding (any)
 
 import qualified Prelude as P
 
@@ -16,8 +16,6 @@ import Test.Framework
 import Marshall.MarshallPropFailureUtils
 import Marshall.MarshallUtils
 import Parser.ParserUnitUtils
-
-{-# ANN module "HLint: ignore Use camelCase"#-}
 
 prop_NbArgs (NbArgs p s n m) = n /= m ==> Left (ArgCountMismatch p s n m) == evalStateT (marshall $ mkFunc' p s $ replicate m mockArg) (nbArgEntry s n)
 

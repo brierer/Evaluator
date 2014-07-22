@@ -1,6 +1,6 @@
 {-# OPTIONS_GHC -F -pgmF htfpp #-}
 module Main where
-import Test.Framework (TestSuite,makeTestSuite,htfMain)
+import Test.Framework
 
 --import {-@ HTF_TESTS @-} Engine.EngineUnitFailure
 --import {-@ HTF_TESTS @-} Engine.EngineUnitSuccess

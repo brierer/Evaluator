@@ -18,9 +18,9 @@ import Eval.MatchType
 import Test.Framework
 
 import Marshall.MarshallPropUtils
+import MatchType.MatchTypePropUtils
 import Parser.ParserPropUtils
 import Parser.ParserUnitUtils
-import MatchType.MatchTypePropUtils
 
 data ArrLit = ArrLit [ExpToken] ExpObj deriving (Show)
 instance Arbitrary   ArrLit where arbitrary = sized1 tall; shrink (ArrLit es e) = mLit isArr ArrLit (tShrinks es) (tShrink e)

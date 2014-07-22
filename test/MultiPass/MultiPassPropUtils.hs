@@ -18,7 +18,6 @@ import Parser.ParserPropUtils
 import Parser.ParserUnitUtils
 import Parser.ParserUtils
 
-
 class HasProg a where
   forms     :: a -> [FormToken]
   fromForms :: [FormToken] -> a

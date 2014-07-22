@@ -11,9 +11,6 @@ import Test.Framework
 
 import MatchType.MatchTypeUnitUtils
 
-{-# ANN module "HLint: ignore Use camelCase" #-}
-{-# ANN module "HLint: ignore Reduce duplication" #-}
-
 test_TableType = do  assertEqual (Left $ TypeMismatch (1,1) LeafTable LeafPlot)  $ matchTypeParseWith Table "f()" $ nullary "f" $ PlotO  (1,1) [] []
                      assertEqual (Left $ TypeMismatch (1,1) LeafTable NodeArr)   $ matchTypeParse     Table "[]"
                      assertEqual (Left $ TypeMismatch (1,1) LeafTable NodeObj)   $ matchTypeParse     Table "{}"

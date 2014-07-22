@@ -1,7 +1,7 @@
 {-# OPTIONS_GHC -F -pgmF htfpp #-}
 module Marshall.MarshallPropSuccess where
 
-import Prelude       hiding (any)
+import Prelude hiding (any)
 
 import qualified Prelude as P
 
@@ -10,8 +10,6 @@ import Eval.MatchType
 import Test.Framework
 
 import Marshall.MarshallPropSuccessUtils
-
-{-# ANN module "HLint: ignore Use camelCase"#-}
 
 prop_ArrLit  s (ArrLit  es e) = caseLit arr  s es e
 prop_ObjLit  s (ObjLit  es e) = caseLit obj  s es e

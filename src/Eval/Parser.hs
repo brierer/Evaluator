@@ -1,7 +1,7 @@
 module Eval.Parser
-( Unparse(unparse)
-, progT,formT,pairT,idT,expT
+( progT,formT,pairT,idT,expT
 , funcT,arrT,objT,varT,strT,numT,boolT,nullT
+, unparse
 ) where
 
 import Prelude hiding                ((^),(>))

@@ -248,7 +248,6 @@ makeMatchingExp Null      = NullO  p0
 makeMatchingExp (ArrOf t) = ArrO p0 [makeMatchingExp t]
 makeMatchingExp (ObjOf t) = ObjO p0 [("",makeMatchingExp t)]  
 
-
 {-| Mandatory type signatures -}
 mTableTypeFailure  :: Gen PlotOA  -> Gen ArrOA  -> Gen ObjOA -> Gen StrOA -> Gen NumOA -> Gen BoolOA -> Gen NullOA -> Gen TableTypeFailure
 mPlotTypeFailure   :: Gen TableOA -> Gen ArrOA  -> Gen ObjOA -> Gen StrOA -> Gen NumOA -> Gen BoolOA -> Gen NullOA -> Gen PlotTypeFailure
