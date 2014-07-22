@@ -7,6 +7,8 @@ import Test.Framework
 import Parser.ParserUnitUtils
 import Parser.ParserUtils
 
+{-# ANN module "HLint: ignore Use camelCase" #-}
+
 -- Program
 test_Prog = do assertEqual (mkProg  (1,1) [])                                  $ unsafeParse progT ""
                assertEqual (mkProg  (1,1) [mkForm' (1,1) "x" $ mkNull' (1,3)]) $ unsafeParse progT "x=null"

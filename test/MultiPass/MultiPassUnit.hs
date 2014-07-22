@@ -7,6 +7,8 @@ import Test.Framework
 import MultiPass.MultiPassUnitUtils
 import Parser.ParserUnitUtils
 
+{-# ANN module "HLint: ignore Use camelCase" #-}
+
 test_MultiDefs = do assertEqual (Left  $ MultipleDefinitions (1,8)  "x")                 $ initProg "x=null;x=true"
                     assertEqual (Left  $ MultipleDefinitions (1,15) "x")                 $ initProg "x=null;y=true;x=null"
 test_ValidDefs = do assertEqual (Right $ formTable [])                                   $ initProg ""

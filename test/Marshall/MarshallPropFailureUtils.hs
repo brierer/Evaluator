@@ -171,16 +171,16 @@ getOfOrTypes es f chooseType = do
       toChoose = filter (not.isOneOf.f) es
   return (t1,t2,toChoose)
 
-caseLit  tree t s es e i =                     not (null es) ==> Left (TypeMismatch (getPos e) tree  $ getRoot e) == evalStateT (marshall $ mkFunc s es) (lit s es i t)
-caseFunc tree t s ts e i = validFuncs  s ts && not (null ts) ==> Left (TypeMismatch (getPos e) tree  $ getRoot e) == evalStateT (marshall $ mkFunc s es) (lit s es i t ++ entries) where
+caseLit  tree t s es e i =                     not (null es) ==> Left (TypeMismatch (getPos e) tree  $ getRoot e) == marshallWith (mkFunc s es) (lit s es i t)
+caseFunc tree t s ts e i = validFuncs  s ts && not (null ts) ==> Left (TypeMismatch (getPos e) tree  $ getRoot e) == marshallWith (mkFunc s es) (lit s es i t ++ entries) where
   (es,entries) = mkUtils ts
 
-caseOfLit  t s es e i mkT =                    not (null es) ==> Left (TypeMismatch (getPos e) (getRoot t) (getRoot e)) == evalStateT (marshall $ mkFunc s es) (lit s es i $ mkT t)
-caseOfFunc t s ts e i mkT = validFuncs s ts && not (null ts) ==> Left (TypeMismatch (getPos e) (getRoot t) (getRoot e)) == evalStateT (marshall $ mkFunc s es) (lit s es i (mkT t) ++ entries) where
+caseOfLit  t s es e i mkT =                    not (null es) ==> Left (TypeMismatch (getPos e) (getRoot t) (getRoot e)) == marshallWith (mkFunc s es) (lit s es i $ mkT t)
+caseOfFunc t s ts e i mkT = validFuncs s ts && not (null ts) ==> Left (TypeMismatch (getPos e) (getRoot t) (getRoot e)) == marshallWith (mkFunc s es) (lit s es i (mkT t) ++ entries) where
   (es,entries) = mkUtils ts
 
-caseOrLit  t s es e i =                    not (null es) ==> Left (TypeMismatch (getPos e) (getRoot t) $ getRoot e) == evalStateT (marshall $ mkFunc s es) (lit s es i t)
-caseOrFunc t s ts e i = validFuncs s ts && not (null ts) ==> Left (TypeMismatch (getPos e) (getRoot t) $ getRoot e) == evalStateT (marshall $ mkFunc s es) (lit s es i t ++ entries) where
+caseOrLit  t s es e i =                    not (null es) ==> Left (TypeMismatch (getPos e) (getRoot t) $ getRoot e) == marshallWith (mkFunc s es) (lit s es i t)
+caseOrFunc t s ts e i = validFuncs s ts && not (null ts) ==> Left (TypeMismatch (getPos e) (getRoot t) $ getRoot e) == marshallWith (mkFunc s es) (lit s es i t ++ entries) where
   (es,entries) = mkUtils ts
 
 lit s es i t = [(s,zipWith f [0..] $ replicate (length es) any, error "FunctionEvalUtils::lit::func [Should not be called]")] where f j e | i == j = t | otherwise = e

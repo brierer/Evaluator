@@ -131,16 +131,16 @@ mOrFunc tsa ea chooseType = do
   e <- liftM un ea
   return $ OrFunc ts e $ Or [t1,t2]
 
-caseLit  t s es e =                      Right e == evalStateT (marshall $ mkFunc s es) (lit s es e t)
-caseFunc t s ts e = validFuncs  s ts ==> Right e == evalStateT (marshall $ mkFunc s es) (lit s es e t ++ entries) where
+caseLit  t s es e =                      Right e == marshallWith (mkFunc s es) (lit s es e t)
+caseFunc t s ts e = validFuncs  s ts ==> Right e == marshallWith (mkFunc s es) (lit s es e t ++ entries) where
   (es,entries) = mkUtils ts
 
-caseOfLit  t s es e mkT =                     Right e == evalStateT (marshall $ mkFunc s es) (lit s es e $ mkT t)
-caseOfFunc t s ts e mkT = validFuncs s ts ==> Right e == evalStateT (marshall $ mkFunc s es) (lit s es e (mkT t) ++ entries) where
+caseOfLit  t s es e mkT =                     Right e == marshallWith (mkFunc s es) (lit s es e $ mkT t)
+caseOfFunc t s ts e mkT = validFuncs s ts ==> Right e == marshallWith (mkFunc s es) (lit s es e (mkT t) ++ entries) where
   (es,entries) = mkUtils ts
 
-caseOrLit  t s es e =                    Right e == evalStateT (marshall $ mkFunc s es) (lit s es e t)
-caseOrFunc t s ts e = validFuncs s ts && Right e == evalStateT (marshall $ mkFunc s es) (lit s es e t ++ entries) where
+caseOrLit  t s es e =                    Right e == marshallWith (mkFunc s es) (lit s es e t)
+caseOrFunc t s ts e = validFuncs s ts && Right e == marshallWith (mkFunc s es) (lit s es e t ++ entries) where
   (es,entries) = mkUtils ts
 
 lit s es e t = [(s,replicate (length es) t, Func $ \_ _ -> return e)]

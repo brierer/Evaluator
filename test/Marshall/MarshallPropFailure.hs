@@ -6,7 +6,6 @@ import Prelude   hiding (any)
 
 import qualified Prelude as P
 
-import Control.Monad.State
 import Data.EvalError
 import Data.Type
 import Eval.Marshall
@@ -17,7 +16,7 @@ import Marshall.MarshallPropFailureUtils
 import Marshall.MarshallUtils
 import Parser.ParserUnitUtils
 
-prop_NbArgs (NbArgs p s n m) = n /= m ==> Left (ArgCountMismatch p s n m) == evalStateT (marshall $ mkFunc' p s $ replicate m mockArg) (nbArgEntry s n)
+prop_NbArgs (NbArgs p s n m) = n /= m ==> Left (ArgCountMismatch p s n m) == marshallWith (mkFunc' p s $ replicate m mockArg) (nbArgEntry s n)
 
 prop_ArrLit  s (ArrLit  es e i) = caseLit NodeArr  arr  s es e i
 prop_ObjLit  s (ObjLit  es e i) = caseLit NodeObj  obj  s es e i

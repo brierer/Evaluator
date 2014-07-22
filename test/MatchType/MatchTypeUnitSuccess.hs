@@ -10,6 +10,8 @@ import Test.Framework
 
 import MatchType.MatchTypeUnitUtils
 
+{-# ANN module "HLint: ignore Use camelCase" #-}
+
 test_TableType =     assertEqual (Right $ TableO (1,1) [] [])                $ matchTypeParseWith Table "f()" $ nullary "f" $ TableO (1,1) [] []
 test_PlotType =      assertEqual (Right $ PlotO  (1,1) [] [])                $ matchTypeParseWith Plot  "f()" $ nullary "f" $ PlotO  (1,1) [] []
 test_ArrType =   do  assertEqual (Right $ ArrO   (1,1) [])                   $ matchTypeParse     arr "[]"

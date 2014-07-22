@@ -13,6 +13,9 @@ import Marshall.MarshallUnitUtils
 import Marshall.MarshallUtils
 import Parser.ParserUtils
 
+{-# ANN module "HLint: ignore Use camelCase" #-}
+{-# ANN module "HLint: ignore Reduce duplication" #-}
+
 test_NbArgs = do     assertEqual (Left $ ArgCountMismatch (1,1) "f" 0 1) $ runFuncWith "f(0)"   $ nbArgEntry "f" 0
                      assertEqual (Left $ ArgCountMismatch (1,1) "f" 0 2) $ runFuncWith "f(0,1)" $ nbArgEntry "f" 0
                      assertEqual (Left $ ArgCountMismatch (1,1) "f" 1 0) $ runFuncWith "f()"    $ nbArgEntry "f" 1

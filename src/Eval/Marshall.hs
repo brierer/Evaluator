@@ -1,5 +1,6 @@
 module Eval.Marshall
-( marshall
+( marshallWith
+, marshall
 ) where
 
 import Prelude hiding (any)
@@ -12,6 +13,9 @@ import Data.EvalError
 import Data.ExpObj
 import Data.ExpToken
 import Eval.MatchType
+
+marshallWith :: ExpToken -> [FuncEntry] -> Eval ExpObj
+marshallWith x = evalStateT $ marshall x
 
 marshall :: ExpToken -> EvalFunc ExpObj
 marshall (FuncT _ (IdT p _ i) es) = applyFunc p i es
@@ -30,11 +34,6 @@ applyFunc p i es = do fs <- get; case lookup' fs of {
 
   where lookup' = lookup i .map (\(x,y,z)->(x,(y,z)))
         validateArgCount s l1 l2 = when (l1 /= l2) $ lift $ Left $ ArgCountMismatch p s l1 l2
-
-
-
-
-
 
 
 
