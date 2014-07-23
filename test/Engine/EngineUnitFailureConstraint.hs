@@ -106,31 +106,41 @@ test_TableHeaderLength = do
                      assertEqual (Left $ TableHeaderLengthMismatch (1,11) 1 2) $ runWith "table(f(),g())"                 [("f",[],constF $ arrO [arrO [numO 0]]),                          ("g",[],constF $ objO [("col",ArrO (1,11) [strO "1",strO "2"])])]
                      assertEqual (Left $ TableHeaderLengthMismatch (1,11) 2 1) $ runWith "table(f(),g())"                 [("f",[],constF $ arrO [arrO [numO 0],arrO [numO 0]]),("g",[],constF $ objO [("col",ArrO (1,11) [strO "1"])])]
                          
---
---prop_TableColumnLengthMismatch w1aps = tableColumnLengthCase (map (un *** uns) w1aps)
---prop_TableHeaderLengthMismatch = tableHeaderLengthCase.un
---
---prop_IndexOutOfBoundsSortTable (P pf) (NumTA _ a1@(NumT pn _ _ v)) (TableOA a2tr@(TableO _ cols header)) = (v < 0 || floor v > length cols) && any (not.null) cols ==>
---  let (n,a2t,fs,expected) = mkOutOfBoundsTable pn v a2tr cols in
---   expected == applyFunc fs    pf "sort" [a1,a2t] &&
---   expected == evalStateT (sortTF pf pn n cols header) []
---prop_IndexOutOfBoundsSortTable _ x y = error $ "EngineTest::prop_IndexOutOfBoundsSortTable [Unexpected pattern ["++show x++"] and ["++show y++"]]"
---
---prop_IndexOutOfBoundsSortArray (P pf) (NumTA _ a1@(NumT pn _ _ v)) (TableValidArgs g2ss _) = (v < 0 || floor v > length g2ss) && any (not.null) g2ss ==>
---  let (n,aOfArrays,mArrays,expected) = mkOutOfBoundsArray pn v g2ss in
---   expected == applyFunc funcs pf "sort" [a1,aOfArrays] &&
---   expected == evalStateT (sortAF pf pn n mArrays) []
---prop_IndexOutOfBoundsSortArray _ x _ = error $ "EngineTest::prop_IndexOutOfBoundsSortArray [Unexpected pattern ["++show x++"]]"
---
---prop_IndexOutOfBoundsColTable (P pf) (NumTA _ a1@(NumT pn _ _ v)) (TableOA a2tr@(TableO _ cols _)) = (v < 0 || floor v > length cols) && any (not.null) cols ==>
---  let (n,a2t,fs,expected) = mkOutOfBoundsTable pn v a2tr cols in
---   expected == applyFunc fs    pf "col" [a1,a2t] &&
---   expected == evalStateT (colTF pf pn n cols) []
---prop_IndexOutOfBoundsColTable _ x y = error $ "EngineTest::prop_IndexOutOfBoundsColTable [Unexpected pattern ["++show x++"] and ["++show y++"]]"
---
---prop_IndexOutOfBoundsColArray (P pf) (NumTA _ a1@(NumT pn _ _ v)) (TableValidArgs g2ss _)  = (v < 0 || floor v > length g2ss) && any (not.null) g2ss ==>
---  let (n,aOfArrays,mArrays,expected) = mkOutOfBoundsArray pn v g2ss in
---   expected == applyFunc funcs pf "col" [a1,aOfArrays] &&
---   expected == evalStateT (colAF pf pn n mArrays) []
---prop_IndexOutOfBoundsColArray _ x _ = error $ "EngineTest::prop_IndexOutOfBoundsColArray [Unexpected pattern ["++show x++"]]"
---
+test_SortIndexOutOfBounds = do
+                     assertEqual (Left $ IndexOutOfBounds (1,6) (-1) 0 0) $ runWith "sort(-1,f())" [("f",[],constF $ tableO [[numO 0]] [])]
+                     assertEqual (Left $ IndexOutOfBounds (1,6)  1   0 0) $ runWith "sort(1,f())"  [("f",[],constF $ tableO [[numO 0]] [])]
+                     
+                     assertEqual (Left $ IndexOutOfBounds (1,6) (-1) 0 1) $ runWith "sort(-1,f())" [("f",[],constF $ tableO [[numO 0],[numO 0]] [])]
+                     assertEqual (Left $ IndexOutOfBounds (1,6)  2   0 1) $ runWith "sort(2,f())"  [("f",[],constF $ tableO [[numO 0],[numO 0]] [])]
+                     
+                     assertEqual (Left $ IndexOutOfBounds (1,6) (-1) 0 2) $ runWith "sort(-1,f())" [("f",[],constF $ tableO [[numO 0],[numO 0],[numO 0]] [])]
+                     assertEqual (Left $ IndexOutOfBounds (1,6)  3   0 2) $ runWith "sort(3,f())"  [("f",[],constF $ tableO [[numO 0],[numO 0],[numO 0]] [])]
+                     
+                     assertEqual (Left $ IndexOutOfBounds (1,6) (-1) 0 0) $ run     "sort(-1,[[0]])"
+                     assertEqual (Left $ IndexOutOfBounds (1,6)  1   0 0) $ run     "sort(1,[[0]])" 
+                                                                                   
+                     assertEqual (Left $ IndexOutOfBounds (1,6) (-1) 0 1) $ run     "sort(-1,[[0],[0]])"
+                     assertEqual (Left $ IndexOutOfBounds (1,6)  2   0 1) $ run     "sort(2,[[0],[0]])" 
+                                                                                   
+                     assertEqual (Left $ IndexOutOfBounds (1,6) (-1) 0 2) $ run     "sort(-1,[[0],[0],[0]])"
+                     assertEqual (Left $ IndexOutOfBounds (1,6)  3   0 2) $ run     "sort(3,[[0],[0],[0]])" 
+ 
+test_ColIndexOutOfBounds = do
+                     assertEqual (Left $ IndexOutOfBounds (1,5) (-1) 0 0) $ runWith "col(-1,f())" [("f",[],constF $ tableO [[numO 0]] [])]
+                     assertEqual (Left $ IndexOutOfBounds (1,5)  1   0 0) $ runWith "col(1,f())"  [("f",[],constF $ tableO [[numO 0]] [])]
+                                                                                     
+                     assertEqual (Left $ IndexOutOfBounds (1,5) (-1) 0 1) $ runWith "col(-1,f())" [("f",[],constF $ tableO [[numO 0],[numO 0]] [])]
+                     assertEqual (Left $ IndexOutOfBounds (1,5)  2   0 1) $ runWith "col(2,f())"  [("f",[],constF $ tableO [[numO 0],[numO 0]] [])]
+                                                                                     
+                     assertEqual (Left $ IndexOutOfBounds (1,5) (-1) 0 2) $ runWith "col(-1,f())" [("f",[],constF $ tableO [[numO 0],[numO 0],[numO 0]] [])]
+                     assertEqual (Left $ IndexOutOfBounds (1,5)  3   0 2) $ runWith "col(3,f())"  [("f",[],constF $ tableO [[numO 0],[numO 0],[numO 0]] [])]
+                                                                                     
+                     assertEqual (Left $ IndexOutOfBounds (1,5) (-1) 0 0) $ run     "col(-1,[[0]])"
+                     assertEqual (Left $ IndexOutOfBounds (1,5)  1   0 0) $ run     "col(1,[[0]])" 
+                                                                                     
+                     assertEqual (Left $ IndexOutOfBounds (1,5) (-1) 0 1) $ run     "col(-1,[[0],[0]])"
+                     assertEqual (Left $ IndexOutOfBounds (1,5)  2   0 1) $ run     "col(2,[[0],[0]])" 
+                                                                                     
+                     assertEqual (Left $ IndexOutOfBounds (1,5) (-1) 0 2) $ run     "col(-1,[[0],[0],[0]])"
+                     assertEqual (Left $ IndexOutOfBounds (1,5)  3   0 2) $ run     "col(3,[[0],[0],[0]])" 
+
