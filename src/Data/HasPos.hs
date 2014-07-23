@@ -1,7 +1,7 @@
 module Data.HasPos where
 
-import Data.ExpToken (Pos)
-import Data.ExpObj   (ExpObj(..))
+import Data.ExpToken
+import Data.ExpObj
 
 class HasPos a where getPos   :: a -> Pos
 --

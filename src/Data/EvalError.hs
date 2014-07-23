@@ -1,9 +1,10 @@
 module Data.EvalError
 ( EvalError(..)
+, TMTree(..)
 ) where
 
-import Data.ExpToken (Pos)
-import Data.Type     (TypeTree)
+import Data.ExpToken
+import Data.Type
 
 data EvalError = MultipleDefinitions Pos String
                | UndefinedVariable Pos String
@@ -13,10 +14,13 @@ data EvalError = MultipleDefinitions Pos String
                | NoShow
                | ArgCountMismatch Pos String Int Int
                | ArgError Int String EvalError
-               | TypeMismatch Pos TypeTree TypeTree
+               | TypeMismatch TMTree
                | IllegalEmpty Pos
                | TableColumnLengthMismatch Pos Int Int
                | TableHeaderLengthMismatch Pos Int Int
                | IndexOutOfBounds Pos Int Int Int
                  deriving (Eq,Show)
 
+data TMTree = TMLeaf Pos TypeTree TypeTree
+            | TMNode [TMTree]
+              deriving (Eq,Show)

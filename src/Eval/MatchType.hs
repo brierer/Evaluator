@@ -58,14 +58,19 @@ matchType  Str      x@(StrO{})   = return x
 matchType  Num      x@(NumO{})   = return x
 matchType  Bool     x@(BoolO{})  = return x
 matchType  Null     x@(NullO{})  = return x
-matchType t@(Or ts) x            = do fs <- get; let rs = map (flip evalStateT fs.(`matchType`x)) ts in if P.any isRight rs then return x else typeMismatch t x
+matchType (Or ts)   x            = do fs <- get; let rs = map (flip evalStateT fs.(`matchType`x)) ts in if P.any isRight rs then return x else orTypeMismatch rs 
 matchType t         x            = typeMismatch t x
+
+orTypeMismatch ::  [Eval ExpObj] -> EvalFunc a
+orTypeMismatch = lift . Left . TypeMismatch . TMNode . map f where
+  f (Left (TypeMismatch t)) = t
+  f x                       = error $ "Eval.MatchTYpe::orType::f [Unexpected pattern ["++show x++"]]"  
 
 isRight :: Either a b -> Bool
 isRight (Right _) = True
 isRight _         = False
 
-typeMismatch :: Type -> ExpObj -> EvalFunc ExpObj
-typeMismatch t x = lift $ Left $ TypeMismatch (getPos x) (getRoot t) (getRoot x)
+typeMismatch :: Type -> ExpObj -> EvalFunc a
+typeMismatch t x = lift $ Left $ TypeMismatch $ TMLeaf (getPos x) (getRoot t) (getRoot x)
 
 

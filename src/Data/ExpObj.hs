@@ -2,7 +2,7 @@ module Data.ExpObj
 ( ExpObj(..)
 ) where
 
-import Data.ExpToken (Pos)
+import Data.ExpToken
 
 data ExpObj = TableO Pos [[ExpObj]]         [ExpObj]
             | PlotO  Pos [(ExpObj,ExpObj)] [(String,ExpObj)]

@@ -2,7 +2,8 @@
 module Main where
 import Test.Framework
 
---import {-@ HTF_TESTS @-} Engine.EngineUnitFailure
+import {-@ HTF_TESTS @-} Engine.EngineUnitFailureType
+import {-@ HTF_TESTS @-} Engine.EngineUnitFailureConstraint
 --import {-@ HTF_TESTS @-} Engine.EngineUnitSuccess
 import {-@ HTF_TESTS @-} Marshall.MarshallUnit
 import {-@ HTF_TESTS @-} MultiPass.MultiPassUnit

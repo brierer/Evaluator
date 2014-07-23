@@ -4,15 +4,14 @@ module Eval.Parser
 , unparse
 ) where
 
-import Prelude hiding                ((^),(>))
+import Control.Applicative           hiding (many)
+import Prelude                       hiding ((^),(>))
+import Text.ParserCombinators.Parsec hiding ((<|>))
 
-import Data.Char                     (toLower)
-import Data.List                     (intercalate)
-import Data.ExpToken                 (ProgToken(..),FormToken(..),PairToken(..),IdToken(..),ExpToken(..),IdS,IntegerS,Pos,W1,W2)
-import Control.Monad                 (liftM,liftM2)
-import Control.Applicative           (Applicative,(<$), (<$>), (<*>))
-import Text.ParserCombinators.Parsec (Parser,many,space,sepBy,char,try,notFollowedBy,oneOf,
-                                      between,noneOf,option,many1,string,digit,getPosition,sourceLine,sourceColumn,(<|>))
+import Data.Char
+import Data.List
+import Data.ExpToken
+import Control.Monad
 
 {-| Non expression tokens -}
 -- START -> progT
