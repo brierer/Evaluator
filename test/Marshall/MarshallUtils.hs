@@ -17,6 +17,14 @@ doubleTypeEntry s t = [(s,[t,t],error "FunctionEvalUtils::doubleTypeEntry::func 
 noArgFunc  s f = [(s,[],Func $ \p _ -> return $ f p)]
 noArgFunc' s v = [(s,[],Func $ \_ _ -> return v)]
 
-mockSuccess     = Right $ NullO p0
+mockSuccess     = Right nullO
 mockSuccessFunc = Func $ \_ _ -> lift mockSuccess
 
+tableO = TableO p0
+plotO  = PlotO p0
+arrO   = ArrO p0
+objO   = ObjO p0
+strO   = StrO p0
+numO   = NumO p0
+boolO  = BoolO p0
+nullO  = NullO p0

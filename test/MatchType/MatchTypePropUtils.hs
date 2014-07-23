@@ -1,7 +1,8 @@
 {-# LANGUAGE FlexibleInstances, MultiParamTypeClasses #-}
 module MatchType.MatchTypePropUtils where
 
-import Prelude hiding (any)
+import Prelude   hiding (any)
+import Data.List hiding (any)
 
 import qualified Prelude as P
 
@@ -9,14 +10,16 @@ import Control.Arrow  (second)
 
 import Control.Applicative
 import Control.Monad.State
+import Data.Eval
+import Data.EvalError
 import Data.ExpObj
-import Data.List
+import Data.HasPos
 import Data.Type
 import Eval.MatchType
 import Test.Framework
 
+import Marshall.MarshallUtils
 import Parser.ParserPropUtils
-import Parser.ParserUtils
 
 data TableTypeFailure = TableTypeFailure ExpObj deriving (Show)
 instance Arbitrary      TableTypeFailure where
@@ -178,7 +181,7 @@ mArrOfTypeFailure ata bta = do
   let (at,bt) = if arrType `accepts` badType then (arrType,ArrOf arrType) else (arrType,badType)
       ArrO _ es = makeMatchingExp $ ArrOf at
       e = makeMatchingExp bt
-      a = ArrO p0 $ es ++ [e]
+      a = arrO $ es ++ [e]
   return $ ArrOfTypeFailure a e at bt
 
 data ObjOfTypeFailure = ObjOfTypeFailure ExpObj ExpObj Type Type deriving(Show)
@@ -190,7 +193,7 @@ mObjOfTypeFailure ota bta = do
   let (ot,bt) = if objType `accepts` badType then (objType,ObjOf objType) else (objType,badType)
       ObjO _ es = makeMatchingExp $ ObjOf ot
       e = makeMatchingExp bt
-      o = ObjO p0 $ es ++ [("",e)]
+      o = objO $ es ++ [("",e)]
   return $ ObjOfTypeFailure o e ot bt
 
 data OrTypeFailure = OrTypeFailure ExpObj Type [Type] deriving(Show)
@@ -239,14 +242,27 @@ noOr (ArrOf t) = ArrOf $ noOr t
 noOr (ObjOf t) = ObjOf $ noOr t
 noOr t         = t
 
-makeMatchingExp Table     = TableO p0 [] []
-makeMatchingExp Plot      = PlotO  p0 [] []
-makeMatchingExp Str       = StrO   p0 ""
-makeMatchingExp Num       = NumO   p0 0
-makeMatchingExp Bool      = BoolO  p0 False
-makeMatchingExp Null      = NullO  p0
-makeMatchingExp (ArrOf t) = ArrO p0 [makeMatchingExp t]
-makeMatchingExp (ObjOf t) = ObjO p0 [("",makeMatchingExp t)]
+makeMatchingExp Table     = tableO [] []
+makeMatchingExp Plot      = plotO  [] []
+makeMatchingExp Str       = strO   ""
+makeMatchingExp Num       = numO   0
+makeMatchingExp Bool      = boolO  False
+makeMatchingExp Null      = nullO  
+makeMatchingExp (ArrOf t) = arrO [makeMatchingExp t]
+makeMatchingExp (ObjOf t) = objO [("",makeMatchingExp t)]
+
+matchOr ::  ExpObj -> [Type] -> Eval a
+matchOr e ts = simplify e $ map (f.flip evalStateT [].(`matchType` e)) ts where
+  f (Left (TypeMismatch t)) = t
+  f e                       = error $ "Eval.MatchType::orType::f [Unexpected pattern ["++show e++"]]"  
+
+simplify :: ExpObj -> [TMTree] -> Eval a
+simplify x [] = Left $ TypeMismatch $ TMLeaf (getPos x) (NodeOr []) (getRoot x)
+simplify _ ts | P.any (not.(\t -> case t of TMLeaf{} -> True; _ -> False)) ts = Left $ TypeMismatch $ TMNode ts
+              | otherwise = let (canBeSame,orTypes) = unzip $ map (\(TMLeaf x y z) -> ((x,z),y)) ts 
+                                (p,t2) = head canBeSame
+                                canBeSimplified = length (nub canBeSame) == 1
+                            in Left $ TypeMismatch $ if canBeSimplified then TMLeaf p (NodeOr $ reverse $ sort $ nub orTypes) t2 else TMNode ts
 
 {-| Mandatory type signatures -}
 mTableTypeFailure  :: Gen PlotOA  -> Gen ArrOA  -> Gen ObjOA -> Gen StrOA -> Gen NumOA -> Gen BoolOA -> Gen NullOA -> Gen TableTypeFailure

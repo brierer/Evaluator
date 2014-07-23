@@ -49,7 +49,7 @@ funcs = -- 1 arg functions
         tableArg  = ArrOf $ ArrOf atom
         atom      = Or [Str,Num,Bool,Null]
 
-{-| Function stubs: extract from list and call the actual function -}
+{-| Function stubs: extract from list, check some simple constraints and call the actual function -}
 showL      :: Pos -> [ExpObj] -> EvalFunc ExpObj
 multiL     :: Pos -> [ExpObj] -> EvalFunc ExpObj
 meanL      :: Pos -> [ExpObj] -> EvalFunc ExpObj
@@ -61,23 +61,36 @@ sortL      :: Pos -> [ExpObj] -> EvalFunc ExpObj
 colL       :: Pos -> [ExpObj] -> EvalFunc ExpObj
 plotL      :: Pos -> [ExpObj] -> EvalFunc ExpObj
 
-showL   p [x]                               = showF   p x;                 showL   _ xs = error $ "Engine::showL  [Unexpected pattern ["++show xs++"]]"
-multiL  p [ArrO _ ns]                       = multiF  p ns;                multiL  _ xs = error $ "Engine::multiL [Unexpected pattern ["++show xs++"]]"
-meanL   p [ArrO _ ns]                       = meanF   p ns;                meanL   _ xs = error $ "Engine::meanL  [Unexpected pattern ["++show xs++"]]"
-descL   p [ArrO _ ns]                       = descF   p ns;                descL   _ xs = error $ "Engine::descL  [Unexpected pattern ["++show xs++"]]"
-tableL  p [ArrO _ es, ObjO _ ps]            = tableF  p es ps;             tableL  _ xs = error $ "Engine::tableL [Unexpected pattern ["++show xs++"]]"
-nTimesL p [v, NumO _ n]                     = nTimesF p v n;               nTimesL _ xs = error $ "Engine::descL  [Unexpected pattern ["++show xs++"]]"
+showL   p [x]                               =                      showF   p x;                   showL   _ xs = error $ "Engine::showL  [Unexpected pattern ["++show xs++"]]"
+multiL  p [a@(ArrO _ ns)]                   = nonEmpty a >>        multiF  p ns;                  multiL  _ xs = error $ "Engine::multiL [Unexpected pattern ["++show xs++"]]"
+meanL   p [a@(ArrO _ ns)]                   = nonEmpty a >>        meanF   p ns;                  meanL   _ xs = error $ "Engine::meanL  [Unexpected pattern ["++show xs++"]]"
+descL   p [a@(ArrO _ ns)]                   = nonEmpty a >>        descF   p ns;                  descL   _ xs = error $ "Engine::descL  [Unexpected pattern ["++show xs++"]]"
+tableL  p [a@(ArrO _ es), ObjO _ ps]        = nonEmptyMatrix a >>  tableF  p es ps;               tableL  _ xs = error $ "Engine::tableL [Unexpected pattern ["++show xs++"]]"
+                                        
+nTimesL p [v, NumO _ n]                     =                      nTimesF p v n;                 nTimesL _ xs = error $ "Engine::descL  [Unexpected pattern ["++show xs++"]]"
+                                                                   
+takeL   p [NumO _ v,TableO _ ess h]         =                      takeTF  p (floor v) ess h
+takeL   p [NumO _ v,ArrO _ es]              =                      takeAF  p (floor v) es;        takeL   _ xs = error $ "Engine::takeL  [Unexpected pattern ["++show xs++"]]"
+                                                                   
+sortL   p [NumO pn v,TableO _ ess h]        =                      sortTF  p pn (floor v) ess h
+sortL   p [NumO pn v,a@(ArrO _ es)]         = nonEmptyMatrix a >>  sortAF  p pn (floor v) es;     sortL   _ xs = error $ "Engine::sortL  [Unexpected pattern ["++show xs++"]]"
+                                                                   
+colL    p [NumO pn v,TableO _ ess _]        =                      colTF   p pn (floor v) ess;
+colL    p [NumO pn v,a@(ArrO _ es)]         = nonEmptyMatrix a >>  colAF   p pn (floor v) es;     colL    _ xs = error $ "Engine::colL   [Unexpected pattern ["++show xs++"]]"
+                                                                   
+plotL   p [ArrO _ xs, ArrO _ ys, ObjO _ ps] =                      plotF p xs ys ps;              plotL   _ xs = error $ "Engine::plotL  [Unexpected pattern ["++show xs++"]]"
 
-takeL   p [NumO _ v,TableO _ ess h]         = takeTF  p (floor v) ess h
-takeL   p [NumO _ v,ArrO _ es]              = takeAF  p (floor v) es;      takeL   _ xs = error $ "Engine::takeL  [Unexpected pattern ["++show xs++"]]"
+{-| Simple contraints -}
+nonEmpty :: ExpObj -> EvalFunc ()
+nonEmpty (ArrO p es) = nonEmpty' p es
+nonEmpty x           = error $ "Eval.Engine::nonEmpty [Unexpected pattern ["++show x++"]]" 
 
-sortL   p [NumO pn v,TableO _ ess h]        = sortTF  p pn (floor v) ess h
-sortL   p [NumO pn v,ArrO _ es]             = sortAF  p pn (floor v) es;   sortL   _ xs = error $ "Engine::sortL  [Unexpected pattern ["++show xs++"]]"
+nonEmpty' :: Pos -> [a] -> EvalFunc()
+nonEmpty' p xs = when (P.null xs) $ lift $ Left $ IllegalEmpty p
 
-colL    p [NumO pn v,TableO _ ess _]        = colTF   p pn (floor v) ess;
-colL    p [NumO pn v,ArrO _ es]             = colAF   p pn (floor v) es;   colL    _ xs = error $ "Engine::colL   [Unexpected pattern ["++show xs++"]]"
-
-plotL   p [ArrO _ xs, ArrO _ ys, ObjO _ ps] = plotF p xs ys ps;            plotL   _ xs = error $ "Engine::plotL  [Unexpected pattern ["++show xs++"]]"
+nonEmptyMatrix :: ExpObj -> EvalFunc ()
+nonEmptyMatrix a@(ArrO _ es) = nonEmpty a >> mapM_ nonEmpty es    
+nonEmptyMatrix x             = error $ "Eval.Engine::nonEmptyMatrix [Unexpected pattern ["++show x++"]]"    
 
 {-| Actual Functions -}
 -- Wrap the topmost result (table or plot) in an object (arbitrary, otherwise the object would be left unchanged)

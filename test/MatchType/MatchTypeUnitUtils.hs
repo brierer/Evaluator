@@ -7,6 +7,7 @@ import Control.Arrow  (second)
 
 import Control.Monad.State
 import Data.Eval
+import Data.EvalError
 import Data.ExpToken
 import Data.ExpObj
 import Eval.MatchType
@@ -33,3 +34,5 @@ instance Unto PairToken (String,ExpToken) where un (PairT (IdT _ _ x) y) = (x,y)
 
 lookup' n fs = lookup n $ map (\(x,y,z)->(x,(y,z))) fs
 
+leafTypeMismatch x y = Left . TypeMismatch . TMLeaf x y
+nodeTypeMismatch     = Left . TypeMismatch . TMNode

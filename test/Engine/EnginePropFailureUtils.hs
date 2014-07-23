@@ -35,7 +35,7 @@ module Engine.EngineFailurePropUtils where
 --addFunc  fn r = let xs' = (fn,([],Func $ \_ _ -> return r)):fs;    g = FuncT "" (IdT p0 ("","") fn) [] in (xs',g)
 --addFunc' fn r = let xs' = (fn,([],Func $ \_ _ -> return r)):funcs; g = FuncT "" (IdT p0 ("","") fn) [] in (xs',g)
 --
---success n = return $ StrO p0 $ "Mocked Success ["++n++"]"
+--success n = return $ strO $ "Mocked Success ["++n++"]"
 --
 --toArray (x,y) e = ArrayT p0 FU.w2 $ replicate ((x+y) `mod` 100) e
 --
