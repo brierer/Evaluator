@@ -5,7 +5,7 @@ import Data.EvalError
 import Data.ExpObj
 import Test.Framework
 
-import Engine.EngineUnitFailureUtils
+import Engine.EngineUnitUtils
 import Marshall.MarshallUtils
 
 {-# ANN module "HLint: ignore Use camelCase" #-}
