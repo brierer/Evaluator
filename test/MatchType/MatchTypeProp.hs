@@ -12,6 +12,7 @@ import Eval.MatchType
 import Test.Framework
 
 import MatchType.MatchTypePropUtils
+import MatchType.MatchTypeUtils
 
 prop_TableTypeFailure (TableTypeFailure  e) = Left (TypeMismatch $ TMLeaf (getPos e) LeafTable (getRoot e)) == simpleMatch e Table
 prop_PlotTypeFailure  (PlotTypeFailure   e) = Left (TypeMismatch $ TMLeaf (getPos e) LeafPlot  (getRoot e)) == simpleMatch e Plot

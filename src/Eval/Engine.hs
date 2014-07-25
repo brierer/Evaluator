@@ -8,7 +8,7 @@ module Eval.Engine
 , nTimesF
 , takeTF, takeAF
 , sortTF, sortAF
-,  colTF,  colAF
+, colTF,  colAF
 , plotF
 ) where
 

@@ -19,6 +19,7 @@ import Eval.MatchType
 import Test.Framework
 
 import Marshall.MarshallUtils
+import MatchType.MatchTypeUtils
 import Parser.ParserPropUtils
 
 data TableTypeFailure = TableTypeFailure ExpObj deriving (Show)
@@ -228,8 +229,6 @@ mOrTypeSuccess t ts = do
     ts' <- liftM (filter (`accepts`t').map un) ts
     return $ OrTypeSuccess (makeMatchingExp t') t' (nub $ t':ts')
 
-simpleMatch e t = evalStateT (matchType t e) []
-
 _          `accepts` (Or ts)    = error $ "TypeEvalUtils::accepts [Cannot accept the Or of types "++show ts++"]"
 (ArrOf t1) `accepts` (ArrOf t2) = t1 `accepts` t2
 (ObjOf t1) `accepts` (ObjOf t2) = t1 `accepts` t2
@@ -252,7 +251,7 @@ makeMatchingExp (ArrOf t) = arrO [makeMatchingExp t]
 makeMatchingExp (ObjOf t) = objO [("",makeMatchingExp t)]
 
 matchOr ::  ExpObj -> [Type] -> Eval a
-matchOr e ts = simplify e $ map (f.flip evalStateT [].(`matchType` e)) ts where
+matchOr e ts = simplify e $ map (f.simpleMatch e) ts where
   f (Left (TypeMismatch t)) = t
   f x                       = error $ "Eval.MatchType::orType::f [Unexpected pattern ["++show x++"]]"  
 

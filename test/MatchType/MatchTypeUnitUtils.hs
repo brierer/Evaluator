@@ -10,14 +10,14 @@ import Data.Eval
 import Data.EvalError
 import Data.ExpToken
 import Data.ExpObj
-import Eval.MatchType
 import Eval.Parser
 
+import MatchType.MatchTypeUtils
 import Parser.ParserPropUtils
 import Parser.ParserUtils
 
 matchTypeParse t s = matchTypeParseWith t s []
-matchTypeParseWith t s fs = flip evalStateT [] $ matchType t $ unsafeMarshall fs $ unsafeParse expT s
+matchTypeParseWith t s fs = simpleMatch (unsafeMarshall fs $ unsafeParse expT s) t
 
 unsafeMarshall fs (FuncT _ (IdT p _ n) es) = let Just (_,Func func) = lookup' n fs in unsafeRight $ evalStateT (func p $ map (unsafeMarshall fs) es) []
 unsafeMarshall fs (ArrT p _ es)            = ArrO p $ map (unsafeMarshall fs) es
