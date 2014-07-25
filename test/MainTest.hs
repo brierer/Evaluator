@@ -11,8 +11,9 @@ import {-@ HTF_TESTS @-} Parser.ParserUnit
 import {-@ HTF_TESTS @-} MatchType.MatchTypeUnitFailure
 import {-@ HTF_TESTS @-} MatchType.MatchTypeUnitSuccess
 
---import {-@ HTF_TESTS @-} Engine.EnginePropFailure
---import {-@ HTF_TESTS @-} Engine.EnginePropSuccess
+import {-@ HTF_TESTS @-} Engine.EnginePropFailureType
+import {-@ HTF_TESTS @-} Engine.EnginePropFailureConstraint
+import {-@ HTF_TESTS @-} Engine.EnginePropSuccess
 import {-@ HTF_TESTS @-} Marshall.MarshallPropFailure
 import {-@ HTF_TESTS @-} Marshall.MarshallPropSuccess
 import {-@ HTF_TESTS @-} MultiPass.MultiPassProp
