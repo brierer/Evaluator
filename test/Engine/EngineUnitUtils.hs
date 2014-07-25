@@ -7,7 +7,7 @@ import Eval.Parser
 
 import Parser.ParserUtils
 
-runWith s fs = marshallWith (unsafeParse funcT s) $ funcs ++ fs 
+runWith s fs = marshallWith (unsafeParse funcT s) $ funcs ++ map (uncurry mkF) fs 
 run  x = runWith x []
 
-constF x = Func $ \_ _ -> return x
+mkF s x = (s,[],Func $ \_ _ -> return x)

@@ -3,17 +3,7 @@ module Data.HasPos where
 import Data.ExpToken
 import Data.ExpObj
 
-class HasPos a where getPos   :: a -> Pos
---
---instance HasPos ExpToken where
---  getPos (ArrT p _ _)   = p
---  getPos (ObjT p _ _)   = p
---  getPos (StrT p _ _)   = p
---  getPos (NumT p _ _ _) = p
---  getPos (BoolT p _ _)  = p
---  getPos (NullT p _)    = p
---  getPos e              = error $ "Eval.Function::getPos<ExpToken> [Unexpected pattern ["++show e++"]]"
---
+class HasPos a where getPos :: a -> Pos
 instance HasPos ExpObj where
   getPos (TableO p _ _) = p
   getPos (PlotO  p _ _) = p

@@ -1,8 +1,8 @@
 {-# OPTIONS_GHC -F -pgmF htfpp #-}
 module Engine.EngineUnitSuccess where
 
-import Data.ExpObj                         
-import Test.Framework      
+import Data.ExpObj
+import Test.Framework
 
 import Engine.EngineUnitSuccessUtils
 import Engine.EngineUnitUtils
@@ -10,162 +10,235 @@ import Marshall.MarshallUtils
 
 {-# ANN module "HLint: ignore Use camelCase" #-}
 
-test_Show = do  assertEqual (Right $ ObjO (1,1) [("result",ArrO (1,6) [])])                                      $ run     "show([])"
-                assertEqual (Right $ ObjO (1,1) [("result",ArrO (1,6) [TableO (1,7) [] []])])                    $ runWith "show([f()])" [("f",[],constF $ TableO (1,7) [] [])]
-                assertEqual (Right $ ObjO (1,1) [("result",ArrO (1,6) [PlotO (1,11) [] []])])                    $ runWith "show([f()])" [("f",[],constF $ PlotO (1,11) [] [])]
-                          
-                assertEqual (Right $ ObjO (1,1) [("result",ArrO (1,6) [TableO (1,7) [] [],PlotO (1,11) [] []])]) $ runWith "show([f(),g()])" [("f",[],constF $ TableO (1,7) [] []),("g",[],constF $ PlotO (1,11) [] [])]             
-                assertEqual (Right $ ObjO (1,1) [("result",ArrO (1,6) [PlotO (1,11) [] [],TableO (1,7) [] []])]) $ runWith "show([g(),f()])" [("f",[],constF $ TableO (1,7) [] []),("g",[],constF $ PlotO (1,11) [] [])]
-                
-                assertEqual (Right $ ObjO (1,1) [("result",ArrO (1,6) [])])                                      $ runWith "show(f())" [("f",[],constF $ ArrO (1,6) [])]
-                assertEqual (Right $ ObjO (1,1) [("result",ArrO (1,6) [TableO (1,6) [] []])])                    $ runWith "show(f())" [("f",[],constF $ ArrO (1,6) [TableO (1,6) [] []])]
-                assertEqual (Right $ ObjO (1,1) [("result",ArrO (1,6) [PlotO  (1,6) [] []])])                    $ runWith "show(f())" [("f",[],constF $ ArrO (1,6) [PlotO ( 1,6) [] []])]
-                          
-                assertEqual (Right $ ObjO (1,1) [("result",ArrO (1,6) [TableO (1,6) [] [],PlotO  (1,6) [] []])]) $ runWith "show(f())" [("f",[],constF $ ArrO (1,6) [TableO (1,6) [] [],PlotO  (1,6) [] []])]             
-                assertEqual (Right $ ObjO (1,1) [("result",ArrO (1,6) [PlotO  (1,6) [] [],TableO (1,6) [] []])]) $ runWith "show(f())" [("f",[],constF $ ArrO (1,6) [PlotO  (1,6) [] [],TableO (1,6) [] []])]
+test_Show = do   assertEqual (Right $ ObjO (1,1) [("result",ArrO (1,6) [])])                                      $ run     "show([])"
+                 assertEqual (Right $ ObjO (1,1) [("result",ArrO (1,6) [TableO (1,7) [] []])])                    $ runWith "show([f()])" [("f",TableO (1,7) [] [])]
+                 assertEqual (Right $ ObjO (1,1) [("result",ArrO (1,6) [PlotO (1,11) [] []])])                    $ runWith "show([f()])" [("f",PlotO (1,11) [] [])]
+
+                 assertEqual (Right $ ObjO (1,1) [("result",ArrO (1,6) [TableO (1,7) [] [],PlotO (1,11) [] []])]) $ runWith "show([f(),g()])" [("f",TableO (1,7) [] []),("g",PlotO (1,11) [] [])]
+                 assertEqual (Right $ ObjO (1,1) [("result",ArrO (1,6) [PlotO (1,11) [] [],TableO (1,7) [] []])]) $ runWith "show([g(),f()])" [("f",TableO (1,7) [] []),("g",PlotO (1,11) [] [])]
+
+                 assertEqual (Right $ ObjO (1,1) [("result",ArrO (1,6) [])])                                      $ runWith "show(f())" [("f",ArrO (1,6) [])]
+                 assertEqual (Right $ ObjO (1,1) [("result",ArrO (1,6) [TableO (1,6) [] []])])                    $ runWith "show(f())" [("f",ArrO (1,6) [TableO (1,6) [] []])]
+                 assertEqual (Right $ ObjO (1,1) [("result",ArrO (1,6) [PlotO  (1,6) [] []])])                    $ runWith "show(f())" [("f",ArrO (1,6) [PlotO ( 1,6) [] []])]
+
+                 assertEqual (Right $ ObjO (1,1) [("result",ArrO (1,6) [TableO (1,6) [] [],PlotO  (1,6) [] []])]) $ runWith "show(f())" [("f",ArrO (1,6) [TableO (1,6) [] [],PlotO  (1,6) [] []])]
+                 assertEqual (Right $ ObjO (1,1) [("result",ArrO (1,6) [PlotO  (1,6) [] [],TableO (1,6) [] []])]) $ runWith "show(f())" [("f",ArrO (1,6) [PlotO  (1,6) [] [],TableO (1,6) [] []])]
 
 
-test_Multi = do assertEqual (Right $ NumO (1,1) 1) $ run     "multi([1])"
-                assertEqual (Right $ NumO (1,1) 2) $ run     "multi([1,2])"
-                assertEqual (Right $ NumO (1,1) 6) $ run     "multi([1,2,3])"
-                assertEqual (Right $ NumO (1,1) 0) $ run     "multi([1,2,3,0])"
-                
-                assertEqual (Right $ NumO (1,1) 1) $ runWith "multi([f()])"       [("f",[],constF $ numO 1)]
-                assertEqual (Right $ NumO (1,1) 2) $ runWith "multi([f(),2])"     [("f",[],constF $ numO 1)]
-                assertEqual (Right $ NumO (1,1) 6) $ runWith "multi([f(),2,3])"   [("f",[],constF $ numO 1)]
-                assertEqual (Right $ NumO (1,1) 0) $ runWith "multi([f(),2,3,0])" [("f",[],constF $ numO 1)]
-                
-                assertEqual (Right $ NumO (1,1) 1) $ runWith "multi(f())" [("f",[],constF $ ArrO (1,8) [numO 1])]
-                assertEqual (Right $ NumO (1,1) 2) $ runWith "multi(f())" [("f",[],constF $ ArrO (1,8) [numO 1,numO 2])]
-                assertEqual (Right $ NumO (1,1) 6) $ runWith "multi(f())" [("f",[],constF $ ArrO (1,8) [numO 1,numO 2,numO 3])]
-                assertEqual (Right $ NumO (1,1) 0) $ runWith "multi(f())" [("f",[],constF $ ArrO (1,8) [numO 1,numO 2,numO 3,numO 0])]
-                
-test_Mean = do  assertEqual (Right $ NumO (1,1) 1) $ run     "mean([1])"
-                assertEqual (Right $ NumO (1,1) 2) $ run     "mean([1,3])"
-                assertEqual (Right $ NumO (1,1) 2) $ run     "mean([1,2,3])"
-                assertEqual (Right $ NumO (1,1) 0) $ run     "mean([1,2,3,-6])"
-                
-                assertEqual (Right $ NumO (1,1) 1) $ runWith "mean([f()])"       [("f",[],constF $ numO 1)]
-                assertEqual (Right $ NumO (1,1) 2) $ runWith "mean([f(),3])"     [("f",[],constF $ numO 1)]
-                assertEqual (Right $ NumO (1,1) 2) $ runWith "mean([f(),2,3])"   [("f",[],constF $ numO 1)]
-                assertEqual (Right $ NumO (1,1) 0) $ runWith "mean([f(),2,3,-6])" [("f",[],constF $ numO 1)]
-                
-                assertEqual (Right $ NumO (1,1) 1) $ runWith "mean(f())" [("f",[],constF $ ArrO (1,8) [numO 1])]
-                assertEqual (Right $ NumO (1,1) 2) $ runWith "mean(f())" [("f",[],constF $ ArrO (1,8) [numO 1,numO 3])]
-                assertEqual (Right $ NumO (1,1) 2) $ runWith "mean(f())" [("f",[],constF $ ArrO (1,8) [numO 1,numO 2,numO 3])]
-                assertEqual (Right $ NumO (1,1) 0) $ runWith "mean(f())" [("f",[],constF $ ArrO (1,8) [numO 1,numO 2,numO 3,numO (-6)])]
-                
-test_Desc = let sk = (-1.0182337649086284); ku = (-0.7696000000000001) in do
-                assertEqual (show $ eval $ mkDesc (1,1) 1 1 1  0    (0/0) (0/0)) $ show $ run     "descriptive([1])"
-                assertEqual (       eval $ mkDesc (1,1) 2 4 2  1     0 (-2))            $ run     "descriptive([1,3])"
-                assertEqual (       eval $ mkDesc (1,1) 3 6 2 (2/3)  0 (-1.5))          $ run     "descriptive([1,2,3])"
-                assertEqual (       eval $ mkDesc (1,1) 4 0 0 12.5  sk  ku)             $ run     "descriptive([1,2,3,-6])"
-                                     
-                assertEqual (show $ eval $ mkDesc (1,1) 1 1 1  0    (0/0) (0/0)) $ show $ runWith "descriptive([f()])"        [("f",[],constF $ numO 1)]
-                assertEqual (       eval $ mkDesc (1,1) 2 4 2  1     0 (-2))            $ runWith "descriptive([f(),3])"      [("f",[],constF $ numO 1)]
-                assertEqual (       eval $ mkDesc (1,1) 3 6 2 (2/3)  0 (-1.5))          $ runWith "descriptive([f(),2,3])"    [("f",[],constF $ numO 1)]
-                assertEqual (       eval $ mkDesc (1,1) 4 0 0 12.5  sk  ku)             $ runWith "descriptive([f(),2,3,-6])" [("f",[],constF $ numO 1)]
-                                     
-                assertEqual (show $ eval $ mkDesc (1,1) 1 1 1  0    (0/0) (0/0)) $ show $ runWith "descriptive(f())" [("f",[],constF $ ArrO (1,8) [numO 1])]
-                assertEqual (       eval $ mkDesc (1,1) 2 4 2  1     0 (-2))            $ runWith "descriptive(f())" [("f",[],constF $ ArrO (1,8) [numO 1,numO 3])]
-                assertEqual (       eval $ mkDesc (1,1) 3 6 2 (2/3)  0 (-1.5))          $ runWith "descriptive(f())" [("f",[],constF $ ArrO (1,8) [numO 1,numO 2,numO 3])]
-                assertEqual (       eval $ mkDesc (1,1) 4 0 0 12.5  sk  ku)             $ runWith "descriptive(f())" [("f",[],constF $ ArrO (1,8) [numO 1,numO 2,numO 3,numO (-6)])]
+test_Multi = do  assertEqual (Right $ NumO (1,1) 1) $ run     "multi([1])"
+                 assertEqual (Right $ NumO (1,1) 2) $ run     "multi([1,2])"
+                 assertEqual (Right $ NumO (1,1) 6) $ run     "multi([1,2,3])"
+                 assertEqual (Right $ NumO (1,1) 0) $ run     "multi([1,2,3,0])"
 
-test_Table = do assertEqual (Right $ TableO (1,1) [[NumO (1,9) 0]] [])                                                $ run     "table([[0]],{})"
-                assertEqual (Right $ TableO (1,1) [[NumO (1,9) 0]] [])                                                $ run     "table([[0]],{not:[\"no\"]})"
-                assertEqual (Right $ TableO (1,1) [[NumO (1,9) 0]] [StrO (1,19) "1"])                                 $ run     "table([[0]],{col:[\"1\"]})"
-                assertEqual (Right $ TableO (1,1) [[NumO (1,9) 0]] [StrO (1,30) "1"])                                 $ run     "table([[0]],{not:[\"no\"],col:[\"1\"]})"
-                                                                                                                      
-                assertEqual (Right $ TableO (1,1) [[NumO (1,9) 0],[NumO (1,13) 1]] [])                                $ run     "table([[0],[1]],{})"
-                assertEqual (Right $ TableO (1,1) [[NumO (1,9) 0],[NumO (1,13) 1]] [])                                $ run     "table([[0],[1]],{not:[\"no\"]})"
-                assertEqual (Right $ TableO (1,1) [[NumO (1,9) 0],[NumO (1,13) 1]] [StrO (1,23) "1",StrO (1,27) "2"]) $ run     "table([[0],[1]],{col:[\"1\",\"2\"]})"
-                assertEqual (Right $ TableO (1,1) [[NumO (1,9) 0],[NumO (1,13) 1]] [StrO (1,34) "1",StrO (1,38) "2"]) $ run     "table([[0],[1]],{not:[\"no\"],col:[\"1\",\"2\"]})"
-                
-                assertEqual (Right $ TableO (1,1) [[NumO (1,9) 0]] [])                                                $ runWith "table(f(),{})"                               [("f",[],constF $ ArrO (0,0) [ArrO (0,0) [NumO (1,9) 0]])]
-                assertEqual (Right $ TableO (1,1) [[NumO (1,9) 0]] [])                                                $ runWith "table(f(),{not:[\"no\"]})"                   [("f",[],constF $ ArrO (0,0) [ArrO (0,0) [NumO (1,9) 0]])]
-                assertEqual (Right $ TableO (1,1) [[NumO (1,9) 0]] [StrO (1,17) "1"])                                 $ runWith "table(f(),{col:[\"1\"]})"                    [("f",[],constF $ ArrO (0,0) [ArrO (0,0) [NumO (1,9) 0]])]
-                assertEqual (Right $ TableO (1,1) [[NumO (1,9) 0]] [StrO (1,28) "1"])                                 $ runWith "table(f(),{not:[\"no\"],col:[\"1\"]})"       [("f",[],constF $ ArrO (0,0) [ArrO (0,0) [NumO (1,9) 0]])]
+                 assertEqual (Right $ NumO (1,1) 1) $ runWith "multi([f()])"       [("f",numO 1)]
+                 assertEqual (Right $ NumO (1,1) 2) $ runWith "multi([f(),2])"     [("f",numO 1)]
+                 assertEqual (Right $ NumO (1,1) 6) $ runWith "multi([f(),2,3])"   [("f",numO 1)]
+                 assertEqual (Right $ NumO (1,1) 0) $ runWith "multi([f(),2,3,0])" [("f",numO 1)]
 
-                assertEqual (Right $ TableO (1,1) [[NumO (1,9) 0],[NumO (1,13) 1]] [])                                $ runWith "table(f(),{})"                               [("f",[],constF $ ArrO (0,0) [ArrO (0,0) [NumO (1,9) 0],ArrO (0,0) [NumO (1,13) 1]])]
-                assertEqual (Right $ TableO (1,1) [[NumO (1,9) 0],[NumO (1,13) 1]] [])                                $ runWith "table(f(),{not:[\"no\"]})"                   [("f",[],constF $ ArrO (0,0) [ArrO (0,0) [NumO (1,9) 0],ArrO (0,0) [NumO (1,13) 1]])]
-                assertEqual (Right $ TableO (1,1) [[NumO (1,9) 0],[NumO (1,13) 1]] [StrO (1,17) "1",StrO (1,21) "2"]) $ runWith "table(f(),{col:[\"1\",\"2\"]})"              [("f",[],constF $ ArrO (0,0) [ArrO (0,0) [NumO (1,9) 0],ArrO (0,0) [NumO (1,13) 1]])]
-                assertEqual (Right $ TableO (1,1) [[NumO (1,9) 0],[NumO (1,13) 1]] [StrO (1,28) "1",StrO (1,32) "2"]) $ runWith "table(f(),{not:[\"no\"],col:[\"1\",\"2\"]})" [("f",[],constF $ ArrO (0,0) [ArrO (0,0) [NumO (1,9) 0],ArrO (0,0) [NumO (1,13) 1]])]
-                
-                assertEqual (Right $ TableO (1,1) [[NumO (1,9) 0]] [])                                                $ runWith "table([[0]],f())"     [("f",[],constF $ ObjO (0,0) [])]
-                assertEqual (Right $ TableO (1,1) [[NumO (1,9) 0]] [])                                                $ runWith "table([[0]],f())"     [("f",[],constF $ ObjO (0,0) [("not",ArrO (0,0) [StrO (0,0) "no"])])]
-                assertEqual (Right $ TableO (1,1) [[NumO (1,9) 0]] [StrO (1,19) "1"])                                 $ runWith "table([[0]],f())"     [("f",[],constF $ ObjO (0,0) [("col",ArrO (0,0) [StrO (1,19) "1"])])]
-                assertEqual (Right $ TableO (1,1) [[NumO (1,9) 0]] [StrO (1,30) "1"])                                 $ runWith "table([[0]],f())"     [("f",[],constF $ ObjO (0,0) [("not",ArrO (0,0) [StrO (0,0) "no"]),("col",ArrO (0,0) [StrO (1,30) "1"])])]
+                 assertEqual (Right $ NumO (1,1) 1) $ runWith "multi(f())" [("f",ArrO (1,8) [numO 1])]
+                 assertEqual (Right $ NumO (1,1) 2) $ runWith "multi(f())" [("f",ArrO (1,8) [numO 1,numO 2])]
+                 assertEqual (Right $ NumO (1,1) 6) $ runWith "multi(f())" [("f",ArrO (1,8) [numO 1,numO 2,numO 3])]
+                 assertEqual (Right $ NumO (1,1) 0) $ runWith "multi(f())" [("f",ArrO (1,8) [numO 1,numO 2,numO 3,numO 0])]
 
-                assertEqual (Right $ TableO (1,1) [[NumO (1,9) 0],[NumO (1,13) 1]] [])                                $ runWith "table([[0],[1]],f())" [("f",[],constF $ ObjO (0,0) [])]
-                assertEqual (Right $ TableO (1,1) [[NumO (1,9) 0],[NumO (1,13) 1]] [])                                $ runWith "table([[0],[1]],f())" [("f",[],constF $ ObjO (0,0) [("not",ArrO (0,0) [StrO (0,0) "no"])])]
-                assertEqual (Right $ TableO (1,1) [[NumO (1,9) 0],[NumO (1,13) 1]] [StrO (1,23) "1",StrO (1,27) "2"]) $ runWith "table([[0],[1]],f())" [("f",[],constF $ ObjO (0,0) [("col",ArrO (0,0) [StrO (1,23) "1",StrO (1,27) "2"])])]
-                assertEqual (Right $ TableO (1,1) [[NumO (1,9) 0],[NumO (1,13) 1]] [StrO (1,34) "1",StrO (1,38) "2"]) $ runWith "table([[0],[1]],f())" [("f",[],constF $ ObjO (0,0) [("not",ArrO (0,0) [StrO (0,0) "no"]),("col",ArrO (0,0) [StrO (1,34) "1",StrO (1,38) "2"])])]
-                
-                assertEqual (Right $ TableO (1,1) [[NumO (1,9) 0]] [])                                                $ runWith "table(f(),g())" [("f",[],constF $ ArrO (0,0) [ArrO (0,0) [NumO (1,9) 0]]),                             ("g",[],constF $ ObjO (0,0) [])]                                                                                         
-                assertEqual (Right $ TableO (1,1) [[NumO (1,9) 0]] [])                                                $ runWith "table(g(),f())" [("g",[],constF $ ArrO (0,0) [ArrO (0,0) [NumO (1,9) 0]]),                             ("f",[],constF $ ObjO (0,0) [("not",ArrO (0,0) [StrO (0,0) "no"])])]                                                     
-                assertEqual (Right $ TableO (1,1) [[NumO (1,9) 0]] [StrO (1,17) "1"])                                 $ runWith "table(f(),g())" [("f",[],constF $ ArrO (0,0) [ArrO (0,0) [NumO (1,9) 0]]),                             ("g",[],constF $ ObjO (0,0) [("col",ArrO (0,0) [StrO (1,17) "1"])])]                                                     
-                assertEqual (Right $ TableO (1,1) [[NumO (1,9) 0]] [StrO (1,28) "1"])                                 $ runWith "table(g(),f())" [("g",[],constF $ ArrO (0,0) [ArrO (0,0) [NumO (1,9) 0]]),                             ("f",[],constF $ ObjO (0,0) [("not",ArrO (0,0) [StrO (0,0) "no"]),("col",ArrO (0,0) [StrO (1,28) "1"])])]                
-                                                                                                                                                                                                                                                                                                                                                                                              
-                assertEqual (Right $ TableO (1,1) [[NumO (1,9) 0],[NumO (1,13) 1]] [])                                $ runWith "table(f(),g())" [("f",[],constF $ ArrO (0,0) [ArrO (0,0) [NumO (1,9) 0],ArrO (0,0) [NumO (1,13) 1]]),  ("g",[],constF $ ObjO (0,0) [])]                                                                                         
-                assertEqual (Right $ TableO (1,1) [[NumO (1,9) 0],[NumO (1,13) 1]] [])                                $ runWith "table(g(),f())" [("g",[],constF $ ArrO (0,0) [ArrO (0,0) [NumO (1,9) 0],ArrO (0,0) [NumO (1,13) 1]]),  ("f",[],constF $ ObjO (0,0) [("not",ArrO (0,0) [StrO (0,0) "no"])])]                                                     
-                assertEqual (Right $ TableO (1,1) [[NumO (1,9) 0],[NumO (1,13) 1]] [StrO (1,17) "1",StrO (1,21) "2"]) $ runWith "table(f(),g())" [("f",[],constF $ ArrO (0,0) [ArrO (0,0) [NumO (1,9) 0],ArrO (0,0) [NumO (1,13) 1]]),  ("g",[],constF $ ObjO (0,0) [("col",ArrO (0,0) [StrO (1,17) "1",StrO (1,21) "2"])])]                                     
-                assertEqual (Right $ TableO (1,1) [[NumO (1,9) 0],[NumO (1,13) 1]] [StrO (1,28) "1",StrO (1,32) "2"]) $ runWith "table(g(),f())" [("g",[],constF $ ArrO (0,0) [ArrO (0,0) [NumO (1,9) 0],ArrO (0,0) [NumO (1,13) 1]]),  ("f",[],constF $ ObjO (0,0) [("not",ArrO (0,0) [StrO (0,0) "no"]),("col",ArrO (0,0) [StrO (1,28) "1",StrO (1,32) "2"])])]
-                
---
---prop_Table (P pf) (TableValidArgs g1ss g2s) useHeader = any (not.null) g1ss ==>
---  let (g1@(ArrayT _ _ es),g2@(ObjT _ _ ps),expected) = mkTableValidArgs pf g1ss g2s useHeader in
---   expected == applyFunc funcs pf "table" [g1, g2] &&
---   expected == evalStateT (tableF pf (map unsafeMarshall es) (map unsafeMarshallP ps)) []
---
---prop_NTimes (P pf) a1@(NumTA _ (NumT p1 _ _ v1)) a2@(NumTA _ (NumT _ _ _ v2)) =
---  let expected = Right $ ArrayO pf $ replicate (floor v2) (NumO p1 v1) in
---      expected == applyFunc funcs pf "nTimes" [un a1, un a2] &&
---      expected == evalStateT (nTimesF pf (NumO p1 v1) v2) []
---prop_NTimes _ x y = error $ "EngineTest::prop_NTimes [Unexpected pattern ["++show x++"] and ["++show y++"]]"
---
---prop_TakeTable (P pf) (NumTA _ a1@(NumT _ _ _ v)) (TableOA a2tr@(TableO _ cols header)) = any (not.null) cols ==>
---  let (fs,a2t) = addFunc' "mkTable" a2tr; n = floor v; expected = Right $ TableO pf (map (take n) cols) header in
---   expected == applyFunc fs  pf "take" [a1,a2t] &&
---   expected == evalStateT (takeTF pf n cols header) []
---prop_TakeTable _ x y = error $ "EngineTest::prop_Take [Unexpected pattern ["++show x++"] and ["++show y++"]]"
---
---prop_TakeArray (P pf) (NumTA _ a1@(NumT _ _ _ v)) a2as = not (null a2as) ==>
---  let n = floor v; (a2s,a2a) = mk' a2as; a2ar = map unsafeMarshall a2s; expected = Right $ ArrayO pf $ take n a2ar in
---   expected == applyFunc funcs pf "take" [a1,a2a] &&
---   expected == evalStateT (takeAF pf n a2ar) []
---prop_TakeArray _ x y = error $ "EngineTest::prop_Take [Unexpected pattern ["++show x++"] and ["++show y++"]]"
---
---prop_SortTable (P pf) (NumTA _ a1') (TableOA a2tr@(TableO _ cols header)) = any (not.null) cols ==>
---  let (a1,n) = keepInRange a1' (length cols); (fs,a2t) = addFunc' "mkTable" a2tr; expected = Right $ TableO pf (sortTOn n cols) header in
---   expected == applyFunc fs    pf "sort" [a1,a2t] &&
---   expected == evalStateT (sortTF pf p0 n cols header) []
---prop_SortTable _ x y = error $ "EngineTest::prop_Take [Unexpected pattern ["++show x++"] and ["++show y++"]]"
---
---prop_SortArray (P pf) (NumTA _ a1') (TableValidArgs g2ss _) = any (not.null) g2ss ==>
---  let (n, a1,aOfArrays,arrays,mArrays) = mkSortColArray a1' g2ss; expected = Right $ ArrayO pf (sortAOn n $ map unsafeMarshall arrays)in
---   expected == applyFunc funcs pf "sort" [a1,aOfArrays] &&
---   expected == evalStateT (sortAF pf p0 n mArrays) []
---
---prop_ColTable (P pf) (NumTA _ a1') (TableOA a2tr@(TableO _ cols _)) = any (not.null) cols ==>
---  let (a1,n) = keepInRange a1' (length cols); (fs,a2t) = addFunc' "mkTable" a2tr; expected = Right $ ArrayO pf (cols !! n) in
---   expected == applyFunc fs    pf "col" [a1,a2t] &&
---   expected == evalStateT (colTF pf p0 n cols) []
---prop_ColTable _ x y = error $ "EngineTest::prop_Take [Unexpected pattern ["++show x++"] and ["++show y++"]]"
---
---prop_ColArray (P pf) (NumTA _ a1') (TableValidArgs g2ss _) = any (not.null) g2ss ==>
---  let (n, a1,aOfArrays,arrays,mArrays) = mkSortColArray a1' g2ss; expected = Right $ let ArrayO _ es = unsafeMarshall $ arrays !! n in ArrayO pf es in
---   expected == applyFunc funcs pf "col" [a1,aOfArrays] &&
---   expected == evalStateT (colAF pf p0 n mArrays) []
---
---{-| Mandatory type signatures -}
---prop_Show      :: P      -> [ExpOA]            -> Property
---prop_Multi     :: P -> P -> [AtomTA]           -> Property
---prop_Mean      :: P -> P -> [AtomTA]           -> Property
---prop_Desc      :: P -> P -> [AtomTA]           -> Property
---prop_Table     :: P -> TableValidArgs -> Bool  -> Property
---prop_TakeTable :: P -> NumTA -> TableOA        -> Property
---prop_TakeArray :: P -> NumTA -> [ExpTS]        -> Property
---prop_SortTable :: P -> NumTA ->  TableOA       -> Property
---prop_SortArray :: P -> NumTA -> TableValidArgs -> Property
---prop_ColTable :: P -> NumTA ->  TableOA        -> Property
---prop_ColArray :: P -> NumTA -> TableValidArgs  -> Property
+test_Mean = do   assertEqual (Right $ NumO (1,1) 1) $ run     "mean([1])"
+                 assertEqual (Right $ NumO (1,1) 2) $ run     "mean([1,3])"
+                 assertEqual (Right $ NumO (1,1) 2) $ run     "mean([1,2,3])"
+                 assertEqual (Right $ NumO (1,1) 0) $ run     "mean([1,2,3,-6])"
+
+                 assertEqual (Right $ NumO (1,1) 1) $ runWith "mean([f()])"       [("f",numO 1)]
+                 assertEqual (Right $ NumO (1,1) 2) $ runWith "mean([f(),3])"     [("f",numO 1)]
+                 assertEqual (Right $ NumO (1,1) 2) $ runWith "mean([f(),2,3])"   [("f",numO 1)]
+                 assertEqual (Right $ NumO (1,1) 0) $ runWith "mean([f(),2,3,-6])" [("f",numO 1)]
+
+                 assertEqual (Right $ NumO (1,1) 1) $ runWith "mean(f())" [("f",ArrO (1,8) [numO 1])]
+                 assertEqual (Right $ NumO (1,1) 2) $ runWith "mean(f())" [("f",ArrO (1,8) [numO 1,numO 3])]
+                 assertEqual (Right $ NumO (1,1) 2) $ runWith "mean(f())" [("f",ArrO (1,8) [numO 1,numO 2,numO 3])]
+                 assertEqual (Right $ NumO (1,1) 0) $ runWith "mean(f())" [("f",ArrO (1,8) [numO 1,numO 2,numO 3,numO (-6)])]
+
+test_Desc = let  sk = (-1.0182337649086284); ku = (-0.7696000000000001) in do
+                 assertEqual (show $ eval $ mkDesc (1,1) 1 1 1  0    (0/0) (0/0)) $ show $ run     "descriptive([1])"
+                 assertEqual (       eval $ mkDesc (1,1) 2 4 2  1     0 (-2))            $ run     "descriptive([1,3])"
+                 assertEqual (       eval $ mkDesc (1,1) 3 6 2 (2/3)  0 (-1.5))          $ run     "descriptive([1,2,3])"
+                 assertEqual (       eval $ mkDesc (1,1) 4 0 0 12.5  sk  ku)             $ run     "descriptive([1,2,3,-6])"
+
+                 assertEqual (show $ eval $ mkDesc (1,1) 1 1 1  0    (0/0) (0/0)) $ show $ runWith "descriptive([f()])"        [("f",numO 1)]
+                 assertEqual (       eval $ mkDesc (1,1) 2 4 2  1     0 (-2))            $ runWith "descriptive([f(),3])"      [("f",numO 1)]
+                 assertEqual (       eval $ mkDesc (1,1) 3 6 2 (2/3)  0 (-1.5))          $ runWith "descriptive([f(),2,3])"    [("f",numO 1)]
+                 assertEqual (       eval $ mkDesc (1,1) 4 0 0 12.5  sk  ku)             $ runWith "descriptive([f(),2,3,-6])" [("f",numO 1)]
+
+                 assertEqual (show $ eval $ mkDesc (1,1) 1 1 1  0    (0/0) (0/0)) $ show $ runWith "descriptive(f())" [("f",ArrO (1,8) [numO 1])]
+                 assertEqual (       eval $ mkDesc (1,1) 2 4 2  1     0 (-2))            $ runWith "descriptive(f())" [("f",ArrO (1,8) [numO 1,numO 3])]
+                 assertEqual (       eval $ mkDesc (1,1) 3 6 2 (2/3)  0 (-1.5))          $ runWith "descriptive(f())" [("f",ArrO (1,8) [numO 1,numO 2,numO 3])]
+                 assertEqual (       eval $ mkDesc (1,1) 4 0 0 12.5  sk  ku)             $ runWith "descriptive(f())" [("f",ArrO (1,8) [numO 1,numO 2,numO 3,numO (-6)])]
+
+test_Table = do  assertEqual (Right $ TableO (1,1) [[NumO (1,9) 0]] [])                                                $ run     "table([[0]],{})"
+                 assertEqual (Right $ TableO (1,1) [[NumO (1,9) 0]] [])                                                $ run     "table([[0]],{not:[]})"
+                 assertEqual (Right $ TableO (1,1) [[NumO (1,9) 0]] [StrO (1,19) "1"])                                 $ run     "table([[0]],{col:[\"1\"]})"
+                 assertEqual (Right $ TableO (1,1) [[NumO (1,9) 0]] [StrO (1,26) "1"])                                 $ run     "table([[0]],{not:[],col:[\"1\"]})"
+
+                 assertEqual (Right $ TableO (1,1) [[NumO (1,9) 0],[NumO (1,13) 1]] [])                                $ run     "table([[0],[1]],{})"
+                 assertEqual (Right $ TableO (1,1) [[NumO (1,9) 0],[NumO (1,13) 1]] [])                                $ run     "table([[0],[1]],{not:[]})"
+                 assertEqual (Right $ TableO (1,1) [[NumO (1,9) 0],[NumO (1,13) 1]] [StrO (1,23) "1",StrO (1,27) "2"]) $ run     "table([[0],[1]],{col:[\"1\",\"2\"]})"
+                 assertEqual (Right $ TableO (1,1) [[NumO (1,9) 0],[NumO (1,13) 1]] [StrO (1,30) "1",StrO (1,34) "2"]) $ run     "table([[0],[1]],{not:[],col:[\"1\",\"2\"]})"
+
+                 assertEqual (Right $ TableO (1,1) [[NumO (1,9) 0]] [])                                                $ runWith "table(f(),{})"                         [("f",ArrO (0,0) [ArrO (0,0) [NumO (1,9) 0]])]
+                 assertEqual (Right $ TableO (1,1) [[NumO (1,9) 0]] [])                                                $ runWith "table(f(),{not:[]})"                   [("f",ArrO (0,0) [ArrO (0,0) [NumO (1,9) 0]])]
+                 assertEqual (Right $ TableO (1,1) [[NumO (1,9) 0]] [StrO (1,17) "1"])                                 $ runWith "table(f(),{col:[\"1\"]})"              [("f",ArrO (0,0) [ArrO (0,0) [NumO (1,9) 0]])]
+                 assertEqual (Right $ TableO (1,1) [[NumO (1,9) 0]] [StrO (1,24) "1"])                                 $ runWith "table(f(),{not:[],col:[\"1\"]})"       [("f",ArrO (0,0) [ArrO (0,0) [NumO (1,9) 0]])]
+
+                 assertEqual (Right $ TableO (1,1) [[NumO (1,9) 0],[NumO (1,13) 1]] [])                                $ runWith "table(f(),{})"                         [("f",ArrO (0,0) [ArrO (0,0) [NumO (1,9) 0],ArrO (0,0) [NumO (1,13) 1]])]
+                 assertEqual (Right $ TableO (1,1) [[NumO (1,9) 0],[NumO (1,13) 1]] [])                                $ runWith "table(f(),{not:[]})"                   [("f",ArrO (0,0) [ArrO (0,0) [NumO (1,9) 0],ArrO (0,0) [NumO (1,13) 1]])]
+                 assertEqual (Right $ TableO (1,1) [[NumO (1,9) 0],[NumO (1,13) 1]] [StrO (1,17) "1",StrO (1,21) "2"]) $ runWith "table(f(),{col:[\"1\",\"2\"]})"        [("f",ArrO (0,0) [ArrO (0,0) [NumO (1,9) 0],ArrO (0,0) [NumO (1,13) 1]])]
+                 assertEqual (Right $ TableO (1,1) [[NumO (1,9) 0],[NumO (1,13) 1]] [StrO (1,24) "1",StrO (1,28) "2"]) $ runWith "table(f(),{not:[],col:[\"1\",\"2\"]})" [("f",ArrO (0,0) [ArrO (0,0) [NumO (1,9) 0],ArrO (0,0) [NumO (1,13) 1]])]
+
+                 assertEqual (Right $ TableO (1,1) [[NumO (1,9) 0]] [])                                                $ runWith "table([[0]],f())"     [("f",ObjO (0,0) [])]
+                 assertEqual (Right $ TableO (1,1) [[NumO (1,9) 0]] [])                                                $ runWith "table([[0]],f())"     [("f",ObjO (0,0) [("not",ArrO (0,0) [])])]
+                 assertEqual (Right $ TableO (1,1) [[NumO (1,9) 0]] [StrO (1,19) "1"])                                 $ runWith "table([[0]],f())"     [("f",ObjO (0,0) [("col",ArrO (0,0) [StrO (1,19) "1"])])]
+                 assertEqual (Right $ TableO (1,1) [[NumO (1,9) 0]] [StrO (1,26) "1"])                                 $ runWith "table([[0]],f())"     [("f",ObjO (0,0) [("not",ArrO (0,0) []),("col",ArrO (0,0) [StrO (1,26) "1"])])]
+
+                 assertEqual (Right $ TableO (1,1) [[NumO (1,9) 0],[NumO (1,13) 1]] [])                                $ runWith "table([[0],[1]],f())" [("f",ObjO (0,0) [])]
+                 assertEqual (Right $ TableO (1,1) [[NumO (1,9) 0],[NumO (1,13) 1]] [])                                $ runWith "table([[0],[1]],f())" [("f",ObjO (0,0) [("not",ArrO (0,0) [])])]
+                 assertEqual (Right $ TableO (1,1) [[NumO (1,9) 0],[NumO (1,13) 1]] [StrO (1,23) "1",StrO (1,27) "2"]) $ runWith "table([[0],[1]],f())" [("f",ObjO (0,0) [("col",ArrO (0,0) [StrO (1,23) "1",StrO (1,27) "2"])])]
+                 assertEqual (Right $ TableO (1,1) [[NumO (1,9) 0],[NumO (1,13) 1]] [StrO (1,34) "1",StrO (1,38) "2"]) $ runWith "table([[0],[1]],f())" [("f",ObjO (0,0) [("not",ArrO (0,0) []),("col",ArrO (0,0) [StrO (1,34) "1",StrO (1,38) "2"])])]
+
+                 assertEqual (Right $ TableO (1,1) [[NumO (1,9) 0]] [])                                                $ runWith "table(f(),g())" [("f",ArrO (0,0) [ArrO (0,0) [NumO (1,9) 0]]),                             ("g",ObjO (0,0) [])]
+                 assertEqual (Right $ TableO (1,1) [[NumO (1,9) 0]] [])                                                $ runWith "table(g(),f())" [("g",ArrO (0,0) [ArrO (0,0) [NumO (1,9) 0]]),                             ("f",ObjO (0,0) [("not",ArrO (0,0) [])])]
+                 assertEqual (Right $ TableO (1,1) [[NumO (1,9) 0]] [StrO (1,17) "1"])                                 $ runWith "table(f(),g())" [("f",ArrO (0,0) [ArrO (0,0) [NumO (1,9) 0]]),                             ("g",ObjO (0,0) [("col",ArrO (0,0) [StrO (1,17) "1"])])]
+                 assertEqual (Right $ TableO (1,1) [[NumO (1,9) 0]] [StrO (1,28) "1"])                                 $ runWith "table(g(),f())" [("g",ArrO (0,0) [ArrO (0,0) [NumO (1,9) 0]]),                             ("f",ObjO (0,0) [("not",ArrO (0,0) []),("col",ArrO (0,0) [StrO (1,28) "1"])])]
+
+                 assertEqual (Right $ TableO (1,1) [[NumO (1,9) 0],[NumO (1,13) 1]] [])                                $ runWith "table(f(),g())" [("f",ArrO (0,0) [ArrO (0,0) [NumO (1,9) 0],ArrO (0,0) [NumO (1,13) 1]]),  ("g",ObjO (0,0) [])]
+                 assertEqual (Right $ TableO (1,1) [[NumO (1,9) 0],[NumO (1,13) 1]] [])                                $ runWith "table(g(),f())" [("g",ArrO (0,0) [ArrO (0,0) [NumO (1,9) 0],ArrO (0,0) [NumO (1,13) 1]]),  ("f",ObjO (0,0) [("not",ArrO (0,0) [])])]
+                 assertEqual (Right $ TableO (1,1) [[NumO (1,9) 0],[NumO (1,13) 1]] [StrO (1,17) "1",StrO (1,21) "2"]) $ runWith "table(f(),g())" [("f",ArrO (0,0) [ArrO (0,0) [NumO (1,9) 0],ArrO (0,0) [NumO (1,13) 1]]),  ("g",ObjO (0,0) [("col",ArrO (0,0) [StrO (1,17) "1",StrO (1,21) "2"])])]
+                 assertEqual (Right $ TableO (1,1) [[NumO (1,9) 0],[NumO (1,13) 1]] [StrO (1,28) "1",StrO (1,32) "2"]) $ runWith "table(g(),f())" [("g",ArrO (0,0) [ArrO (0,0) [NumO (1,9) 0],ArrO (0,0) [NumO (1,13) 1]]),  ("f",ObjO (0,0) [("not",ArrO (0,0) []),("col",ArrO (0,0) [StrO (1,28) "1",StrO (1,32) "2"])])]
+
+test_NTimes = do assertEqual (Right $ ArrO (1,1) [])                           $ run     "nTimes(1,0)"
+                 assertEqual (Right $ ArrO (1,1) [NumO (1,8) 0])               $ run     "nTimes(0,1)"
+                 assertEqual (Right $ ArrO (1,1) [NumO (1,8) 1, NumO (1,8) 1]) $ run     "nTimes(1,2)"
+
+                 assertEqual (Right $ ArrO (1,1) [])                           $ runWith "nTimes(f(),0)" [("f",NumO (1,8) 1)]
+                 assertEqual (Right $ ArrO (1,1) [NumO (1,8) 0])               $ runWith "nTimes(f(),1)" [("f",NumO (1,8) 0)]
+                 assertEqual (Right $ ArrO (1,1) [NumO (1,8) 1, NumO (1,8) 1]) $ runWith "nTimes(f(),2)" [("f",NumO (1,8) 1)]
+
+                 assertEqual (Right $ ArrO (1,1) [])                           $ runWith "nTimes(1,f())" [("f",NumO (0,0) 0)]
+                 assertEqual (Right $ ArrO (1,1) [NumO (1,8) 0])               $ runWith "nTimes(0,f())" [("f",NumO (0,0) 1)]
+                 assertEqual (Right $ ArrO (1,1) [NumO (1,8) 1, NumO (1,8) 1]) $ runWith "nTimes(1,f())" [("f",NumO (0,0) 2)]
+
+                 assertEqual (Right $ ArrO (1,1) [])                           $ runWith "nTimes(f(),g())" [("f",NumO (1,8) 1),("g",NumO (0,0) 0)]
+                 assertEqual (Right $ ArrO (1,1) [NumO (1,8) 0])               $ runWith "nTimes(g(),f())" [("g",NumO (1,8) 0),("f",NumO (0,0) 1)]
+                 assertEqual (Right $ ArrO (1,1) [NumO (1,8) 1, NumO (1,8) 1]) $ runWith "nTimes(f(),g())" [("f",NumO (1,8) 1),("g",NumO (0,0) 2)]
+
+test_Take = do   assertEqual (Right $ TableO (1,1) [] [])                                                        $ runWith "take(1,f())" [("f",TableO (0,0) [] [])]
+                 assertEqual (Right $ TableO (1,1) [[NumO (0,0) 0]] [])                                          $ runWith "take(1,f())" [("f",TableO (0,0) [[NumO (0,0) 0]] [])]
+                 assertEqual (Right $ TableO (1,1) [[NumO (0,0) 0]] [])                                          $ runWith "take(2,f())" [("f",TableO (0,0) [[NumO (0,0) 0]] [])]
+                 assertEqual (Right $ TableO (1,1) [[NumO (0,0) 0]] [])                                          $ runWith "take(3,f())" [("f",TableO (0,0) [[NumO (0,0) 0]] [])]
+                 assertEqual (Right $ TableO (1,1) [[NumO (0,0) 0],[NumO (1,0) 0]] [])                           $ runWith "take(1,f())" [("f",TableO (0,0) [[NumO (0,0) 0,NumO (0,1) 1],[NumO (1,0) 0,NumO (1,1) 1]] [])]
+                 assertEqual (Right $ TableO (1,1) [[NumO (0,0) 0,NumO (0,1) 1],[NumO (1,0) 0,NumO (1,1) 1]] []) $ runWith "take(2,f())" [("f",TableO (0,0) [[NumO (0,0) 0,NumO (0,1) 1],[NumO (1,0) 0,NumO (1,1) 1]] [])]
+                 assertEqual (Right $ TableO (1,1) [[NumO (0,0) 0,NumO (0,1) 1],[NumO (1,0) 0,NumO (1,1) 1]] []) $ runWith "take(3,f())" [("f",TableO (0,0) [[NumO (0,0) 0,NumO (0,1) 1],[NumO (1,0) 0,NumO (1,1) 1]] [])]
+
+                 assertEqual (Right $ TableO (1,1) [] [])                                                        $ runWith "take(f(),g())" [("f",NumO (0,0) 1),("g",TableO (0,0) [] [])]
+                 assertEqual (Right $ TableO (1,1) [[NumO (0,0) 0]] [])                                          $ runWith "take(f(),g())" [("f",NumO (0,0) 1),("g",TableO (0,0) [[NumO (0,0) 0]] [])]
+                 assertEqual (Right $ TableO (1,1) [[NumO (0,0) 0]] [])                                          $ runWith "take(f(),g())" [("f",NumO (0,0) 2),("g",TableO (0,0) [[NumO (0,0) 0]] [])]
+                 assertEqual (Right $ TableO (1,1) [[NumO (0,0) 0]] [])                                          $ runWith "take(f(),g())" [("f",NumO (0,0) 3),("g",TableO (0,0) [[NumO (0,0) 0]] [])]
+                 assertEqual (Right $ TableO (1,1) [[NumO (0,0) 0],[NumO (1,0) 0]] [])                           $ runWith "take(f(),g())" [("f",NumO (0,0) 1),("g",TableO (0,0) [[NumO (0,0) 0,NumO (0,1) 1],[NumO (1,0) 0,NumO (1,1) 1]] [])]
+                 assertEqual (Right $ TableO (1,1) [[NumO (0,0) 0,NumO (0,1) 1],[NumO (1,0) 0,NumO (1,1) 1]] []) $ runWith "take(f(),g())" [("f",NumO (0,0) 2),("g",TableO (0,0) [[NumO (0,0) 0,NumO (0,1) 1],[NumO (1,0) 0,NumO (1,1) 1]] [])]
+                 assertEqual (Right $ TableO (1,1) [[NumO (0,0) 0,NumO (0,1) 1],[NumO (1,0) 0,NumO (1,1) 1]] []) $ runWith "take(f(),g())" [("f",NumO (0,0) 3),("g",TableO (0,0) [[NumO (0,0) 0,NumO (0,1) 1],[NumO (1,0) 0,NumO (1,1) 1]] [])]
+ 
+                 assertEqual (Right $ ArrO (1,1) [])                            $ run     "take(0,[])"
+                 assertEqual (Right $ ArrO (1,1) [])                            $ run     "take(1,[])"
+                 assertEqual (Right $ ArrO (1,1) [])                            $ run     "take(0,[0])"
+                 assertEqual (Right $ ArrO (1,1) [NumO (1,9) 0])                $ run     "take(1,[0])"
+                 assertEqual (Right $ ArrO (1,1) [NumO (1,9) 0])                $ run     "take(2,[0])"
+                 assertEqual (Right $ ArrO (1,1) [])                            $ run     "take(0,[0,1])"
+                 assertEqual (Right $ ArrO (1,1) [NumO (1,9) 0])                $ run     "take(1,[0,1])"
+                 assertEqual (Right $ ArrO (1,1) [NumO (1,9) 0,NumO (1,11) 1])  $ run     "take(2,[0,1])"
+                 assertEqual (Right $ ArrO (1,1) [NumO (1,9) 0,NumO (1,11) 1])  $ run     "take(3,[0,1])"
+
+                 assertEqual (Right $ ArrO (1,1) [])                            $ runWith "take(f(),[])"    [("f",NumO (0,0) 0)]
+                 assertEqual (Right $ ArrO (1,1) [])                            $ runWith "take(f(),[])"    [("f",NumO (0,0) 1)]
+                 assertEqual (Right $ ArrO (1,1) [])                            $ runWith "take(f(),[0])"   [("f",NumO (0,0) 0)]
+                 assertEqual (Right $ ArrO (1,1) [NumO (1,11) 0])               $ runWith "take(f(),[0])"   [("f",NumO (0,0) 1)]
+                 assertEqual (Right $ ArrO (1,1) [NumO (1,11) 0])               $ runWith "take(f(),[0])"   [("f",NumO (0,0) 2)]
+                 assertEqual (Right $ ArrO (1,1) [])                            $ runWith "take(f(),[0,1])" [("f",NumO (0,0) 0)]
+                 assertEqual (Right $ ArrO (1,1) [NumO (1,11) 0])               $ runWith "take(f(),[0,1])" [("f",NumO (0,0) 1)]
+                 assertEqual (Right $ ArrO (1,1) [NumO (1,11) 0,NumO (1,13) 1]) $ runWith "take(f(),[0,1])" [("f",NumO (0,0) 2)]
+                 assertEqual (Right $ ArrO (1,1) [NumO (1,11) 0,NumO (1,13) 1]) $ runWith "take(f(),[0,1])" [("f",NumO (0,0) 3)]
+
+                 assertEqual (Right $ ArrO (1,1) [])                            $ runWith "take(0,f())"     [("f",ArrO (0,0) [])]
+                 assertEqual (Right $ ArrO (1,1) [])                            $ runWith "take(1,f())"     [("f",ArrO (0,0) [])]
+                 assertEqual (Right $ ArrO (1,1) [])                            $ runWith "take(0,f())"     [("f",ArrO (0,0) [NumO (1,9) 0])]
+                 assertEqual (Right $ ArrO (1,1) [NumO (1,9) 0])                $ runWith "take(1,f())"     [("f",ArrO (0,0) [NumO (1,9) 0])]
+                 assertEqual (Right $ ArrO (1,1) [NumO (1,9) 0])                $ runWith "take(2,f())"     [("f",ArrO (0,0) [NumO (1,9) 0])]
+                 assertEqual (Right $ ArrO (1,1) [])                            $ runWith "take(0,f())"     [("f",ArrO (0,0) [NumO (1,9) 0,NumO (1,11) 1])]
+                 assertEqual (Right $ ArrO (1,1) [NumO (1,9) 0])                $ runWith "take(1,f())"     [("f",ArrO (0,0) [NumO (1,9) 0,NumO (1,11) 1])]
+                 assertEqual (Right $ ArrO (1,1) [NumO (1,9) 0,NumO (1,11) 1])  $ runWith "take(2,f())"     [("f",ArrO (0,0) [NumO (1,9) 0,NumO (1,11) 1])]
+                 assertEqual (Right $ ArrO (1,1) [NumO (1,9) 0,NumO (1,11) 1])  $ runWith "take(3,f())"     [("f",ArrO (0,0) [NumO (1,9) 0,NumO (1,11) 1])]
+
+                 assertEqual (Right $ ArrO (1,1) [])                            $ runWith "take(f(),g())"   [("f",NumO (0,0) 0),("g",ArrO (0,0) [])]
+                 assertEqual (Right $ ArrO (1,1) [])                            $ runWith "take(f(),g())"   [("f",NumO (0,0) 1),("g",ArrO (0,0) [])]
+                 assertEqual (Right $ ArrO (1,1) [])                            $ runWith "take(f(),g())"   [("f",NumO (0,0) 0),("g",ArrO (0,0) [NumO (1,11) 0])]
+                 assertEqual (Right $ ArrO (1,1) [NumO (1,11) 0])               $ runWith "take(f(),g())"   [("f",NumO (0,0) 1),("g",ArrO (0,0) [NumO (1,11) 0])]
+                 assertEqual (Right $ ArrO (1,1) [NumO (1,11) 0])               $ runWith "take(f(),g())"   [("f",NumO (0,0) 2),("g",ArrO (0,0) [NumO (1,11) 0])]
+                 assertEqual (Right $ ArrO (1,1) [])                            $ runWith "take(f(),g())"   [("f",NumO (0,0) 0),("g",ArrO (0,0) [NumO (1,11) 0,NumO (1,13) 1])]
+                 assertEqual (Right $ ArrO (1,1) [NumO (1,11) 0])               $ runWith "take(f(),g())"   [("f",NumO (0,0) 1),("g",ArrO (0,0) [NumO (1,11) 0,NumO (1,13) 1])]
+                 assertEqual (Right $ ArrO (1,1) [NumO (1,11) 0,NumO (1,13) 1]) $ runWith "take(f(),g())"   [("f",NumO (0,0) 2),("g",ArrO (0,0) [NumO (1,11) 0,NumO (1,13) 1])]
+                 assertEqual (Right $ ArrO (1,1) [NumO (1,11) 0,NumO (1,13) 1]) $ runWith "take(f(),g())"   [("f",NumO (0,0) 3),("g",ArrO (0,0) [NumO (1,11) 0,NumO (1,13) 1])]
+
+test_Sort = do   assertEqual (Right $ TableO (1,1) [[NumO (0,0) 0],[NumO (0,1) 1]] [])                                                     $ runWith "sort(0,f())" [("f",TableO (0,0) [[NumO (0,0) 0],[NumO (0,1) 1]] [])]
+                 assertEqual (Right $ TableO (1,1) [[NumO (0,0) 0],[NumO (0,1) 1]] [])                                                     $ runWith "sort(1,f())" [("f",TableO (0,0) [[NumO (0,0) 0],[NumO (0,1) 1]] [])]
+                 assertEqual (Right $ TableO (1,1) [[NumO (0,1) 0,NumO (0,0) 1,NumO (0,2) 2],[NumO (1,1) 2,NumO (1,0) 3,NumO (1,2) 1]] []) $ runWith "sort(0,f())" [("f",TableO (0,0) [[NumO (0,0) 1,NumO (0,1) 0,NumO (0,2) 2],[NumO (1,0) 3,NumO (1,1) 2,NumO (1,2) 1]] [])]
+                 assertEqual (Right $ TableO (1,1) [[NumO (0,2) 2,NumO (0,1) 0,NumO (0,0) 1],[NumO (1,2) 1,NumO (1,1) 2,NumO (1,0) 3]] []) $ runWith "sort(1,f())" [("f",TableO (0,0) [[NumO (0,0) 1,NumO (0,1) 0,NumO (0,2) 2],[NumO (1,0) 3,NumO (1,1) 2,NumO (1,2) 1]] [])]
+
+                 assertEqual (Right $ TableO (1,1) [[NumO (0,0) 0],[NumO (0,1) 1]] [])                                                     $ runWith "sort(f(),g())" [("f",NumO (1,6) 0),("g",TableO (0,0) [[NumO (0,0) 0],[NumO (0,1) 1]] [])]
+                 assertEqual (Right $ TableO (1,1) [[NumO (0,0) 0],[NumO (0,1) 1]] [])                                                     $ runWith "sort(f(),g())" [("f",NumO (1,6) 1),("g",TableO (0,0) [[NumO (0,0) 0],[NumO (0,1) 1]] [])]
+                 assertEqual (Right $ TableO (1,1) [[NumO (0,1) 0,NumO (0,0) 1,NumO (0,2) 2],[NumO (1,1) 2,NumO (1,0) 3,NumO (1,2) 1]] []) $ runWith "sort(f(),g())" [("f",NumO (1,6) 0),("g",TableO (0,0) [[NumO (0,0) 1,NumO (0,1) 0,NumO (0,2) 2],[NumO (1,0) 3,NumO (1,1) 2,NumO (1,2) 1]] [])]
+                 assertEqual (Right $ TableO (1,1) [[NumO (0,2) 2,NumO (0,1) 0,NumO (0,0) 1],[NumO (1,2) 1,NumO (1,1) 2,NumO (1,0) 3]] []) $ runWith "sort(f(),g())" [("f",NumO (1,6) 1),("g",TableO (0,0) [[NumO (0,0) 1,NumO (0,1) 0,NumO (0,2) 2],[NumO (1,0) 3,NumO (1,1) 2,NumO (1,2) 1]] [])]
+
+                 assertEqual (Right $ ArrO (1,1) [ArrO (1,9) [NumO (1,10) 0],                            ArrO (1,13) [NumO (1,14) 1]])                             $ run     "sort(0,[[0],[1]])"
+                 assertEqual (Right $ ArrO (1,1) [ArrO (1,9) [NumO (1,10) 0],                            ArrO (1,13) [NumO (1,14) 1]])                             $ run     "sort(1,[[0],[1]])"
+                 assertEqual (Right $ ArrO (1,1) [ArrO (1,9) [NumO (1,12) 0,NumO (1,10) 1,NumO (1,14) 2],ArrO (1,17) [NumO (1,20) 2,NumO (1,18) 3,NumO (1,22) 1]]) $ run     "sort(0,[[1,0,2],[3,2,1]])"
+                 assertEqual (Right $ ArrO (1,1) [ArrO (1,9) [NumO (1,14) 2,NumO (1,12) 0,NumO (1,10) 1],ArrO (1,17) [NumO (1,22) 1,NumO (1,20) 2,NumO (1,18) 3]]) $ run     "sort(1,[[1,0,2],[3,2,1]])"
+
+                 assertEqual (Right $ ArrO (1,1) [ArrO (1,9) [NumO (1,10) 0],                            ArrO (1,13) [NumO (1,14) 1]])                             $ runWith "sort(0,f())"                 [("f",ArrO (0,0) [ArrO (1,9) [NumO (1,10) 0],                            ArrO (1,13) [NumO (1,14) 1]])]
+                 assertEqual (Right $ ArrO (1,1) [ArrO (1,9) [NumO (1,10) 0],                            ArrO (1,13) [NumO (1,14) 1]])                             $ runWith "sort(1,f())"                 [("f",ArrO (0,0) [ArrO (1,9) [NumO (1,10) 0],                            ArrO (1,13) [NumO (1,14) 1]])]
+                 assertEqual (Right $ ArrO (1,1) [ArrO (1,9) [NumO (1,12) 0,NumO (1,10) 1,NumO (1,14) 2],ArrO (1,17) [NumO (1,20) 2,NumO (1,18) 3,NumO (1,22) 1]]) $ runWith "sort(0,f())"                 [("f",ArrO (0,0) [ArrO (1,9) [NumO (1,10) 1,NumO (1,12) 0,NumO (1,14) 2],ArrO (1,17) [NumO (1,18) 3,NumO (1,20) 2,NumO (1,22) 1]])]
+                 assertEqual (Right $ ArrO (1,1) [ArrO (1,9) [NumO (1,14) 2,NumO (1,12) 0,NumO (1,10) 1],ArrO (1,17) [NumO (1,22) 1,NumO (1,20) 2,NumO (1,18) 3]]) $ runWith "sort(1,f())"                 [("f",ArrO (0,0) [ArrO (1,9) [NumO (1,10) 1,NumO (1,12) 0,NumO (1,14) 2],ArrO (1,17) [NumO (1,18) 3,NumO (1,20) 2,NumO (1,22) 1]])]
+
+                 assertEqual (Right $ ArrO (1,1) [ArrO (1,11) [NumO (1,12) 0],                             ArrO (1,15) [NumO (1,16) 1]])                            $ runWith "sort(f(),[[0],[1]])"         [("f",NumO (0,0) 0)]
+                 assertEqual (Right $ ArrO (1,1) [ArrO (1,11) [NumO (1,12) 0],                             ArrO (1,15) [NumO (1,16) 1]])                            $ runWith "sort(f(),[[0],[1]])"         [("f",NumO (0,0) 1)]
+                 assertEqual (Right $ ArrO (1,1) [ArrO (1,11) [NumO (1,14) 0,NumO (1,12) 1,NumO (1,16) 2],ArrO (1,19) [NumO (1,22) 2,NumO (1,20) 3,NumO (1,24) 1]]) $ runWith "sort(f(),[[1,0,2],[3,2,1]])" [("f",NumO (0,0) 0)]
+                 assertEqual (Right $ ArrO (1,1) [ArrO (1,11) [NumO (1,16) 2,NumO (1,14) 0,NumO (1,12) 1],ArrO (1,19) [NumO (1,24) 1,NumO (1,22) 2,NumO (1,20) 3]]) $ runWith "sort(f(),[[1,0,2],[3,2,1]])" [("f",NumO (0,0) 1)]
+
+                 assertEqual (Right $ ArrO (1,1) [ArrO (1,9) [NumO (1,10) 0],                            ArrO (1,13) [NumO (1,14) 1]])                             $ runWith "sort(f(),g())"               [("f",NumO (0,0) 0),("g",ArrO (1,1) [ArrO (1,9) [NumO (1,10) 0],                            ArrO (1,13) [NumO (1,14) 1]])]
+                 assertEqual (Right $ ArrO (1,1) [ArrO (1,9) [NumO (1,10) 0],                            ArrO (1,13) [NumO (1,14) 1]])                             $ runWith "sort(f(),g())"               [("f",NumO (0,0) 1),("g",ArrO (1,1) [ArrO (1,9) [NumO (1,10) 0],                            ArrO (1,13) [NumO (1,14) 1]])]
+                 assertEqual (Right $ ArrO (1,1) [ArrO (1,9) [NumO (1,12) 0,NumO (1,10) 1,NumO (1,14) 2],ArrO (1,17) [NumO (1,20) 2,NumO (1,18) 3,NumO (1,22) 1]]) $ runWith "sort(f(),g())"               [("f",NumO (0,0) 0),("g",ArrO (1,1) [ArrO (1,9) [NumO (1,10) 1,NumO (1,12) 0,NumO (1,14) 2],ArrO (1,17) [NumO (1,18) 3,NumO (1,20) 2,NumO (1,22) 1]])]
+                 assertEqual (Right $ ArrO (1,1) [ArrO (1,9) [NumO (1,14) 2,NumO (1,12) 0,NumO (1,10) 1],ArrO (1,17) [NumO (1,22) 1,NumO (1,20) 2,NumO (1,18) 3]]) $ runWith "sort(f(),g())"               [("f",NumO (0,0) 1),("g",ArrO (1,1) [ArrO (1,9) [NumO (1,10) 1,NumO (1,12) 0,NumO (1,14) 2],ArrO (1,17) [NumO (1,18) 3,NumO (1,20) 2,NumO (1,22) 1]])]
+
+test_Col = do    assertEqual (Right $ ArrO (1,1) [NumO (0,0) 0])                              $ runWith "col(0,f())" [("f",TableO (0,0) [[NumO (0,0) 0],[NumO (0,1) 1]] [])]
+                 assertEqual (Right $ ArrO (1,1) [NumO (0,1) 1])                              $ runWith "col(1,f())" [("f",TableO (0,0) [[NumO (0,0) 0],[NumO (0,1) 1]] [])]
+                 assertEqual (Right $ ArrO (1,1) [NumO (0,0) 1,NumO (0,1) 0,NumO (0,2) 2])    $ runWith "col(0,f())" [("f",TableO (0,0) [[NumO (0,0) 1,NumO (0,1) 0,NumO (0,2) 2],[NumO (1,0) 3,NumO (1,1) 2,NumO (1,2) 1]] [])]
+                 assertEqual (Right $ ArrO (1,1) [NumO (1,0) 3,NumO (1,1) 2,NumO (1,2) 1])    $ runWith "col(1,f())" [("f",TableO (0,0) [[NumO (0,0) 1,NumO (0,1) 0,NumO (0,2) 2],[NumO (1,0) 3,NumO (1,1) 2,NumO (1,2) 1]] [])]
+                                                                                                         
+                 assertEqual (Right $ ArrO (1,1) [NumO (0,0) 0])                              $ runWith "col(f(),g())" [("f",NumO (1,6) 0),("g",TableO (0,0) [[NumO (0,0) 0],[NumO (0,1) 1]] [])]
+                 assertEqual (Right $ ArrO (1,1) [NumO (0,1) 1])                              $ runWith "col(f(),g())" [("f",NumO (1,6) 1),("g",TableO (0,0) [[NumO (0,0) 0],[NumO (0,1) 1]] [])]
+                 assertEqual (Right $ ArrO (1,1) [NumO (0,0) 1,NumO (0,1) 0,NumO (0,2) 2])    $ runWith "col(f(),g())" [("f",NumO (1,6) 0),("g",TableO (0,0) [[NumO (0,0) 1,NumO (0,1) 0,NumO (0,2) 2],[NumO (1,0) 3,NumO (1,1) 2,NumO (1,2) 1]] [])]
+                 assertEqual (Right $ ArrO (1,1) [NumO (1,0) 3,NumO (1,1) 2,NumO (1,2) 1])    $ runWith "col(f(),g())" [("f",NumO (1,6) 1),("g",TableO (0,0) [[NumO (0,0) 1,NumO (0,1) 0,NumO (0,2) 2],[NumO (1,0) 3,NumO (1,1) 2,NumO (1,2) 1]] [])]
+                                                                                                         
+                 assertEqual (Right $ ArrO (1,1) [NumO (1,9)  0])                             $ run     "col(0,[[0],[1]])"
+                 assertEqual (Right $ ArrO (1,1) [NumO (1,13) 1])                             $ run     "col(1,[[0],[1]])"
+                 assertEqual (Right $ ArrO (1,1) [NumO (1,9)  1,NumO (1,11) 0,NumO (1,13) 2]) $ run     "col(0,[[1,0,2],[3,2,1]])"
+                 assertEqual (Right $ ArrO (1,1) [NumO (1,17) 3,NumO (1,19) 2,NumO (1,21) 1]) $ run     "col(1,[[1,0,2],[3,2,1]])"
+                                                                                                         
+                 assertEqual (Right $ ArrO (1,1) [NumO (1,10) 0])                             $ runWith "col(0,f())"                 [("f",ArrO (0,0) [ArrO (1,9) [NumO (1,10) 0],                            ArrO (1,13) [NumO (1,14) 1]])]
+                 assertEqual (Right $ ArrO (1,1) [NumO (1,14) 1])                             $ runWith "col(1,f())"                 [("f",ArrO (0,0) [ArrO (1,9) [NumO (1,10) 0],                            ArrO (1,13) [NumO (1,14) 1]])]
+                 assertEqual (Right $ ArrO (1,1) [NumO (1,10) 1,NumO (1,12) 0,NumO (1,14) 2]) $ runWith "col(0,f())"                 [("f",ArrO (0,0) [ArrO (1,9) [NumO (1,10) 1,NumO (1,12) 0,NumO (1,14) 2],ArrO (1,17) [NumO (1,18) 3,NumO (1,20) 2,NumO (1,22) 1]])]
+                 assertEqual (Right $ ArrO (1,1) [NumO (1,18) 3,NumO (1,20) 2,NumO (1,22) 1]) $ runWith "col(1,f())"                 [("f",ArrO (0,0) [ArrO (1,9) [NumO (1,10) 1,NumO (1,12) 0,NumO (1,14) 2],ArrO (1,17) [NumO (1,18) 3,NumO (1,20) 2,NumO (1,22) 1]])]
+
+                 assertEqual (Right $ ArrO (1,1) [NumO (1,11) 0])                             $ runWith "col(f(),[[0],[1]])"         [("f",NumO (0,0) 0)]
+                 assertEqual (Right $ ArrO (1,1) [NumO (1,15) 1])                             $ runWith "col(f(),[[0],[1]])"         [("f",NumO (0,0) 1)]
+                 assertEqual (Right $ ArrO (1,1) [NumO (1,11) 1,NumO (1,13) 0,NumO (1,15) 2]) $ runWith "col(f(),[[1,0,2],[3,2,1]])" [("f",NumO (0,0) 0)]
+                 assertEqual (Right $ ArrO (1,1) [NumO (1,19) 3,NumO (1,21) 2,NumO (1,23) 1]) $ runWith "col(f(),[[1,0,2],[3,2,1]])" [("f",NumO (0,0) 1)]
+
+                 assertEqual (Right $ ArrO (1,1) [NumO (1,10) 0])                             $ runWith "col(f(),g())"               [("f",NumO (0,0) 0),("g",ArrO (1,1) [ArrO (1,9) [NumO (1,10) 0],                            ArrO (1,13) [NumO (1,14) 1]])]
+                 assertEqual (Right $ ArrO (1,1) [NumO (1,14) 1])                             $ runWith "col(f(),g())"               [("f",NumO (0,0) 1),("g",ArrO (1,1) [ArrO (1,9) [NumO (1,10) 0],                            ArrO (1,13) [NumO (1,14) 1]])]
+                 assertEqual (Right $ ArrO (1,1) [NumO (1,10) 1,NumO (1,12) 0,NumO (1,14) 2]) $ runWith "col(f(),g())"               [("f",NumO (0,0) 0),("g",ArrO (1,1) [ArrO (1,9) [NumO (1,10) 1,NumO (1,12) 0,NumO (1,14) 2],ArrO (1,17) [NumO (1,18) 3,NumO (1,20) 2,NumO (1,22) 1]])]
+                 assertEqual (Right $ ArrO (1,1) [NumO (1,18) 3,NumO (1,20) 2,NumO (1,22) 1]) $ runWith "col(f(),g())"               [("f",NumO (0,0) 1),("g",ArrO (1,1) [ArrO (1,9) [NumO (1,10) 1,NumO (1,12) 0,NumO (1,14) 2],ArrO (1,17) [NumO (1,18) 3,NumO (1,20) 2,NumO (1,22) 1]])]

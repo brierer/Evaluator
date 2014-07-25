@@ -119,7 +119,7 @@ instance Show FiniteType where
     f 0 _ = "..."
     f n (ArrOf u) = "(ArrOf " ++ f (n-1) u ++ ")"
     f n (ObjOf u) = "(ObjOf " ++ f (n-1) u ++ ")"
-    f n (Or ts)   = "(Or ["++(concat $ intersperse "," $ map (f (n-1)) ts) ++ "])"
+    f n (Or ts)   = "(Or ["++ intercalate "," (map (f $ n - 1) ts) ++ "])"
     f _ e         = show e
 
 mLit esa f isType mk = let onEmpty = mk [] nullO 0 in do

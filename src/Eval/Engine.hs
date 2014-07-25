@@ -12,22 +12,22 @@ module Eval.Engine
 , plotF
 ) where
 
-import Data.List hiding (sum,null) 
+import Data.List hiding (sum,null)
 import Prelude   hiding (sum,exp,null)
 
-import qualified Data.Vector as V 
+import qualified Data.Vector as V
 import qualified Prelude     as P
 
 import Control.Monad
-import Control.Monad.Trans 
+import Control.Monad.Trans
 import Data.Eval
 import Data.Type
 import Eval.MatchType
-import Data.EvalError          
-import Data.ExpObj             
-import Data.ExpToken           
-import Data.Maybe              
-import Statistics.Sample       
+import Data.EvalError
+import Data.ExpObj
+import Data.ExpToken
+import Data.Maybe
+import Statistics.Sample
 
 funcs :: [FuncEntry]
 funcs = -- 1 arg functions
@@ -66,31 +66,31 @@ multiL  p [a@(ArrO _ ns)]                   = nonEmpty a >>        multiF  p ns;
 meanL   p [a@(ArrO _ ns)]                   = nonEmpty a >>        meanF   p ns;                  meanL   _ xs = error $ "Engine::meanL  [Unexpected pattern ["++show xs++"]]"
 descL   p [a@(ArrO _ ns)]                   = nonEmpty a >>        descF   p ns;                  descL   _ xs = error $ "Engine::descL  [Unexpected pattern ["++show xs++"]]"
 tableL  p [a@(ArrO _ es), ObjO _ ps]        = nonEmptyMatrix a >>  tableF  p es ps;               tableL  _ xs = error $ "Engine::tableL [Unexpected pattern ["++show xs++"]]"
-                                        
+
 nTimesL p [v, NumO _ n]                     =                      nTimesF p v n;                 nTimesL _ xs = error $ "Engine::descL  [Unexpected pattern ["++show xs++"]]"
-                                                                   
-takeL   p [NumO _ v,TableO _ ess h]         =                      takeTF  p (floor v) ess h
-takeL   p [NumO _ v,ArrO _ es]              =                      takeAF  p (floor v) es;        takeL   _ xs = error $ "Engine::takeL  [Unexpected pattern ["++show xs++"]]"
-                                                                   
+
+takeL   p [NumO q v,TableO _ ess h]         =                      takeTF  p q (floor v) ess h
+takeL   p [NumO _ v,ArrO _ es]              =                      takeAF  p   (floor v) es;      takeL   _ xs = error $ "Engine::takeL  [Unexpected pattern ["++show xs++"]]"
+
 sortL   p [NumO pn v,TableO _ ess h]        =                      sortTF  p pn (floor v) ess h
 sortL   p [NumO pn v,a@(ArrO _ es)]         = nonEmptyMatrix a >>  sortAF  p pn (floor v) es;     sortL   _ xs = error $ "Engine::sortL  [Unexpected pattern ["++show xs++"]]"
-                                                                   
+
 colL    p [NumO pn v,TableO _ ess _]        =                      colTF   p pn (floor v) ess;
 colL    p [NumO pn v,a@(ArrO _ es)]         = nonEmptyMatrix a >>  colAF   p pn (floor v) es;     colL    _ xs = error $ "Engine::colL   [Unexpected pattern ["++show xs++"]]"
-                                                                   
+
 plotL   p [ArrO _ xs, ArrO _ ys, ObjO _ ps] =                      plotF p xs ys ps;              plotL   _ xs = error $ "Engine::plotL  [Unexpected pattern ["++show xs++"]]"
 
 {-| Simple contraints -}
 nonEmpty :: ExpObj -> EvalFunc ()
 nonEmpty (ArrO p es) = nonEmpty' p es
-nonEmpty x           = error $ "Eval.Engine::nonEmpty [Unexpected pattern ["++show x++"]]" 
+nonEmpty x           = error $ "Eval.Engine::nonEmpty [Unexpected pattern ["++show x++"]]"
 
 nonEmpty' :: Pos -> [a] -> EvalFunc()
 nonEmpty' p xs = when (P.null xs) $ lift $ Left $ IllegalEmpty p
 
 nonEmptyMatrix :: ExpObj -> EvalFunc ()
-nonEmptyMatrix a@(ArrO _ es) = nonEmpty a >> mapM_ nonEmpty es    
-nonEmptyMatrix x             = error $ "Eval.Engine::nonEmptyMatrix [Unexpected pattern ["++show x++"]]"    
+nonEmptyMatrix a@(ArrO _ es) = nonEmpty a >> mapM_ nonEmpty es
+nonEmptyMatrix x             = error $ "Eval.Engine::nonEmptyMatrix [Unexpected pattern ["++show x++"]]"
 
 {-| Actual Functions -}
 -- Wrap the topmost result (table or plot) in an object (arbitrary, otherwise the object would be left unchanged)
@@ -156,8 +156,9 @@ nTimesF :: Pos -> ExpObj -> Double -> EvalFunc ExpObj
 nTimesF p v n = return $ ArrO p $ replicate (floor n) v
 
 -- Takes from a table the n first rows
-takeTF :: Pos -> Int -> [[ExpObj]] -> [ExpObj] -> EvalFunc ExpObj
-takeTF  p n ess h = return $ TableO p (map (take n) ess) h
+takeTF :: Pos -> Pos -> Int -> [[ExpObj]] -> [ExpObj] -> EvalFunc ExpObj
+takeTF _ q n ess _ | n <= 0 = lift $ Left $ IllegalTakeTableLength q 1 (length $ head ess) n
+takeTF p _ n ess h = return $ TableO p (map (take n) ess) h
 
 -- Takes from an array the n first elements
 takeAF :: Pos -> Int -> [ExpObj] -> EvalFunc ExpObj
@@ -167,11 +168,22 @@ takeAF  p n es = return $ ArrO p $ take n es
 sortTF :: Pos -> Pos -> Int -> [[ExpObj]] -> [ExpObj] -> EvalFunc ExpObj
 sortTF p pn n ess h = liftM (flip (TableO p) h) $ sortMatrix pn n ess
 
-sortMatrix :: Ord a => Pos -> Int -> [[a]] -> EvalFunc [[a]]
-sortMatrix pn n ess = validateIndex pn n 0 (length ess - 1) >> return (transpose $ map snd $ sort $ zip (ess !! n) $ transpose ess)
+sortMatrix :: Pos -> Int -> [[ExpObj]] -> EvalFunc [[ExpObj]]
+sortMatrix pn n ess = validateIndex pn n 0 (length ess - 1) >> return (transpose $ map snd $ sort $ zip (toIgnorePos ess !! n) $ transpose ess)
+
+toIgnorePos :: [[ExpObj]] -> [[ExpObj]]
+toIgnorePos = map $ map $ setPos (0,0) where
+  setPos p (TableO _ a b) = TableO p a b
+  setPos p (PlotO  _ a b) = PlotO  p a b
+  setPos p (ArrO _ a)     = ArrO p a
+  setPos p (ObjO _ a)     = ObjO p a
+  setPos p (StrO _ a)     = StrO p a
+  setPos p (NumO _ a)     = NumO p a
+  setPos p (BoolO _ a)    = BoolO p a
+  setPos p (NullO _)      = NullO p
 
 validateIndex :: Pos -> Int -> Int -> Int -> EvalFunc ()
-validateIndex pn n minL maxL = when (n < minL || n > maxL) $ lift $ Left $ IndexOutOfBounds pn n minL maxL
+validateIndex pn n minL maxL = when (n < minL || n > maxL) $ lift $ Left $ IndexOutOfBounds pn minL maxL n
 
 -- Sorts an array of arrays (matrix) by the n'th array-element (column)
 sortAF :: Pos -> Pos -> Int -> [ExpObj] -> EvalFunc ExpObj

@@ -254,7 +254,7 @@ makeMatchingExp (ObjOf t) = objO [("",makeMatchingExp t)]
 matchOr ::  ExpObj -> [Type] -> Eval a
 matchOr e ts = simplify e $ map (f.flip evalStateT [].(`matchType` e)) ts where
   f (Left (TypeMismatch t)) = t
-  f e                       = error $ "Eval.MatchType::orType::f [Unexpected pattern ["++show e++"]]"  
+  f x                       = error $ "Eval.MatchType::orType::f [Unexpected pattern ["++show x++"]]"  
 
 simplify :: ExpObj -> [TMTree] -> Eval a
 simplify x [] = Left $ TypeMismatch $ TMLeaf (getPos x) (NodeOr []) (getRoot x)
@@ -262,7 +262,7 @@ simplify _ ts | P.any (not.(\t -> case t of TMLeaf{} -> True; _ -> False)) ts = 
               | otherwise = let (canBeSame,orTypes) = unzip $ map (\(TMLeaf x y z) -> ((x,z),y)) ts 
                                 (p,t2) = head canBeSame
                                 canBeSimplified = length (nub canBeSame) == 1
-                            in Left $ TypeMismatch $ if canBeSimplified then TMLeaf p (NodeOr $ reverse $ sort $ nub orTypes) t2 else TMNode ts
+                            in Left $ TypeMismatch $ if canBeSimplified then TMLeaf p (NodeOr $ sortBy (flip compare) (nub orTypes)) t2 else TMNode ts
 
 {-| Mandatory type signatures -}
 mTableTypeFailure  :: Gen PlotOA  -> Gen ArrOA  -> Gen ObjOA -> Gen StrOA -> Gen NumOA -> Gen BoolOA -> Gen NullOA -> Gen TableTypeFailure

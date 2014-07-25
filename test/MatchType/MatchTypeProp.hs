@@ -2,14 +2,10 @@
 module MatchType.MatchTypeProp where
 
 import Prelude   hiding (any)
-import Data.List hiding (any)
 
 import qualified Prelude as P
 
-import Control.Monad.State
-import Data.Eval
 import Data.EvalError
-import Data.ExpObj
 import Data.HasPos
 import Data.Type
 import Eval.MatchType
