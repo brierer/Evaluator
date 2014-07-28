@@ -8,11 +8,11 @@ import Data.ExpObj
 
 import Parser.ParserUtils
 
-nbArgEntry s n = [(s,replicate n mockArg,error "FunctionEvalUtils::nbArgEntry::func [Should not be called]")]
-mockArg        = error "FunctionEvalUtils::mockArg [Should not be called]"
+nbArgEntry s n = [(s,replicate n mockArg,error "MarshallUtils::nbArgEntry::func [Should not be called]")]
+mockArg        = error "MarshallUtils::mockArg [Should not be called]"
 
-singleTypeEntry s t = [(s,[t],  error "FunctionEvalUtils::singleTypeEntry::func [Should not be called]")]
-doubleTypeEntry s t = [(s,[t,t],error "FunctionEvalUtils::doubleTypeEntry::func [Should not be called]")]
+singleTypeEntry s t = [(s,[t],  error "MarshallUtils::singleTypeEntry::func [Should not be called]")]
+doubleTypeEntry s t = [(s,[t,t],error "MarshallUtils::doubleTypeEntry::func [Should not be called]")]
 
 noArgFunc  s f = [(s,[],Func $ \p _ -> return $ f p)]
 noArgFunc' s v = [(s,[],Func $ \_ _ -> return v)]

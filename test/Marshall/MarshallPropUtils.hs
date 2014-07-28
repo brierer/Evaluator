@@ -29,8 +29,8 @@ class Is a where
   isNull  :: a -> Bool
 
 instance Is ExpToken where
-  isTable _ = error "FunctionEvalUtils::isTable<ExpToken> [Should not be called]"
-  isPlot  _ = error "FunctionEvalUtils::isPlot <ExpToken> [Should not be called]"
+  isTable _ = error "MarshallPropUtils::isTable<ExpToken> [Should not be called]"
+  isPlot  _ = error "MarshallPropUtils::isPlot <ExpToken> [Should not be called]"
 
   isArr (ArrT{})   = True ; isArr _   = False
   isObj (ObjT{})   = True;  isObj _   = False
@@ -97,10 +97,10 @@ mkUtils ts = ( map fst ts
 validFuncs s ts = let ns = map (funcName.fst) ts in s `notElem` ns && ns == nub ns
 
 funcName (FuncT _ (IdT _ _ s) _) = s
-funcName x                       = error $ "FunctionEvalUtils::funcName [Unexpected pattern ["++show x++"]]"
+funcName x                       = error $ "MarshallPropUtils::funcName [Unexpected pattern ["++show x++"]]"
 
 clearParams (FuncT a b _) = FuncT a b []
-clearParams x             = error $ "FunctionEvalUtils::clearParams [Unexpected pattern ["++show x++"]]"
+clearParams x             = error $ "MarshallPropUtils::clearParams [Unexpected pattern ["++show x++"]]"
 
 removeVarsAndFuncs (FuncT _ (IdT p w _) _) = NullT p w
 removeVarsAndFuncs (VarT    (IdT p w _))   = NullT p w

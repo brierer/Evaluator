@@ -22,7 +22,7 @@ type Eval = Either EvalError
 type EvalFunc = StateT [FuncEntry] Eval
 type FuncEntry = (String,[Type],Func)
 
-newtype Func = Func { call :: Pos -> [ExpObj] -> EvalFunc ExpObj }
+data Func = Func { invoke :: Pos -> [ExpObj] -> EvalFunc ExpObj }
 
 
 

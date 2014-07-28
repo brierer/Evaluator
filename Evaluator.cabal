@@ -47,5 +47,5 @@ test-suite Evaluator-tests
                  Data.HasPos,
                  Data.Type,
                  Engine.EngineUnitFailureType,
-                 Engine.EngineUnitFailureUtils
+                 Engine.EngineUtils
 

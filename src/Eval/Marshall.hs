@@ -25,13 +25,13 @@ marshall (StrT p _ s)             = return $ StrO p s
 marshall (NumT p _ _ n)           = return $ NumO p n
 marshall (BoolT p _ b)            = return $ BoolO p b
 marshall (NullT p _)              = return $ NullO p
-marshall e                        = error $ "Eval.Function::marshall [Unexpected pattern ["++show e++"]]"
+marshall e                        = error $ "Eval.Marshall::marshall [Unexpected pattern ["++show e++"]]"
 
 applyFunc :: Pos -> String -> [ExpToken] -> EvalFunc ExpObj
 applyFunc p i es = do fs <- get; case lookup' fs of {
-  Nothing -> error $ "Function::applyFunc [Could not lookup function ["++i++"]]";
-  Just (ts,Func func) -> validateArgCount i (length ts) (length es) >> mapM marshall es >>= zipWithM ($) (map matchType ts) >>= func p }
-
+  Nothing -> error $ "Eval.Marshall::applyFunc [Could not lookup function ["++i++"]]";
+  Just (ts,func) -> validateArgCount i (length ts) (length es) >> mapM marshall es >>= zipWithM ($) (map matchType ts) >>= invoke func p }
+--
   where lookup' = lookup i .map (\(x,y,z)->(x,(y,z)))
         validateArgCount s l1 l2 = when (l1 /= l2) $ lift $ Left $ ArgCountMismatch p s l1 l2
 

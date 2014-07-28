@@ -114,7 +114,7 @@ instance Tall        OrFunc where                                            tal
 
 data FiniteType = FiniteType Type
 instance Show FiniteType where 
-  show (FiniteType t) = f 10 t where
+  show (FiniteType t) = "FiniteType " ++ f 10 t where
     f :: Int -> Type -> String
     f 0 _ = "..."
     f n (ArrOf u) = "(ArrOf " ++ f (n-1) u ++ ")"
@@ -193,7 +193,7 @@ caseOrLit  (FiniteType t) s es e i =                    not (null es) ==> Left (
 caseOrFunc (FiniteType t) s ts e i = validFuncs s ts && not (null ts) ==> Left (TypeMismatch $ TMLeaf (getPos e) (getRoot t) $ getRoot e) == marshallWith (mkFunc s es) (lit s es i t ++ entries) where
   (es,entries) = mkUtils ts
 
-lit s es i t = [(s,zipWith f [0..] $ replicate (length es) any, error "FunctionEvalUtils::lit::func [Should not be called]")] where f j e | i == j = t | otherwise = e
+lit s es i t = let ts = zipWith f [0..] $ replicate (length es) any in [(s,ts, error $ "MarshallPropUtils::lit::func [Should not be called ("++show ts++") ["++s++"] ("++show es++") ["++show i++"] ["++show (getRoot t)++"]]")] where f j e | i == j = t | otherwise = e
 
 {-| Mandatory type signatures -}
 mNbArgs :: (Applicative m, Monad m) => m P -> m String -> m ValidInt -> m ValidInt -> m NbArgs

@@ -6,8 +6,8 @@ import Data.ExpObj
 import Data.Type
 import Test.Framework
 
-import Engine.EngineUnitFailureUtils
 import Engine.EngineUnitUtils
+import Engine.EngineUtils
 import Marshall.MarshallUtils
 import MatchType.MatchTypeUnitUtils
 
