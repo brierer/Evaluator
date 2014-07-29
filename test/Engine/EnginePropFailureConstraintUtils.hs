@@ -54,14 +54,16 @@ instance Arbitrary SortIndexOutOfBounds1 where
   arbitrary = do ((e2,o2),fs0) <- runFailure validTableExp; let m = tableWidth o2 in do ((e1,o1),fs1) <- runStateT (chooseExp [numExpIn (-10) (-1),numExpIn m 1000]) fs0; return $ SortIndexOutOfBounds1 e1 e2 (getPos o1) 0 (m-1) (getIntVal o1) fs1
     
 data SortIndexOutOfBounds2 = SortIndexOutOfBounds2 ExpToken ExpToken Pos Int Int Int [FuncEntryShow] deriving (Show)
-instance Arbitrary SortIndexOutOfBounds2 where arbitrary = do width <- liftM ((+1).(`mod`10)) arbitrary; ((e2,_), fs0) <- runFailure $ arrExpOfLength' (arrExpOfLength' atomExp width) width; ((e1,o1),fs1) <- runStateT (chooseExp [numExpIn (-10) (-1),numExpIn width 1000]) fs0; return $ SortIndexOutOfBounds2 e1 e2 (getPos o1) 0 (width-1) (getIntVal o1) fs1
+instance Arbitrary SortIndexOutOfBounds2 where arbitrary = moo SortIndexOutOfBounds2--do width <- liftM ((+1).(`mod`10)) arbitrary; ((e2,_), fs0) <- runFailure $ arrExpOfLength' (arrExpOfLength' atomExp width) width; ((e1,o1),fs1) <- runStateT (chooseExp [numExpIn (-10) (-1),numExpIn width 1000]) fs0; return $ SortIndexOutOfBounds2 e1 e2 (getPos o1) 0 (width-1) (getIntVal o1) fs1
     
 data ColIndexOutOfBounds1 = ColIndexOutOfBounds1 ExpToken ExpToken Pos Int Int Int [FuncEntryShow] deriving (Show)
 instance Arbitrary ColIndexOutOfBounds1 where arbitrary = do ((e2,o2),fs0) <- runFailure validTableExp; let m = tableWidth o2 in do ((e1,o1),fs1) <- runStateT (chooseExp [numExpIn (-10) (-1),numExpIn m 1000]) fs0; return $ ColIndexOutOfBounds1 e1 e2 (getPos o1) 0 (m-1) (getIntVal o1) fs1
     
 data ColIndexOutOfBounds2 = ColIndexOutOfBounds2 ExpToken ExpToken Pos Int Int Int [FuncEntryShow] deriving (Show)
-instance Arbitrary ColIndexOutOfBounds2 where arbitrary = do width <- liftM ((+1).(`mod`10)) arbitrary; ((e2,_), fs0) <- runFailure $ arrExpOfLength' (arrExpOfLength' atomExp width) width; ((e1,o1),fs1) <- runStateT (chooseExp [numExpIn (-10) (-1),numExpIn width 1000]) fs0; return $ ColIndexOutOfBounds2 e1 e2 (getPos o1) 0 (width-1) (getIntVal o1) fs1
-    
+instance Arbitrary ColIndexOutOfBounds2 where arbitrary = moo ColIndexOutOfBounds2--do width <- liftM ((+1).(`mod`10)) arbitrary; ((e2,_), fs0) <- runFailure $ arrExpOfLength' (arrExpOfLength' atomExp width) width; ((e1,o1),fs1) <- runStateT (chooseExp [numExpIn (-10) (-1),numExpIn width 1000]) fs0; return $ ColIndexOutOfBounds2 e1 e2 (getPos o1) 0 (width-1) (getIntVal o1) fs1
+
+moo f = do width <- liftM ((+1).(`mod`10)) arbitrary; ((e2,_), fs0) <- runFailure $ arrExpOfLength' (arrExpOfLength' atomExp width) width; ((e1,o1),fs1) <- runStateT (chooseExp [numExpIn (-10) (-1),numExpIn width 1000]) fs0; return $ f e1 e2 (getPos o1) 0 (width-1) (getIntVal o1) fs1
+
 emptyExp ea = do (e,o) <- ea; liftM (flip (,) $ clearObjElems o) $ clearTokElems e 
 
 clearTokElems (ArrT p w _)               = return $ ArrT p w []

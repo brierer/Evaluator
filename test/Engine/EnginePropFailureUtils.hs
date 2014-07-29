@@ -14,7 +14,6 @@ import Parser.ParserPropUtils
 import Parser.ParserUnitUtils
 import Marshall.MarshallPropFailureUtils
 import Marshall.MarshallPropUtils
-import Marshall.MarshallUtils
 import MatchType.MatchTypeUnitUtils
 import MatchType.MatchTypePropUtils
 

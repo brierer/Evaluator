@@ -3,25 +3,10 @@ module Engine.EnginePropFailureConstraint where
 
 import Prelude hiding (any)
 
-import Control.Monad
-import Control.Monad.State
-import Data.Eval
 import Data.EvalError
-import Data.ExpToken
-import Data.ExpObj
-import Data.HasPos
-import Data.Type
-import Eval.Engine
-import Eval.Marshall
-import Eval.MatchType
 import Test.Framework
 
 import Engine.EnginePropFailureConstraintUtils
-import Engine.EnginePropFailureUtils
-import Marshall.MarshallPropFailureUtils
-import Marshall.MarshallPropUtils
-import Parser.ParserPropUtils
-import Parser.ParserUnitUtils
 
 prop_MultiEmpty  (MultiEmpty  x p fs)    = constraintEmptyCase p "multi"        [x] fs
 prop_MeanEmpty   (MeanEmpty   x p fs)    = constraintEmptyCase p "mean"         [x] fs

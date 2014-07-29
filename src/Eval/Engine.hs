@@ -157,8 +157,8 @@ nTimesF p v n = return $ ArrO p $ replicate (floor n) v
 
 -- Takes from a table the n first rows
 takeTF :: Pos -> Pos -> Int -> [[ExpObj]] -> [ExpObj] -> EvalFunc ExpObj
-takeTF _ q n ess _ | n <= 0 = lift $ Left $ IllegalTakeTableLength q 1 n
-takeTF p _ n ess h          = return $ TableO p (map (take n) ess) h
+takeTF _ q n _ _ | n <= 0 = lift $ Left $ IllegalTakeTableLength q 1 n
+takeTF p _ n ess h        = return $ TableO p (map (take n) ess) h
 
 -- Takes from an array the n first elements
 takeAF :: Pos -> Int -> [ExpObj] -> EvalFunc ExpObj
