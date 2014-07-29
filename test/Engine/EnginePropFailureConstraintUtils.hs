@@ -41,10 +41,10 @@ data ColEmpty2 = ColEmpty2 ExpToken ExpToken Pos [FuncEntryShow] deriving (Show)
 instance Arbitrary ColEmpty2 where arbitrary = do ([(e1,_),(e2,o2)],fs) <- runFailure $ sequence [numExp,arrExpOf (arrExpOf' atomExp) (emptyExp arrExp)]; return $ ColEmpty2 e1 e2 (getPos o2) fs
 
 data TableColumnLength = TableColumnLength ExpToken ExpToken Pos Int Int [FuncEntryShow] deriving (Show)
-instance Arbitrary TableColumnLength where arbitrary = do; (n,m) <- getNM; ([(e1,o1),(e2,_)],fs) <- runFailure $ sequence [arrExpOfLength (arrExpOfLength' atomExp n) (arrExpOfLength' atomExp m) (n+m),objExpOf' $ arrExpOf' strExp]; return $ TableColumnLength e1 e2 (getPos o1) n m fs
+instance Arbitrary TableColumnLength where arbitrary = do; (n,m) <- getNM; ([(e1,o1),(e2,_)],fs) <- runFailure $ sequence [arrExpOfLength (n+m) (arrExpOfLength' n atomExp) (arrExpOfLength' m atomExp),objExpOf' $ arrExpOf' strExp]; return $ TableColumnLength e1 e2 (getPos o1) n m fs
 
 data TableHeaderLength = TableHeaderLength ExpToken ExpToken Pos Int Int [FuncEntryShow] deriving (Show)
-instance Arbitrary TableHeaderLength where arbitrary = do (n,m) <- getNM; ([(e1,o1),(e2,_)],fs) <- runFailure $ sequence [arrExpOfLength' (arrExpOfLength' atomExp $ n+m) n,objExpOfWith (arrExpOfLength' strExp n) "col" (arrExpOfLength' strExp m)]; return $ TableHeaderLength e1 e2 (getPos o1) n m fs
+instance Arbitrary TableHeaderLength where arbitrary = do (n,m) <- getNM; ([(e1,o1),(e2,_)],fs) <- runFailure $ sequence [arrExpOfLength' n (arrExpOfLength' (n+m) atomExp),objExpOfWith (arrExpOfLength' n strExp) "col" (arrExpOfLength' m strExp)]; return $ TableHeaderLength e1 e2 (getPos o1) n m fs
     
 data TableTakeMin = TableTakeMin ExpToken ExpToken Pos Int [FuncEntryShow] deriving (Show)
 instance Arbitrary TableTakeMin where arbitrary = do  ([(e1,o1),(e2,_)],fs) <- runFailure $ sequence [numExpIn (-10) 0,validTableExp]; return $ TableTakeMin e1 e2 (getPos o1) (getIntVal o1) fs
@@ -62,7 +62,7 @@ data ColIndexOutOfBounds2 = ColIndexOutOfBounds2 ExpToken ExpToken Pos Int Int I
 instance Arbitrary ColIndexOutOfBounds2 where arbitrary = indexOutOfBounds2 ColIndexOutOfBounds2
 
 indexOutOfBounds1 f = do ((e2,o2),fs0) <- runFailure validTableExp; let m = tableWidth o2 in do ((e1,o1),fs1) <- runStateT (chooseExp [numExpIn (-10) (-1),numExpIn m 1000]) fs0; return $ f e1 e2 (getPos o1) 0 (m-1) (getIntVal o1) fs1
-indexOutOfBounds2  f = do width <- liftM ((+1).(`mod`10)) arbitrary; ((e2,_), fs0) <- runFailure $ arrExpOfLength' (arrExpOfLength' atomExp width) width; ((e1,o1),fs1) <- runStateT (chooseExp [numExpIn (-10) (-1),numExpIn width 1000]) fs0; return $ f e1 e2 (getPos o1) 0 (width-1) (getIntVal o1) fs1
+indexOutOfBounds2  f = do width <- liftM ((+1).(`mod`10)) arbitrary; ((e2,_), fs0) <- runFailure $ arrExpOfLength' width (arrExpOfLength' width atomExp); ((e1,o1),fs1) <- runStateT (chooseExp [numExpIn (-10) (-1),numExpIn width 1000]) fs0; return $ f e1 e2 (getPos o1) 0 (width-1) (getIntVal o1) fs1
 
 emptyExp ea = do (e,o) <- ea; liftM (flip (,) $ clearObjElems o) $ clearTokElems e 
 
@@ -85,7 +85,7 @@ clearReturnValueElems i (x:xs) | getFuncName x == i = g x:xs | otherwise = x:cle
 constraintEmptyCase p = constraintCase $ IllegalEmpty p
 constraintCase e n args fs = Left e == marshallWith (mkFunc n args) (toFuncEntries fs)
 
-arrExpOfLength good bad l = do
+arrExpOfLength l good bad = do
   i <- lift $ choose (1,l-1)
   (es',os') <- liftM unzip $ replicateM (l+1) good
   (e,o)  <- bad
@@ -94,7 +94,7 @@ arrExpOfLength good bad l = do
   (a,_) <- expOrFunc' (mkArr es) (arrO os)
   return (a,o)
   
-arrExpOfLength' good l = do
+arrExpOfLength' l good = do
   (es,os) <- liftM unzip $ replicateM l good
   expOrFunc' (mkArr es) (arrO os)
   

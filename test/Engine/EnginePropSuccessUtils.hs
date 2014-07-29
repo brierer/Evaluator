@@ -42,7 +42,7 @@ data Table1 = Table1 ExpToken ExpToken ExpObj Pos [FuncEntryShow] deriving (Show
 instance Arbitrary Table1 where 
   arbitrary = do 
     (n,_) <- getNM
-    ([(e1,o1),(e2,_)],fs) <- runSuccess $ sequence [arrExpOf' $ arrExpOfLength' atomExp n,objExpOfWithout' "col" $ arrExpOf' strExp]
+    ([(e1,o1),(e2,_)],fs) <- runSuccess $ sequence [arrExpOf' $ arrExpOfLength' n atomExp,objExpOfWithout' "col" $ arrExpOf' strExp]
     p <- randPos
     let o = TableO p (map elems $ elems o1) []
     return $ Table1 e1 e2 o p fs
@@ -51,7 +51,7 @@ data Table2 = Table2 ExpToken ExpToken ExpObj Pos [FuncEntryShow] deriving (Show
 instance Arbitrary Table2 where 
   arbitrary = do 
     (n,m) <- getNM
-    ([(e1,o1),(e2,o2)],fs) <- runSuccess $ sequence [arrExpOfLength' (arrExpOfLength' atomExp n) m,objExpOfWith' "col" $ arrExpOfLength' strExp m]
+    ([(e1,o1),(e2,o2)],fs) <- runSuccess $ sequence [arrExpOfLength' m (arrExpOfLength' n atomExp),objExpOfWith' "col" $ arrExpOfLength' m strExp]
     p <- randPos
     let o = TableO p (map elems $ elems o1) (elems $ flip fromMaybe (lookup "col" $ objElems o2) $ error "EnginePropSuccessUtils::arbitrary<Table2> [Couldn't lookup object key [col]]")
     return $ Table2 e1 e2 o p fs
