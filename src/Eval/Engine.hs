@@ -1,15 +1,15 @@
 module Eval.Engine
 ( funcs
-, showF
-, multiF
-, meanF
-, descF
-, tableF
-, nTimesF
-, takeTF, takeAF
-, sortTF, sortAF
-, colTF,  colAF
-, plotF
+, showL,  showF
+, multiL,  multiF
+, meanL,   meanF
+, descL,   descF
+, tableL,  tableF
+, nTimesL, nTimesF
+, takeL,   takeTF, takeAF
+, sortL,   sortTF, sortAF
+, colL,    colTF,  colAF
+, plotL,   plotF
 ) where
 
 import Data.List hiding (sum,null)
@@ -157,8 +157,8 @@ nTimesF p v n = return $ ArrO p $ replicate (floor n) v
 
 -- Takes from a table the n first rows
 takeTF :: Pos -> Pos -> Int -> [[ExpObj]] -> [ExpObj] -> EvalFunc ExpObj
-takeTF _ q n ess _ | n <= 0 = lift $ Left $ IllegalTakeTableLength q 1 (length $ head ess) n
-takeTF p _ n ess h = return $ TableO p (map (take n) ess) h
+takeTF _ q n ess _ | n <= 0 = lift $ Left $ IllegalTakeTableLength q 1 n
+takeTF p _ n ess h          = return $ TableO p (map (take n) ess) h
 
 -- Takes from an array the n first elements
 takeAF :: Pos -> Int -> [ExpObj] -> EvalFunc ExpObj

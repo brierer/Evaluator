@@ -119,17 +119,17 @@ test_TableHeaderLength = do
                      assertEqual (Left $ TableHeaderLengthMismatch (1,16) 2 1) $ runWith "table(f(),g())"                        [("f",arrO [arrO [numO 0],arrO [numO 0]]),("g",objO [("not",ArrO (0,0) []),("col",ArrO (1,16) [strO "1"])])]
 
 test_TakeTableMin = do
-                     assertEqual (Left $ IllegalTakeTableLength (1,6) 1 1 (-1)) $ runWith "take(-1,f())"   [("f",TableO (0,0) [[NumO (0,0) 0],[NumO (0,0) 0]] [])]
-                     assertEqual (Left $ IllegalTakeTableLength (1,6) 1 1  0)   $ runWith "take(0,f())"    [("f",TableO (0,0) [[NumO (0,0) 0],[NumO (0,0) 0]] [])]
-                                                                                                           
-                     assertEqual (Left $ IllegalTakeTableLength (1,6) 1 2 (-1)) $ runWith "take(-1,f())"   [("f",TableO (0,0) [[NumO (0,0) 0,NumO (0,0) 0],[NumO (0,0) 0,NumO (0,0) 0]] [])]
-                     assertEqual (Left $ IllegalTakeTableLength (1,6) 1 2  0)   $ runWith "take(0,f())"    [("f",TableO (0,0) [[NumO (0,0) 0,NumO (0,0) 0],[NumO (0,0) 0,NumO (0,0) 0]] [])]
+                     assertEqual (Left $ IllegalTakeTableLength (1,6) 1 (-1)) $ runWith "take(-1,f())"   [("f",TableO (0,0) [[NumO (0,0) 0],[NumO (0,0) 0]] [])]
+                     assertEqual (Left $ IllegalTakeTableLength (1,6) 1  0)   $ runWith "take(0,f())"    [("f",TableO (0,0) [[NumO (0,0) 0],[NumO (0,0) 0]] [])]
+                                                                                                         
+                     assertEqual (Left $ IllegalTakeTableLength (1,6) 1 (-1)) $ runWith "take(-1,f())"   [("f",TableO (0,0) [[NumO (0,0) 0,NumO (0,0) 0],[NumO (0,0) 0,NumO (0,0) 0]] [])]
+                     assertEqual (Left $ IllegalTakeTableLength (1,6) 1  0)   $ runWith "take(0,f())"    [("f",TableO (0,0) [[NumO (0,0) 0,NumO (0,0) 0],[NumO (0,0) 0,NumO (0,0) 0]] [])]
                      
-                     assertEqual (Left $ IllegalTakeTableLength (1,6) 1 1 (-1)) $ runWith "take(f(),g())"  [("f",NumO (1,6) (-1)),("g",TableO (0,0) [[NumO (0,0) 0],[NumO (0,0) 0]] [])]
-                     assertEqual (Left $ IllegalTakeTableLength (1,6) 1 1  0)   $ runWith "take(g(),f())"  [("g",NumO (1,6) 0),   ("f",TableO (0,0) [[NumO (0,0) 0],[NumO (0,0) 0]] [])]
+                     assertEqual (Left $ IllegalTakeTableLength (1,6) 1 (-1)) $ runWith "take(f(),g())"  [("f",NumO (1,6) (-1)),("g",TableO (0,0) [[NumO (0,0) 0],[NumO (0,0) 0]] [])]
+                     assertEqual (Left $ IllegalTakeTableLength (1,6) 1  0)   $ runWith "take(g(),f())"  [("g",NumO (1,6) 0),   ("f",TableO (0,0) [[NumO (0,0) 0],[NumO (0,0) 0]] [])]
                      
-                     assertEqual (Left $ IllegalTakeTableLength (1,6) 1 2 (-1)) $ runWith "take(f(),g())"  [("f",NumO (1,6) (-1)),("g",TableO (0,0) [[NumO (0,0) 0,NumO (0,0) 0],[NumO (0,0) 0,NumO (0,0) 0]] [])]
-                     assertEqual (Left $ IllegalTakeTableLength (1,6) 1 2  0)   $ runWith "take(g(),f())"  [("g",NumO (1,6) 0),   ("f",TableO (0,0) [[NumO (0,0) 0,NumO (0,0) 0],[NumO (0,0) 0,NumO (0,0) 0]] [])]
+                     assertEqual (Left $ IllegalTakeTableLength (1,6) 1 (-1)) $ runWith "take(f(),g())"  [("f",NumO (1,6) (-1)),("g",TableO (0,0) [[NumO (0,0) 0,NumO (0,0) 0],[NumO (0,0) 0,NumO (0,0) 0]] [])]
+                     assertEqual (Left $ IllegalTakeTableLength (1,6) 1  0)   $ runWith "take(g(),f())"  [("g",NumO (1,6) 0),   ("f",TableO (0,0) [[NumO (0,0) 0,NumO (0,0) 0],[NumO (0,0) 0,NumO (0,0) 0]] [])]
 
 test_SortIndexOutOfBounds = do
                      assertEqual (Left $ IndexOutOfBounds (1,6) 0 0 (-1)) $ runWith "sort(-1,f())" [("f",tableO [[numO 0]] [])]

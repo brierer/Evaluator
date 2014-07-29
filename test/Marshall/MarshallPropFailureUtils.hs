@@ -116,7 +116,7 @@ data FiniteType = FiniteType Type
 instance Show FiniteType where 
   show (FiniteType t) = "FiniteType " ++ f 10 t where
     f :: Int -> Type -> String
-    f 0 _ = "..."
+    f 0 _ = "any"
     f n (ArrOf u) = "(ArrOf " ++ f (n-1) u ++ ")"
     f n (ObjOf u) = "(ObjOf " ++ f (n-1) u ++ ")"
     f n (Or ts)   = "(Or ["++ intercalate "," (map (f $ n - 1) ts) ++ "])"

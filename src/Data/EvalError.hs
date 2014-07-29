@@ -18,7 +18,7 @@ data EvalError = MultipleDefinitions Pos String
                | IllegalEmpty Pos
                | TableColumnLengthMismatch Pos Int Int
                | TableHeaderLengthMismatch Pos Int Int
-               | IllegalTakeTableLength Pos Int Int Int
+               | IllegalTakeTableLength Pos Int Int
                | IndexOutOfBounds Pos Int Int Int
                  deriving (Eq,Show)
 
