@@ -29,15 +29,15 @@ import MatchType.MatchTypePropUtils
 import Parser.ParserPropUtils
 import Parser.ParserUnitUtils
 
---prop_Show1 (Show1 x r p fs) = successCase r p "show" [x] fs
---prop_Show2 (Show2 x r p fs) = successCase r p "show" [x] fs
---
---prop_Multi (Multi x r p fs) = successShowCase r p "multi"       [x] fs
---prop_Mean  (Mean  x r p fs) = successShowCase r p "mean"        [x] fs
---prop_Desc  (Desc  x r p fs) = successShowCase r p "descriptive" [x] fs
---
---prop_Table1 (Table1 x y r p fs) = successCase r p "table" [x,y] fs
---prop_Table2 (Table2 x y r p fs) = successCase r p "table" [x,y] fs
+prop_Show1  (Show1 x r p fs)    = successCase     r p "show"        [x] fs
+prop_Show2  (Show2 x r p fs)    = successCase     r p "show"        [x] fs
+                                
+prop_Multi  (Multi x r p fs)    = successShowCase r p "multi"       [x] fs
+prop_Mean   (Mean  x r p fs)    = successShowCase r p "mean"        [x] fs
+prop_Desc   (Desc  x r p fs)    = successShowCase r p "descriptive" [x] fs
+
+prop_Table1 (Table1 x y r p fs) = successCase     r p "table"       [x,y] fs
+prop_Table2 (Table2 x y r p fs) = successCase     r p "table"       [x,y] fs
 
 
 

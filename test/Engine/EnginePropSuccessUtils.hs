@@ -22,28 +22,28 @@ import Engine.EnginePropFailureUtils
 import Marshall.MarshallUtils
 import MatchType.MatchTypeUnitUtils
 import Parser.ParserUnitUtils
-{-
+
 data Show1 = Show1 ExpToken ExpObj Pos [FuncEntryShow] deriving (Show)
-instance Arbitrary Show1 where arbitrary = do ((e,o'),fs) <- runSuccess $ emptyExp $ arrExpOf' nullExp; p <- randPos'; let o = ObjO p [("result",o')] in return $ Show1 e o p fs
+instance Arbitrary Show1 where arbitrary = do ((e,o'),fs) <- runSuccess $ emptyExp $ arrExpOf' nullExp; p <- randPos; let o = ObjO p [("result",o')] in return $ Show1 e o p fs
     
 data Show2 = Show2 ExpToken ExpObj Pos [FuncEntryShow] deriving (Show)
-instance Arbitrary Show2 where arbitrary = do ((e,o'),fs) <- runSuccess $ arrExpOf' showableExp; p <- randPos'; let o = ObjO p [("result",o')] in return $ Show2 e o p fs
+instance Arbitrary Show2 where arbitrary = do ((e,o'),fs) <- runSuccess $ arrExpOf' showableExp; p <- randPos; let o = ObjO p [("result",o')] in return $ Show2 e o p fs
 
 data Multi = Multi ExpToken ExpObj Pos [FuncEntryShow] deriving (Show)
-instance Arbitrary Multi where arbitrary = do ((e,o'),fs) <- runSuccess $ arrExpOf' atomExp; p <- randPos'; let o = NumO p $ getMulti $ elems o' in return $ Multi e o p fs
+instance Arbitrary Multi where arbitrary = do ((e,o'),fs) <- runSuccess $ arrExpOf' atomExp; p <- randPos; let o = NumO p $ getMulti $ elems o' in return $ Multi e o p fs
 
 data Mean = Mean ExpToken ExpObj Pos [FuncEntryShow] deriving (Show)
-instance Arbitrary Mean where arbitrary = do ((e,o'),fs) <- runSuccess $ arrExpOf' atomExp; p <- randPos'; let o = NumO p $ getMean $ elems o' in return $ Mean e o p fs
+instance Arbitrary Mean where arbitrary = do ((e,o'),fs) <- runSuccess $ arrExpOf' atomExp; p <- randPos; let o = NumO p $ getMean $ elems o' in return $ Mean e o p fs
 
 data Desc = Desc ExpToken ExpObj Pos [FuncEntryShow] deriving (Show)
-instance Arbitrary Desc where arbitrary = do ((e,o'),fs) <- runSuccess $ arrExpOf' atomExp; p <- randPos'; let o = TableO p (getDesc p $ elems o') [] in return $ Desc e o p fs
+instance Arbitrary Desc where arbitrary = do ((e,o'),fs) <- runSuccess $ arrExpOf' atomExp; p <- randPos; let o = TableO p (getDesc p $ elems o') [] in return $ Desc e o p fs
 
 data Table1 = Table1 ExpToken ExpToken ExpObj Pos [FuncEntryShow] deriving (Show)
 instance Arbitrary Table1 where 
   arbitrary = do 
     (n,_) <- getNM
     ([(e1,o1),(e2,_)],fs) <- runSuccess $ sequence [arrExpOf' $ arrExpOfLength' atomExp n,objExpOfWithout' "col" $ arrExpOf' strExp]
-    p <- lift randPos
+    p <- randPos
     let o = TableO p (map elems $ elems o1) []
     return $ Table1 e1 e2 o p fs
 
@@ -52,7 +52,7 @@ instance Arbitrary Table2 where
   arbitrary = do 
     (n,m) <- getNM
     ([(e1,o1),(e2,o2)],fs) <- runSuccess $ sequence [arrExpOfLength' (arrExpOfLength' atomExp n) m,objExpOfWith' "col" $ arrExpOfLength' strExp m]
-    p <- lift randPos
+    p <- randPos
     let o = TableO p (map elems $ elems o1) (elems $ flip fromMaybe (lookup "col" $ objElems o2) $ error "EnginePropSuccessUtils::arbitrary<Table2> [Couldn't lookup object key [col]]")
     return $ Table2 e1 e2 o p fs
 
@@ -92,7 +92,7 @@ objExpOfWith' k good = do
   
   
   
-  -}
+  
   
   
   
