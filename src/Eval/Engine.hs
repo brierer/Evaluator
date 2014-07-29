@@ -1,6 +1,6 @@
 module Eval.Engine
 ( funcs
-, showL,  showF
+, showL,   showF
 , multiL,  multiF
 , meanL,   meanF
 , descL,   descF

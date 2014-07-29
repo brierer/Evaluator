@@ -20,10 +20,12 @@ import MatchType.MatchTypePropUtils
 data FuncEntryShow = CallFuncEntryShow    String [FiniteType] ExpObj
                    | NoCallFuncEntryShow  String [FiniteType] 
                    | FailureFuncEntryShow String [FiniteType] Func
+--                   | SuccessFuncEntryShow String [FiniteType] Func
 instance Show FuncEntryShow where
   show (CallFuncEntryShow s ts o)    = "CallFuncEntryShow "    ++ show s ++ " " ++ show ts ++ " " ++ "("++show o++")"
   show (NoCallFuncEntryShow s ts)    = "NoCallFuncEntryShow "  ++ show s ++ " " ++ show ts
   show (FailureFuncEntryShow s ts _) = "FailureFuncEntryShow " ++ show s ++ " " ++ show ts ++ " (Func "++translate s++")"
+--  show (SuccessFuncEntryShow s ts _) = "SuccessFuncEntryShow " ++ show s ++ " " ++ show ts ++ " (Func "++translate s++")"
 
 translate s | s `elem` ["show","multi","mean","table","nTimes","take","sort","col","plot"] = s ++ "L"  
 translate "descriptive" = "descL"    
@@ -43,7 +45,7 @@ nullExp  = expOrFunc $ liftM un  (arbitrary :: Gen NullTA)
 
 arrExpOf good bad = do
   (ts,os,badT,badO) <- mkElems good bad
-  p <- randPos
+  p <- randPos'
   (a,_) <- expOrFunc' (mkArr' p ts) (ArrO p os)
   (_,o) <- expOrFunc' badT badO
   return (a,o)
@@ -51,13 +53,13 @@ arrExpOf good bad = do
 arrExpOf' good = do
   (firstT,firstO)   <- good
   (beforeT,beforeO) <- liftM unzip $ many good
-  p <- randPos
+  p <- randPos'
   expOrFunc' (mkArr' p $ firstT:beforeT) (ArrO p $ firstO:beforeO)
 
 objExpOf good bad = do
   (ts,os,badT,badO) <- mkElems good bad
   keys              <- replicateM (length ts) $ lift arbitrary
-  p <- randPos
+  p <- randPos'
   (a,_) <- expOrFunc' (mkObj' p $ zipWith mkPair keys ts) (ObjO p $ zip keys os)
   (_,o) <- expOrFunc' badT badO
   return (a,o)
@@ -66,7 +68,7 @@ objExpOf' good = do
   (firstT,firstO)   <- good
   (beforeT,beforeO) <- liftM unzip $ many good
   keys              <- replicateM (length beforeT + 1) $ lift arbitrary
-  p <- randPos
+  p <- randPos'
   expOrFunc' (mkObj' p $ zipWith mkPair keys $ firstT:beforeT) (ObjO p $ zip keys $ firstO:beforeO)
 
 mkElems good bad = do
@@ -107,6 +109,7 @@ toFuncEntries = map f where
   f (CallFuncEntryShow    s ts o)    = (s,fromFiniteTypes ts,Func $ \_ _ -> return o)
   f (NoCallFuncEntryShow  s ts)      = (s,fromFiniteTypes ts,error $ "EnginePropFailureUtils::toFuncEntries::func [Should not call body of function ["++s++"]]")
   f (FailureFuncEntryShow s ts func) = (s,fromFiniteTypes ts,func)
+--  f (SuccessFuncEntryShow s ts func) = (s,fromFiniteTypes ts,func)
 
 fromFiniteTypes = map (\(FiniteType t)->t)
 
@@ -114,12 +117,16 @@ getFuncNames = map getFuncName
 getFuncName (CallFuncEntryShow    n _ _) = n
 getFuncName (NoCallFuncEntryShow  n _)   = n
 getFuncName (FailureFuncEntryShow n _ _) = n
+--getFuncName (SuccessFuncEntryShow n _ _) = n
 
 runNoCall x  = runStateT x $ map (\(s,ts,_) -> NoCallFuncEntryShow s $ map FiniteType ts) funcs
 runFailure x = runStateT x $ map f funcs where
   f (s,ts,Func func) = FailureFuncEntryShow s (map FiniteType ts) $ Func $ \p xs -> func p xs >> error ("EnginePropFailureConstraintUtils::toFailureFuncs::func [Function should not succeed ["++s++"]]")
 
-randPos = liftM un $ lift (arbitrary :: Gen P)
+--runSuccess x = runStateT x $ map f funcs where f (s,ts,func) = SuccessFuncEntryShow s (map FiniteType ts) func
+
+randPos = liftM un (arbitrary :: Gen P)
+randPos' = lift randPos
 
 
 

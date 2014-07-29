@@ -102,7 +102,7 @@ objExpOfWith good k bad = do
   (ts,os,badT,badO,i) <- mkElems' good bad
   ks                  <- replicateM (length ts) $ lift arbitrary
   let keys = zipWith (curry f) [0 ..] ks where f (j,x) | i == j = k | otherwise = x
-  p <- randPos
+  p <- randPos'
   (a,_) <- expOrFunc' (mkObj' p $ zipWith mkPair keys ts) (ObjO p $ zip keys os)
   (_,o) <- expOrFunc' badT badO
   return (a,o)
@@ -128,7 +128,7 @@ tableWidth x                = error $ "EnginePropFailureConstraintUtils::tableWi
 getIntVal (NumO _ v) | v == fromIntegral (floor v :: Int) = floor v | otherwise = error $ "EnginePropFailureConstraintUtils::getIntVal [Unexpected numeric value ["++show v++"]]"
 
 validTableExp = do
-  p <- randPos
+  p <- randPos'
   (n,m) <- lift getNM
   funcValue =<< liftM (flip (TableO p) [].map (map snd)) (replicateM n $ replicateM m atomExp)
 
