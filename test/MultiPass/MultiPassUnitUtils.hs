@@ -11,23 +11,3 @@ initProg = initTable.unsafeProg
 derefProg = derefVars.unsafeInitTable.unsafeProg
 validateProg fs = validateFunctions fs.unsafeInitTable.unsafeProg
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-

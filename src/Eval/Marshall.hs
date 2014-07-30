@@ -35,15 +35,3 @@ applyFunc p i es = do fs <- get; case lookup' fs of {
   where lookup' = lookup i .map (\(x,y,z)->(x,(y,z)))
         validateArgCount s l1 l2 = when (l1 /= l2) $ lift $ Left $ ArgCountMismatch p s l1 l2
 
-
-
-
-
-
-
-
-
-
-
-
-

@@ -208,5 +208,4 @@ getAttributes ps = get ps "title" ++ get ps "color"
 get :: [(String, ExpObj)] -> String -> [(String, ExpObj)]
 get ps n = maybeToList $ do r <- lookup n ps; return (n,r)
 
-
         

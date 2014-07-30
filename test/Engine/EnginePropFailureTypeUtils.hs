@@ -109,7 +109,7 @@ data Sort3 = Sort3 ExpToken ExpToken ExpObj [FuncEntryShow] deriving (Show)
 instance Arbitrary Sort3 where arbitrary = do ([(e1,_),(e2,o2)],fs) <- runNoCall $ sequence [numExp, arrExpOf (arrExpOf' atomExp) notArrExp]; return $ Sort3 e1 e2 o2 fs
 
 data Sort4 = Sort4 ExpToken ExpToken ExpObj [FuncEntryShow] deriving (Show)
-instance Arbitrary Sort4 where 
+instance Arbitrary Sort4 where
   arbitrary = do
     ((a1,o1),fs0) <- runNoCall $ arrExpOf atomExp notAtomExp
     ([(e1,_),(e2,_)],fs1) <- runStateT (sequence [numExp, arrExpOf (arrExpOf' atomExp) (return (a1,unsafeMarshall (toFuncEntries fs0) a1))]) fs0
@@ -119,7 +119,7 @@ data Col3 = Col3 ExpToken ExpToken ExpObj [FuncEntryShow] deriving (Show)
 instance Arbitrary Col3 where arbitrary = do ([(e1,_),(e2,o2)],fs) <- runNoCall $ sequence [numExp, arrExpOf (arrExpOf' atomExp) notArrExp]; return $ Col3 e1 e2 o2 fs
 
 data Col4 = Col4 ExpToken ExpToken ExpObj [FuncEntryShow] deriving (Show)
-instance Arbitrary Col4 where 
+instance Arbitrary Col4 where
   arbitrary = do
     ((a1,o1),fs0) <- runNoCall $ arrExpOf atomExp notAtomExp
     ([(e1,_),(e2,_)],fs1) <- runStateT (sequence [numExp, arrExpOf (arrExpOf' atomExp) (return (a1,unsafeMarshall (toFuncEntries fs0) a1))]) fs0

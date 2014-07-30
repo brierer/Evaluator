@@ -116,7 +116,6 @@ mOrLit esa ea chooseType = do
   e <- liftM un ea
   return $ OrLit es e $ Or [t1,t2]
 
-
 mFunc isType mk = liftMF2 mk (filter (isType.snd).map (first clearParams.un)) un
 
 mOfFunc tsa ea chooseType mk = do

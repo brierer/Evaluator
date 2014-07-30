@@ -46,26 +46,26 @@ instance Arbitrary TableColumnLength where arbitrary = do; (n,m) <- getNM; ([(e1
 
 data TableHeaderLength = TableHeaderLength ExpToken ExpToken Pos Int Int [FuncEntryShow] deriving (Show)
 instance Arbitrary TableHeaderLength where arbitrary = do (n,m) <- getNM; ([(e1,o1),(e2,_)],fs) <- runFailure $ sequence [arrExpOfLength' n (arrExpOfLength' (n+m) atomExp),objExpOfWith (arrExpOfLength' n strExp) ["col"] (arrExpOfLength' m strExp)]; return $ TableHeaderLength e1 e2 (getPos o1) n m fs
-    
+
 data TableTakeMin = TableTakeMin ExpToken ExpToken Pos Int [FuncEntryShow] deriving (Show)
 instance Arbitrary TableTakeMin where arbitrary = do  ([(e1,o1),(e2,_)],fs) <- runFailure $ sequence [numExpIn (-10) 0,validTableExp]; return $ TableTakeMin e1 e2 (getPos o1) (getIntVal o1) fs
 
 data SortIndexOutOfBounds1 = SortIndexOutOfBounds1 ExpToken ExpToken Pos Int Int Int [FuncEntryShow] deriving (Show)
 instance Arbitrary SortIndexOutOfBounds1 where arbitrary = indexOutOfBounds1 SortIndexOutOfBounds1
-    
+
 data SortIndexOutOfBounds2 = SortIndexOutOfBounds2 ExpToken ExpToken Pos Int Int Int [FuncEntryShow] deriving (Show)
 instance Arbitrary SortIndexOutOfBounds2 where arbitrary = indexOutOfBounds2 SortIndexOutOfBounds2
-    
+
 data ColIndexOutOfBounds1 = ColIndexOutOfBounds1 ExpToken ExpToken Pos Int Int Int [FuncEntryShow] deriving (Show)
 instance Arbitrary ColIndexOutOfBounds1 where arbitrary = indexOutOfBounds1 ColIndexOutOfBounds1
-    
+
 data ColIndexOutOfBounds2 = ColIndexOutOfBounds2 ExpToken ExpToken Pos Int Int Int [FuncEntryShow] deriving (Show)
 instance Arbitrary ColIndexOutOfBounds2 where arbitrary = indexOutOfBounds2 ColIndexOutOfBounds2
 
 indexOutOfBounds1 f = do ((e2,o2),fs0) <- runFailure validTableExp; let m = tableWidth o2 in do ((e1,o1),fs1) <- runStateT (chooseExp [numExpIn (-10) (-1),numExpIn m 1000]) fs0; return $ f e1 e2 (getPos o1) 0 (m-1) (getIntVal o1) fs1
 indexOutOfBounds2  f = do width <- liftM ((+1).(`mod`10)) arbitrary; ((e2,_), fs0) <- runFailure $ arrExpOfLength' width (arrExpOfLength' width atomExp); ((e1,o1),fs1) <- runStateT (chooseExp [numExpIn (-10) (-1),numExpIn width 1000]) fs0; return $ f e1 e2 (getPos o1) 0 (width-1) (getIntVal o1) fs1
 
-emptyExp ea = do (e,o) <- ea; liftM (flip (,) $ clearObjElems o) $ clearTokElems e 
+emptyExp ea = do (e,o) <- ea; liftM (flip (,) $ clearObjElems o) $ clearTokElems e
 
 clearTokElems (ArrT p w _)               = return $ ArrT p w []
 clearTokElems (ObjT p w _)               = return $ ObjT p w []
@@ -94,11 +94,11 @@ arrExpOfLength l good bad = do
       os = map (\(j,x) -> if i == j then o else x) $ zip [0..] os'
   (a,_) <- expOrFunc' (mkArr es) (arrO os)
   return (a,o)
-  
+
 arrExpOfLength' l good = do
   (es,os) <- liftM unzip $ replicateM l good
   expOrFunc' (mkArr es) (arrO os)
-  
+
 objExpOfWith good vs bad = do
   (ts,os,bads,is) <- mkElems good bad $ length vs
   let l = length ts
@@ -112,7 +112,7 @@ objExpOfWith good vs bad = do
 
 getNM = do
   [n,m] <- liftM (map ((+1).(`mod` 5))) $ replicateM 2 arbitrary
-  return (n,if n == m then m+1 else m) 
+  return (n,if n == m then m+1 else m)
 
 setNewValue v (NumT p w _ _, NumO q _)              = return (NumT p w (show v) v, NumO q v)
 setNewValue v (f@(FuncT _ (IdT _ _ n) _), NumO q _) = modify (map $ \x -> if n == getFuncName x then setNewFuncValue v x else x) >> return (f,NumO q v)
@@ -127,7 +127,7 @@ tableLength x                = error $ "EnginePropFailureConstraintUtils::tableL
 
 tableWidth (TableO _ ess _) = length ess
 tableWidth x                = error $ "EnginePropFailureConstraintUtils::tableWidth [Unexpected pattern ["++show x++"]]"
-  
+
 getIntVal (NumO _ v) | v == fromIntegral (floor v :: Int) = floor v | otherwise = error $ "EnginePropFailureConstraintUtils::getIntVal [Unexpected numeric value ["++show v++"]]"
 
 validTableExp = do
@@ -135,14 +135,5 @@ validTableExp = do
   (n,m) <- lift getNM
   h <- liftM (map snd) $ replicateM n strExp
   funcValue =<< liftM (flip (TableO p) h.map (map snd)) (replicateM n $ replicateM m atomExp)
-
-
-
-
-
-
-
-
-
 
   

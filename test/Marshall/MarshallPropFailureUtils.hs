@@ -113,7 +113,7 @@ instance Arbitrary   OrFunc where arbitrary = sized1 tall; shrink (OrFunc ts _ _
 instance Tall        OrFunc where                                            tall n = mOrFunc (talls n)       elements elements
 
 data FiniteType = FiniteType Type
-instance Show FiniteType where 
+instance Show FiniteType where
   show (FiniteType t) = "FiniteType " ++ f 10 t where
     f :: Int -> Type -> String
     f 0 _ = "any"

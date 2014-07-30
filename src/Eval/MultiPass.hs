@@ -8,7 +8,7 @@ module Eval.MultiPass
 , mapMPair
 ) where
 
-import qualified Data.Map as M 
+import qualified Data.Map as M
 
 import Control.Monad
 import Data.Eval

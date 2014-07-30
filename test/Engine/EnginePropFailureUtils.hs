@@ -5,8 +5,6 @@ import Data.Eval
 import Data.ExpToken
 import Data.ExpObj
 import Data.HasPos
-import Data.Maybe
-import Data.List
 import Eval.Engine
 import Test.Framework
 
@@ -18,7 +16,7 @@ import MatchType.MatchTypeUnitUtils
 import MatchType.MatchTypePropUtils
 
 data FuncEntryShow = CallFuncEntryShow    String [FiniteType] ExpObj
-                   | NoCallFuncEntryShow  String [FiniteType] 
+                   | NoCallFuncEntryShow  String [FiniteType]
                    | FailureFuncEntryShow String [FiniteType] Func
                    | SuccessFuncEntryShow String [FiniteType] Func
 instance Show FuncEntryShow where
@@ -27,8 +25,8 @@ instance Show FuncEntryShow where
   show (FailureFuncEntryShow s ts _) = "FailureFuncEntryShow " ++ show s ++ " " ++ show ts ++ " (Func "++translate s++")"
   show (SuccessFuncEntryShow s ts _) = "SuccessFuncEntryShow " ++ show s ++ " " ++ show ts ++ " (Func "++translate s++")"
 
-translate s | s `elem` ["show","multi","mean","table","nTimes","take","sort","col","plot"] = s ++ "L"  
-translate "descriptive" = "descL"    
+translate s | s `elem` ["show","multi","mean","table","nTimes","take","sort","col","plot"] = s ++ "L"
+translate "descriptive" = "descL"
 translate x = "<?"++x++"?>"
 
 type GenFunc = StateT [FuncEntryShow] Gen
@@ -129,10 +127,10 @@ runSuccess x = runStateT x $ map f funcs where f (s,ts,func) = SuccessFuncEntryS
 randPos = liftM un (arbitrary :: Gen P)
 randPos' = lift randPos
 
-shuffle ys = f [] ys where
+shuffle = f [] where
   f acc [] = return acc
-  f acc xs = elements xs >>= liftM2 f (:acc) (flip deleteFirst xs)
+  f acc xs = elements xs >>= liftM2 f (:acc) (`deleteFirst` xs)
 
-deleteFirst _ [] = [] 
+deleteFirst _ [] = []
 deleteFirst a (b:bc) | a == b = bc | otherwise = b : deleteFirst a bc
 

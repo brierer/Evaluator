@@ -24,7 +24,6 @@ test_Show = do   assertEqual (Right $ ObjO (1,1) [("result",ArrO (1,6) [])])    
                  assertEqual (Right $ ObjO (1,1) [("result",ArrO (1,6) [TableO (1,6) [] [],PlotO  (1,6) [] []])]) $ runWith "show(f())" [("f",ArrO (1,6) [TableO (1,6) [] [],PlotO  (1,6) [] []])]
                  assertEqual (Right $ ObjO (1,1) [("result",ArrO (1,6) [PlotO  (1,6) [] [],TableO (1,6) [] []])]) $ runWith "show(f())" [("f",ArrO (1,6) [PlotO  (1,6) [] [],TableO (1,6) [] []])]
 
-
 test_Multi = do  assertEqual (Right $ NumO (1,1) 1) $ run     "multi([1])"
                  assertEqual (Right $ NumO (1,1) 2) $ run     "multi([1,2])"
                  assertEqual (Right $ NumO (1,1) 6) $ run     "multi([1,2,3])"
@@ -142,7 +141,7 @@ test_Take = do   assertEqual (Right $ TableO (1,1) [] [])                       
                  assertEqual (Right $ TableO (1,1) [[NumO (0,0) 0],[NumO (1,0) 0]] [])                           $ runWith "take(f(),g())" [("f",NumO (0,0) 1),("g",TableO (0,0) [[NumO (0,0) 0,NumO (0,1) 1],[NumO (1,0) 0,NumO (1,1) 1]] [])]
                  assertEqual (Right $ TableO (1,1) [[NumO (0,0) 0,NumO (0,1) 1],[NumO (1,0) 0,NumO (1,1) 1]] []) $ runWith "take(f(),g())" [("f",NumO (0,0) 2),("g",TableO (0,0) [[NumO (0,0) 0,NumO (0,1) 1],[NumO (1,0) 0,NumO (1,1) 1]] [])]
                  assertEqual (Right $ TableO (1,1) [[NumO (0,0) 0,NumO (0,1) 1],[NumO (1,0) 0,NumO (1,1) 1]] []) $ runWith "take(f(),g())" [("f",NumO (0,0) 3),("g",TableO (0,0) [[NumO (0,0) 0,NumO (0,1) 1],[NumO (1,0) 0,NumO (1,1) 1]] [])]
- 
+
                  assertEqual (Right $ ArrO (1,1) [])                            $ run     "take(0,[])"
                  assertEqual (Right $ ArrO (1,1) [])                            $ run     "take(1,[])"
                  assertEqual (Right $ ArrO (1,1) [])                            $ run     "take(0,[0])"
@@ -217,17 +216,17 @@ test_Col = do    assertEqual (Right $ ArrO (1,1) [NumO (0,0) 0])                
                  assertEqual (Right $ ArrO (1,1) [NumO (0,1) 1])                              $ runWith "col(1,f())" [("f",TableO (0,0) [[NumO (0,0) 0],[NumO (0,1) 1]] [])]
                  assertEqual (Right $ ArrO (1,1) [NumO (0,0) 1,NumO (0,1) 0,NumO (0,2) 2])    $ runWith "col(0,f())" [("f",TableO (0,0) [[NumO (0,0) 1,NumO (0,1) 0,NumO (0,2) 2],[NumO (1,0) 3,NumO (1,1) 2,NumO (1,2) 1]] [])]
                  assertEqual (Right $ ArrO (1,1) [NumO (1,0) 3,NumO (1,1) 2,NumO (1,2) 1])    $ runWith "col(1,f())" [("f",TableO (0,0) [[NumO (0,0) 1,NumO (0,1) 0,NumO (0,2) 2],[NumO (1,0) 3,NumO (1,1) 2,NumO (1,2) 1]] [])]
-                                                                                                         
+
                  assertEqual (Right $ ArrO (1,1) [NumO (0,0) 0])                              $ runWith "col(f(),g())" [("f",NumO (1,6) 0),("g",TableO (0,0) [[NumO (0,0) 0],[NumO (0,1) 1]] [])]
                  assertEqual (Right $ ArrO (1,1) [NumO (0,1) 1])                              $ runWith "col(f(),g())" [("f",NumO (1,6) 1),("g",TableO (0,0) [[NumO (0,0) 0],[NumO (0,1) 1]] [])]
                  assertEqual (Right $ ArrO (1,1) [NumO (0,0) 1,NumO (0,1) 0,NumO (0,2) 2])    $ runWith "col(f(),g())" [("f",NumO (1,6) 0),("g",TableO (0,0) [[NumO (0,0) 1,NumO (0,1) 0,NumO (0,2) 2],[NumO (1,0) 3,NumO (1,1) 2,NumO (1,2) 1]] [])]
                  assertEqual (Right $ ArrO (1,1) [NumO (1,0) 3,NumO (1,1) 2,NumO (1,2) 1])    $ runWith "col(f(),g())" [("f",NumO (1,6) 1),("g",TableO (0,0) [[NumO (0,0) 1,NumO (0,1) 0,NumO (0,2) 2],[NumO (1,0) 3,NumO (1,1) 2,NumO (1,2) 1]] [])]
-                                                                                                         
+
                  assertEqual (Right $ ArrO (1,1) [NumO (1,9)  0])                             $ run     "col(0,[[0],[1]])"
                  assertEqual (Right $ ArrO (1,1) [NumO (1,13) 1])                             $ run     "col(1,[[0],[1]])"
                  assertEqual (Right $ ArrO (1,1) [NumO (1,9)  1,NumO (1,11) 0,NumO (1,13) 2]) $ run     "col(0,[[1,0,2],[3,2,1]])"
                  assertEqual (Right $ ArrO (1,1) [NumO (1,17) 3,NumO (1,19) 2,NumO (1,21) 1]) $ run     "col(1,[[1,0,2],[3,2,1]])"
-                                                                                                         
+
                  assertEqual (Right $ ArrO (1,1) [NumO (1,10) 0])                             $ runWith "col(0,f())"                 [("f",ArrO (0,0) [ArrO (1,9) [NumO (1,10) 0],                            ArrO (1,13) [NumO (1,14) 1]])]
                  assertEqual (Right $ ArrO (1,1) [NumO (1,14) 1])                             $ runWith "col(1,f())"                 [("f",ArrO (0,0) [ArrO (1,9) [NumO (1,10) 0],                            ArrO (1,13) [NumO (1,14) 1]])]
                  assertEqual (Right $ ArrO (1,1) [NumO (1,10) 1,NumO (1,12) 0,NumO (1,14) 2]) $ runWith "col(0,f())"                 [("f",ArrO (0,0) [ArrO (1,9) [NumO (1,10) 1,NumO (1,12) 0,NumO (1,14) 2],ArrO (1,17) [NumO (1,18) 3,NumO (1,20) 2,NumO (1,22) 1]])]

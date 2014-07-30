@@ -7,20 +7,15 @@ import qualified Data.Vector as V
 import Control.Monad
 import Control.Monad.State
 import Data.Eval
-import Data.EvalError
 import Data.ExpToken
 import Data.ExpObj
-import Data.HasPos
 import Data.Maybe
-import Eval.Engine
 import Eval.Marshall
 import Statistics.Sample
 import Test.Framework
 
 import Engine.EnginePropFailureConstraintUtils
 import Engine.EnginePropFailureUtils
-import Marshall.MarshallUtils
-import MatchType.MatchTypeUnitUtils
 import Parser.ParserUnitUtils
 
 data Show1 = Show1 ExpToken ExpObj Pos [FuncEntryShow] deriving (Show)
@@ -69,16 +64,16 @@ instance Arbitrary Take1 where
 
 data Take2 = Take2 ExpToken ExpToken ExpObj Pos [FuncEntryShow] deriving (Show)
 instance Arbitrary Take2 where arbitrary = matrixArb Take2 $ \p es n -> ArrO p $ take n es
-  
+
 data Sort1 = Sort1 ExpToken ExpToken ExpObj Pos [FuncEntryShow] deriving (Show)
 instance Arbitrary Sort1 where arbitrary = tableArb Sort1 $ \p ess h n -> TableO p (sortOn n ess) h
-    
+
 data Sort2 = Sort2 ExpToken ExpToken ExpObj Pos [FuncEntryShow] deriving (Show)
 instance Arbitrary Sort2 where arbitrary = matrixArb Sort2 $ \p es n -> ArrO p $ sortArrOn n es
-  
+
 data Col1 = Col1 ExpToken ExpToken ExpObj Pos [FuncEntryShow] deriving (Show)
 instance Arbitrary Col1 where arbitrary = tableArb Col1 $ \p ess _ n -> ArrO p $ ess !! n
-    
+
 data Col2 = Col2 ExpToken ExpToken ExpObj Pos [FuncEntryShow] deriving (Show)
 instance Arbitrary Col2 where arbitrary = matrixArb Col2 $ \p es n -> let ArrO _ xs = es !! n in ArrO p xs
 
@@ -90,7 +85,7 @@ instance Arbitrary Plott where
     (e3,ObjO _ ps) <- elements [h1,h2,h3,h4]
     p <- randPos
     let o = PlotO p (zip ls rs) $ filter ((`elem` ["title","color"]) . fst) ps
-    return $ Plott e1 e2 e3 o p fs1 
+    return $ Plott e1 e2 e3 o p fs1
 
 tableArb mk f = do
     ((e2,TableO _ ess h),fs0) <- runSuccess validTableExp
@@ -98,7 +93,7 @@ tableArb mk f = do
     p <- randPos
     let o = f p ess h $ floor n
     return $ mk e1 e2 o p fs1
-  
+
 matrixArb mk f = do
     (m1,m2) <- getNM
     ((e2,ArrO _ es),fs0) <- runSuccess $ arrExpOfLength' m1 $ arrExpOfLength' m2 atomExp
@@ -153,9 +148,4 @@ ignorePos (StrO   _ v)     = StrO   (0,0) v
 ignorePos (NumO   _ v)     = NumO   (0,0) v
 ignorePos (BoolO  _ v)     = BoolO  (0,0) v
 ignorePos (NullO  _)       = NullO  (0,0)
-
-
-
-
-
 

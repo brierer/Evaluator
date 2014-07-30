@@ -88,7 +88,6 @@ instance Arbitrary ObjTS where arbitrary = sized1 tall; shrink (ObjTS e) = mObjT
 instance Tall      ObjTS where                                    tall n = mObjTS (tall n)
 mObjTS = liftM (ObjTS .removeVarsAndFuncs.un)
 
-
 chooseT f = f [(arr,isArr),(obj,isObj),(Str,isStr),(Num,isNum),(Bool,isBool),(Null,isNull)]
 
 mkUtils ts = ( map fst ts

@@ -157,7 +157,6 @@ test_NTimes = do assertEqual(leafTypeMismatch (1,8) LeafNum LeafTable)  $ runWit
                  assertEqual(leafTypeMismatch (1,10) LeafNum LeafBool)   $ run     "nTimes(0,false)"
                  assertEqual(leafTypeMismatch (1,10) LeafNum LeafNull)   $ run     "nTimes(0,null)"
 
-
 test_Take = do   assertEqual(leafTypeMismatch (1,6) LeafNum LeafTable)  $ runWith "take(f(),g())"   [("g",tableO [] []),("f",TableO (1,6) [] [])]
                  assertEqual(leafTypeMismatch (1,6) LeafNum LeafPlot)   $ runWith "take(f(),g())"   [("g",tableO [] []),("f",PlotO  (1,6) [] [])]
                  assertEqual(leafTypeMismatch (1,6) LeafNum NodeArr)    $ runWith "take([],g())"    [("g",tableO [] [])]

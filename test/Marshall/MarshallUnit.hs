@@ -91,5 +91,4 @@ test_ArgTypes = do   assertEqual (leafTypeMismatch (1,3) LeafTable LeafNull)  $ 
                      assertEqual mockSuccess $ runFuncWith "f(mkBool())"               $ ("f", [Or [Bool,Null]], mockSuccessFunc) : noArgFunc "mkBool" (`BoolO` False)
                      assertEqual mockSuccess $ runFuncWith "f(mkNull())"               $ ("f", [Or [Bool,Null]], mockSuccessFunc) : noArgFunc "mkNull" NullO
 
-
                     

@@ -172,7 +172,6 @@ mTypeA n = do
   ts <- liftM (nub.map un) (talls $ n-1 :: Gen [TypeA])
   liftM TypeA $ elements $ [Table,Plot,Str,Num,Bool,Null] ++ if n == 0 then [] else [ArrOf t,ObjOf t,Or ts]
 
-
 data ArrOfTypeFailure = ArrOfTypeFailure ExpObj ExpObj Type Type deriving(Show)
 instance Arbitrary ArrOfTypeFailure where arbitrary = sized1 tall; shrink (ArrOfTypeFailure _ _ at bt) = mArrOfTypeFailure (tShrink at) (tShrink bt)
 instance Tall      ArrOfTypeFailure where                                                       tall n = mArrOfTypeFailure (tall n)     (tall n)
@@ -246,19 +245,19 @@ makeMatchingExp Plot      = plotO  [] []
 makeMatchingExp Str       = strO   ""
 makeMatchingExp Num       = numO   0
 makeMatchingExp Bool      = boolO  False
-makeMatchingExp Null      = nullO  
+makeMatchingExp Null      = nullO
 makeMatchingExp (ArrOf t) = arrO [makeMatchingExp t]
 makeMatchingExp (ObjOf t) = objO [("",makeMatchingExp t)]
 
 matchOr ::  ExpObj -> [Type] -> Eval a
 matchOr e ts = simplify e $ map (f.simpleMatch e) ts where
   f (Left (TypeMismatch t)) = t
-  f x                       = error $ "Eval.MatchType::orType::f [Unexpected pattern ["++show x++"]]"  
+  f x                       = error $ "Eval.MatchType::orType::f [Unexpected pattern ["++show x++"]]"
 
 simplify :: ExpObj -> [TMTree] -> Eval a
 simplify x [] = Left $ TypeMismatch $ TMLeaf (getPos x) (NodeOr []) (getRoot x)
 simplify _ ts | P.any (not.(\t -> case t of TMLeaf{} -> True; _ -> False)) ts = Left $ TypeMismatch $ TMNode ts
-              | otherwise = let (canBeSame,orTypes) = unzip $ map (\(TMLeaf x y z) -> ((x,z),y)) ts 
+              | otherwise = let (canBeSame,orTypes) = unzip $ map (\(TMLeaf x y z) -> ((x,z),y)) ts
                                 (p,t2) = head canBeSame
                                 canBeSimplified = length (nub canBeSame) == 1
                             in Left $ TypeMismatch $ if canBeSimplified then TMLeaf p (NodeOr $ sortBy (flip compare) (nub orTypes)) t2 else TMNode ts

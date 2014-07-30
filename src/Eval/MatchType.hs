@@ -58,18 +58,18 @@ matchType  Str      x@(StrO{})     = return x
 matchType  Num      x@(NumO{})     = return x
 matchType  Bool     x@(BoolO{})    = return x
 matchType  Null     x@(NullO{})    = return x
-matchType (Or ts)   x              = do fs <- get; let rs = map (flip evalStateT fs.(`matchType`x)) ts in if P.any isRight rs then return x else orTypeMismatch x rs 
+matchType (Or ts)   x              = do fs <- get; let rs = map (flip evalStateT fs.(`matchType`x)) ts in if P.any isRight rs then return x else orTypeMismatch x rs
 matchType t         x              = typeMismatch t x
 
 orTypeMismatch ::  ExpObj -> [Eval ExpObj] -> EvalFunc a
 orTypeMismatch x = simplify x . map f where
   f (Left (TypeMismatch t)) = t
-  f e                       = error $ "Eval.MatchType::orType::f [Unexpected pattern ["++show e++"]]"  
+  f e                       = error $ "Eval.MatchType::orType::f [Unexpected pattern ["++show e++"]]"
 
 simplify :: ExpObj -> [TMTree] -> EvalFunc a
 simplify x [] = typeMismatch (Or []) x
-simplify _ ts | P.any (not.isLeaf) ts = typeError $ TMNode ts 
-              | otherwise = let (canBeSame,orTypes) = unzip $ map (\(TMLeaf x y z) -> ((x,z),y)) ts 
+simplify _ ts | P.any (not.isLeaf) ts = typeError $ TMNode ts
+              | otherwise = let (canBeSame,orTypes) = unzip $ map (\(TMLeaf x y z) -> ((x,z),y)) ts
                                 (p,t2) = head canBeSame
                                 canBeSimplified = length (S.toList $ S.fromList canBeSame) == 1
                             in typeError $ if canBeSimplified then TMLeaf p (NodeOr $ sortNub orTypes) t2 else TMNode ts

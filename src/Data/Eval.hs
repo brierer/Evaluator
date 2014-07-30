@@ -24,10 +24,3 @@ type FuncEntry = (String,[Type],Func)
 
 data Func = Func { invoke :: Pos -> [ExpObj] -> EvalFunc ExpObj }
 
-
-
-
-
-
-
-
