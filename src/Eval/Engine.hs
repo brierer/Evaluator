@@ -188,7 +188,7 @@ validateIndex pn n minL maxL = when (n < minL || n > maxL) $ lift $ Left $ Index
 -- Sorts an array of arrays (matrix) by the n'th array-element (column)
 sortAF :: Pos -> Pos -> Int -> [ExpObj] -> EvalFunc ExpObj
 sortAF p pn n arrays =  let (fs,ess) = unzip $ map (\(ArrO q es) -> (ArrO q,es)) arrays
-                     in  liftM (ArrO p . zipWith ($) fs) (sortMatrix pn n ess)
+                        in  liftM (ArrO p . zipWith ($) fs) (sortMatrix pn n ess)
 
 -- Extracts from a table the n'th column as an array
 colTF :: Pos -> Pos -> Int -> [[ExpObj]] -> EvalFunc ExpObj

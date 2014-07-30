@@ -192,7 +192,7 @@ talls n = sListOf $ tall n
 sized1 p = sized f where f i = p $ i `mod` 3
 sListOf  = liftM sList . listOf
 sList1Of = liftM sList . listOf1
-sList = take 10
+sList = take 5
 
 sShrink  = take 1.shrink
 tShrink  = sShrink.to

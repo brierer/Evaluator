@@ -6,6 +6,7 @@ import Data.EvalError
 import Data.ExpToken
 import Data.ExpObj
 import Data.HasPos
+import Data.Maybe
 import Eval.Marshall
 import Test.Framework
 
@@ -44,7 +45,7 @@ data TableColumnLength = TableColumnLength ExpToken ExpToken Pos Int Int [FuncEn
 instance Arbitrary TableColumnLength where arbitrary = do; (n,m) <- getNM; ([(e1,o1),(e2,_)],fs) <- runFailure $ sequence [arrExpOfLength (n+m) (arrExpOfLength' n atomExp) (arrExpOfLength' m atomExp),objExpOf' $ arrExpOf' strExp]; return $ TableColumnLength e1 e2 (getPos o1) n m fs
 
 data TableHeaderLength = TableHeaderLength ExpToken ExpToken Pos Int Int [FuncEntryShow] deriving (Show)
-instance Arbitrary TableHeaderLength where arbitrary = do (n,m) <- getNM; ([(e1,o1),(e2,_)],fs) <- runFailure $ sequence [arrExpOfLength' n (arrExpOfLength' (n+m) atomExp),objExpOfWith (arrExpOfLength' n strExp) "col" (arrExpOfLength' m strExp)]; return $ TableHeaderLength e1 e2 (getPos o1) n m fs
+instance Arbitrary TableHeaderLength where arbitrary = do (n,m) <- getNM; ([(e1,o1),(e2,_)],fs) <- runFailure $ sequence [arrExpOfLength' n (arrExpOfLength' (n+m) atomExp),objExpOfWith (arrExpOfLength' n strExp) ["col"] (arrExpOfLength' m strExp)]; return $ TableHeaderLength e1 e2 (getPos o1) n m fs
     
 data TableTakeMin = TableTakeMin ExpToken ExpToken Pos Int [FuncEntryShow] deriving (Show)
 instance Arbitrary TableTakeMin where arbitrary = do  ([(e1,o1),(e2,_)],fs) <- runFailure $ sequence [numExpIn (-10) 0,validTableExp]; return $ TableTakeMin e1 e2 (getPos o1) (getIntVal o1) fs
@@ -98,13 +99,15 @@ arrExpOfLength' l good = do
   (es,os) <- liftM unzip $ replicateM l good
   expOrFunc' (mkArr es) (arrO os)
   
-objExpOfWith good k bad = do
-  (ts,os,badT,badO,i) <- mkElems' good bad
-  ks                  <- replicateM (length ts) $ lift arbitrary
-  let keys = zipWith (curry f) [0 ..] ks where f (j,x) | i == j = k | otherwise = x
+objExpOfWith good vs bad = do
+  (ts,os,bads,is) <- mkElems good bad $ length vs
+  let l = length ts
+  ks <- replicateM l $ lift arbitrary
+  let ps = zip is vs
+      keys = zipWith f [0..] ks where f j x = fromMaybe x $ lookup j ps
   p <- randPos'
   (a,_) <- expOrFunc' (mkObj' p $ zipWith mkPair keys ts) (ObjO p $ zip keys os)
-  (_,o) <- expOrFunc' badT badO
+  (_,o) <- uncurry expOrFunc' $ head bads
   return (a,o)
 
 getNM = do
@@ -130,8 +133,8 @@ getIntVal (NumO _ v) | v == fromIntegral (floor v :: Int) = floor v | otherwise 
 validTableExp = do
   p <- randPos'
   (n,m) <- lift getNM
-  funcValue =<< liftM (flip (TableO p) [].map (map snd)) (replicateM n $ replicateM m atomExp)
-
+  h <- liftM (map snd) $ replicateM n strExp
+  funcValue =<< liftM (flip (TableO p) h.map (map snd)) (replicateM n $ replicateM m atomExp)
 
 
 

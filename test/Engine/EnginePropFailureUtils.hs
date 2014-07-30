@@ -44,7 +44,7 @@ boolExp  = expOrFunc $ liftM un  (arbitrary :: Gen BoolTA)
 nullExp  = expOrFunc $ liftM un  (arbitrary :: Gen NullTA)
 
 arrExpOf good bad = do
-  (ts,os,badT,badO) <- mkElems good bad
+  (ts,os,[(badT,badO)],_) <- mkElems good bad 1
   p <- randPos'
   (a,_) <- expOrFunc' (mkArr' p ts) (ArrO p os)
   (_,o) <- expOrFunc' badT badO
@@ -57,7 +57,7 @@ arrExpOf' good = do
   expOrFunc' (mkArr' p $ firstT:beforeT) (ArrO p $ firstO:beforeO)
 
 objExpOf good bad = do
-  (ts,os,badT,badO) <- mkElems good bad
+  (ts,os,[(badT,badO)],_) <- mkElems good bad (1 :: Int)
   keys              <- replicateM (length ts) $ lift arbitrary
   p <- randPos'
   (a,_) <- expOrFunc' (mkObj' p $ zipWith mkPair keys ts) (ObjO p $ zip keys os)
@@ -71,15 +71,16 @@ objExpOf' good = do
   p <- randPos'
   expOrFunc' (mkObj' p $ zipWith mkPair keys $ firstT:beforeT) (ObjO p $ zip keys $ firstO:beforeO)
 
-mkElems good bad = do
-  (beforeT,beforeO) <- liftM unzip $ many good
-  (afterT, afterO)  <- liftM unzip $ many good
-  (badT,badO)       <- bad
-  return (beforeT ++ [badT] ++ afterT,beforeO ++ [badO] ++ afterO,badT,badO)
-  
-mkElems' good bad = do
-  (ts,os,badT,badO) <- mkElems good bad
-  return (ts,os,badT,badO,fromMaybe (-1) $ elemIndex badT ts)
+mkElems good bad n = do
+  goods <- many good
+  bads   <- replicateM n bad
+  ps <- lift $ shuffle $ map Right goods ++ map Left bads
+  let is = map fst $ filter (isLeft.snd) $ zip ([0..] :: [Int]) ps
+      (ts,os) = unzip $ map (\e -> case e of Right x -> x; Left x -> x) ps
+  return (ts,os,bads,is)
+
+isLeft (Left _) = True
+isLeft _        = False
 
 many a = (`replicateM` a).(`mod` 5) =<< lift arbitrary
 
@@ -128,8 +129,10 @@ runSuccess x = runStateT x $ map f funcs where f (s,ts,func) = SuccessFuncEntryS
 randPos = liftM un (arbitrary :: Gen P)
 randPos' = lift randPos
 
+shuffle ys = f [] ys where
+  f acc [] = return acc
+  f acc xs = elements xs >>= liftM2 f (:acc) (flip deleteFirst xs)
 
-
-
-
+deleteFirst _ [] = [] 
+deleteFirst a (b:bc) | a == b = bc | otherwise = b : deleteFirst a bc
 
