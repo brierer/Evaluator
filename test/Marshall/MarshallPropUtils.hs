@@ -67,9 +67,6 @@ instance HasElems ExpObj where
   filterElems pr (ArrO p es) = ArrO p $ filter pr es
   filterElems pr (ObjO p ps) = ObjO p $ filter (pr.snd) ps
 
-instance Unto b ExpObj    => Unto (FuncTA,b) (ExpToken,ExpObj) where un (x,y) = (un x,un y); to (x,y) = (to x,to y)
-instance (Tall a, Tall b) => Tall (a,b)                        where tall n = liftM2 (,) (tall n) (tall n)
-
 data ExpTS =  ExpTS ExpToken deriving (Show)
 instance Unto ExpTS ExpToken where to = ExpTS; un (ExpTS e) = e
 instance Arbitrary ExpTS where arbitrary = sized1 tall; shrink (ExpTS e) = mExpTS (tShrink e)
@@ -87,6 +84,23 @@ instance Unto ObjTS ExpToken where to = ObjTS; un (ObjTS e) = e
 instance Arbitrary ObjTS where arbitrary = sized1 tall; shrink (ObjTS e) = mObjTS (tShrink e)
 instance Tall      ObjTS where                                    tall n = mObjTS (tall n)
 mObjTS = liftM (ObjTS .removeVarsAndFuncs.un)
+
+data UOP = UOP ObjPos deriving (Show)
+instance Unto UOP ObjPos where to = UOP; un (UOP p) = p
+instance Arbitrary UOP where 
+  arbitrary            = mUOP  arbitrary
+  shrink (UOP (Upd p)) = mUOP (tShrink p)
+mUOP = liftM (UOP .Upd .un)
+
+data COP = COP ObjPos deriving (Show)
+instance Unto COP ObjPos where to = COP; un (COP p) = p
+instance Arbitrary COP where 
+  arbitrary             = mCOP  arbitrary
+  shrink (COP (Calc p)) = mCOP (tShrink p)
+mCOP = liftM (COP .Calc .un)
+
+instance Unto b ExpObj    => Unto (FuncTA,b) (ExpToken,ExpObj) where un (x,y) = (un x,un y); to (x,y) = (to x,to y)
+instance (Tall a, Tall b) => Tall (a,b)                        where tall n = liftM2 (,) (tall n) (tall n)
 
 chooseT f = f [(arr,isArr),(obj,isObj),(Str,isStr),(Num,isNum),(Bool,isBool),(Null,isNull)]
 
@@ -112,4 +126,6 @@ mExpTS :: (Applicative m, Monad m) => m ExpTA -> m ExpTS
 mArrTS :: (Applicative m, Monad m) => m ArrTA -> m ArrTS
 mObjTS :: (Applicative m, Monad m) => m ObjTA -> m ObjTS
 
+mUOP   :: (Applicative m, Monad m) => m P -> m UOP
+mCOP   :: (Applicative m, Monad m) => m P -> m COP
    

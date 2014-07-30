@@ -20,13 +20,13 @@ import Parser.ParserUtils
 matchTypeParse t s = matchTypeParseWith t s []
 matchTypeParseWith t s fs = simpleMatch (unsafeMarshall fs $ unsafeParse expT s) t
 
-unsafeMarshall fs (FuncT _ (IdT p _ n) es) = let (_,func) = unsafeLookup n fs in unsafeRight $ evalStateT (invoke func p $ map (unsafeMarshall fs) es) []
-unsafeMarshall fs (ArrT p _ es)            = ArrO p $ map (unsafeMarshall fs) es
-unsafeMarshall fs (ObjT p _ ps)            = ObjO p $ map (second (unsafeMarshall fs).un) ps
-unsafeMarshall _  (StrT p _ v)             = StrO p v
-unsafeMarshall _  (NumT p _ _ v)           = NumO p v
-unsafeMarshall _  (BoolT p _ v)            = BoolO p v
-unsafeMarshall _  (NullT p _)              = NullO p
+unsafeMarshall fs (FuncT _ (IdT p _ n) es) = let (_,func) = unsafeLookup n fs in unsafeRight $ evalStateT (invoke func (Calc p) $ map (unsafeMarshall fs) es) []
+unsafeMarshall fs (ArrT p _ es)            = ArrO  (Calc p) $ map (unsafeMarshall fs) es
+unsafeMarshall fs (ObjT p _ ps)            = ObjO  (Calc p) $ map (second (unsafeMarshall fs).un) ps
+unsafeMarshall _  (StrT p _ v)             = StrO  (Upd  p) v
+unsafeMarshall _  (NumT p _ _ v)           = NumO  (Upd  p) v
+unsafeMarshall _  (BoolT p _ v)            = BoolO (Upd  p) v
+unsafeMarshall _  (NullT p _)              = NullO (Upd  p)
 unsafeMarshall _  x                        = error $ "MatchTypeUnitUtils::unsafeMarshall [Unexpected pattern ["++show x++"]]"
 
 nullary n x = [(n,[],Func $ \_ _ -> return x)]

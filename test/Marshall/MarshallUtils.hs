@@ -20,11 +20,22 @@ noArgFunc' s v = [(s,[],Func $ \_ _ -> return v)]
 mockSuccess     = Right nullO
 mockSuccessFunc = Func $ \_ _ -> lift mockSuccess
 
-tableO = TableO p0
-plotO  = PlotO p0
-arrO   = ArrO p0
-objO   = ObjO p0
-strO   = StrO p0
-numO   = NumO p0
-boolO  = BoolO p0
-nullO  = NullO p0
+tableO = mkTableO p0
+plotO  = mkPlotO p0
+arrO   = mkArrO p0
+objO   = mkObjO p0
+strO   = mkStrO p0
+numO   = mkNumO p0
+boolO  = mkBoolO p0
+nullO  = mkNullO p0
+
+mkTableO = TableO .Calc
+mkPlotO  = PlotO  .Calc
+mkArrO   = ArrO   .Calc
+mkObjO   = ObjO   .Calc
+mkStrO   = StrO   .Upd
+mkNumO   = NumO   .Upd
+mkBoolO  = BoolO  .Upd
+mkNullO  = NullO  .Upd
+
+mkNumO'  = NumO .Calc

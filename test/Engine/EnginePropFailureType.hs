@@ -4,7 +4,7 @@ module Engine.EnginePropFailureType where
 import Prelude hiding (any)
 
 import Data.EvalError
-import Data.HasPos
+import Data.ExpObj
 import Data.Type
 import Eval.Marshall
 import Eval.MatchType

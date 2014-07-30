@@ -8,4 +8,4 @@ eval :: a -> Eval a
 eval = return
 
 mkDesc :: Pos -> Double -> Double -> Double -> Double -> Double -> Double -> ExpObj
-mkDesc p co su me va sk ku = TableO p [[StrO p "count",StrO p "sum",StrO p "mean",StrO p "variance",StrO p "skewness",StrO p "kurtosis"],[NumO p co,NumO p su,NumO p me,NumO p va,NumO p sk,NumO p ku]] []
+mkDesc q co su me va sk ku = let p = Calc q in TableO p [map (StrO p) ["count","sum","mean","variance","skewness","kurtosis"],map (NumO p)[co,su,me,va,sk,ku]] []

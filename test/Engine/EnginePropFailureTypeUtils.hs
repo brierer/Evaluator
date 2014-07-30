@@ -4,7 +4,6 @@ import Control.Monad.State
 import Data.EvalError
 import Data.ExpToken
 import Data.ExpObj
-import Data.HasPos
 import Eval.Marshall
 import Eval.MatchType
 import Test.Framework

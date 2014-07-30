@@ -6,7 +6,7 @@ import Prelude   hiding (any)
 import qualified Prelude as P
 
 import Data.EvalError
-import Data.HasPos
+import Data.ExpObj
 import Data.Type
 import Eval.MatchType
 import Test.Framework

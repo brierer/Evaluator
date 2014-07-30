@@ -27,7 +27,6 @@ executable Evaluator
   other-modules:   
                    Data.Eval,
                    Data.EvalError,
-                   Data.HasPos,
                    Data.Type
 
 test-suite Evaluator-tests
@@ -44,7 +43,6 @@ test-suite Evaluator-tests
   other-modules: 
                  Data.Eval,
                  Data.EvalError,
-                 Data.HasPos,
                  Data.Type,
                  Engine.EngineUnitFailureType,
                  Engine.EngineUtils

@@ -68,13 +68,13 @@ test_ArgTypes = do   assertEqual (leafTypeMismatch (1,3) LeafTable LeafNull)  $ 
                      assertEqual (leafTypeMismatch (1,3) LeafNull LeafBool)  $ runFuncWith "f(mkBool())" $ singleTypeEntry "f" Null ++ noArgFunc "mkBool" (`BoolO` False)
                      assertEqual (leafTypeMismatch (1,3) NodeArr  LeafNull)  $ runFuncWith "f(mkNull())" $ singleTypeEntry "f" arr  ++ noArgFunc "mkNull" NullO
 
-                     assertEqual (leafTypeMismatch (1,12) LeafPlot NodeArr)  $ runFuncWith "f(mkPlot(),mkArr())"   $ doubleTypeEntry "f" Plot ++ noArgFunc' "mkPlot" (PlotO  p0 [] []) ++ noArgFunc "mkArr"  (`ArrO` [])
-                     assertEqual (leafTypeMismatch (1,11) NodeArr  NodeObj)  $ runFuncWith "f(mkArr(),mkObj())"    $ doubleTypeEntry "f" arr  ++ noArgFunc  "mkArr"  (`ArrO` [])       ++ noArgFunc "mkObj"  (`ObjO` [])
-                     assertEqual (leafTypeMismatch (1,11) NodeObj  LeafStr)  $ runFuncWith "f(mkObj(),mkStr())"    $ doubleTypeEntry "f" obj  ++ noArgFunc  "mkObj"  (`ObjO` [])       ++ noArgFunc "mkStr"  (`StrO` "")
-                     assertEqual (leafTypeMismatch (1,11) LeafStr  LeafNum)  $ runFuncWith "f(mkStr(),mkNum())"    $ doubleTypeEntry "f" Str  ++ noArgFunc  "mkStr"  (`StrO` "")       ++ noArgFunc "mkNum"  (`NumO` 0)
-                     assertEqual (leafTypeMismatch (1,11) LeafNum  LeafBool) $ runFuncWith "f(mkNum(),mkBool())"   $ doubleTypeEntry "f" Num  ++ noArgFunc  "mkNum"  (`NumO` 0)        ++ noArgFunc "mkBool" (`BoolO` False)
-                     assertEqual (leafTypeMismatch (1,12) LeafBool LeafNull) $ runFuncWith "f(mkBool(),mkNull())"  $ doubleTypeEntry "f" Bool ++ noArgFunc  "mkBool" (`BoolO` False)   ++ noArgFunc "mkNull"   NullO
-                     assertEqual (leafTypeMismatch (1,12) LeafNull LeafPlot) $ runFuncWith "f(mkNull(),mkPlot())"  $ doubleTypeEntry "f" Null ++ noArgFunc  "mkNull"   NullO           ++ noArgFunc "mkPlot" (\p -> PlotO p [] [])
+                     assertEqual (leafTypeMismatch (1,12) LeafPlot NodeArr)  $ runFuncWith "f(mkPlot(),mkArr())"   $ doubleTypeEntry "f" Plot ++ noArgFunc' "mkPlot" (mkPlotO  p0 [] []) ++ noArgFunc "mkArr"  (`ArrO` [])
+                     assertEqual (leafTypeMismatch (1,11) NodeArr  NodeObj)  $ runFuncWith "f(mkArr(),mkObj())"    $ doubleTypeEntry "f" arr  ++ noArgFunc  "mkArr"  (`ArrO` [])         ++ noArgFunc "mkObj"  (`ObjO` [])
+                     assertEqual (leafTypeMismatch (1,11) NodeObj  LeafStr)  $ runFuncWith "f(mkObj(),mkStr())"    $ doubleTypeEntry "f" obj  ++ noArgFunc  "mkObj"  (`ObjO` [])         ++ noArgFunc "mkStr"  (`StrO` "")
+                     assertEqual (leafTypeMismatch (1,11) LeafStr  LeafNum)  $ runFuncWith "f(mkStr(),mkNum())"    $ doubleTypeEntry "f" Str  ++ noArgFunc  "mkStr"  (`StrO` "")         ++ noArgFunc "mkNum"  (`NumO` 0)
+                     assertEqual (leafTypeMismatch (1,11) LeafNum  LeafBool) $ runFuncWith "f(mkNum(),mkBool())"   $ doubleTypeEntry "f" Num  ++ noArgFunc  "mkNum"  (`NumO` 0)          ++ noArgFunc "mkBool" (`BoolO` False)
+                     assertEqual (leafTypeMismatch (1,12) LeafBool LeafNull) $ runFuncWith "f(mkBool(),mkNull())"  $ doubleTypeEntry "f" Bool ++ noArgFunc  "mkBool" (`BoolO` False)     ++ noArgFunc "mkNull"   NullO
+                     assertEqual (leafTypeMismatch (1,12) LeafNull LeafPlot) $ runFuncWith "f(mkNull(),mkPlot())"  $ doubleTypeEntry "f" Null ++ noArgFunc  "mkNull"   NullO             ++ noArgFunc "mkPlot" (\p -> PlotO p [] [])
 
                      assertEqual (leafTypeMismatch (1,13)  LeafBool                     LeafNull) $ runFuncWith "f([mkBool(),mkNull()])"   $ singleTypeEntry "f" (ArrOf Bool)     ++ noArgFunc "mkBool" (`BoolO` False)   ++ noArgFunc "mkNull"    NullO
                      assertEqual (leafTypeMismatch (1,16)  LeafNum                      LeafStr)  $ runFuncWith "f({x:mkNum(),y:mkStr()})" $ singleTypeEntry "f" (ObjOf Num)      ++ noArgFunc "mkStr"  (`StrO` "")       ++ noArgFunc "mkNum"   (`NumO` 0)

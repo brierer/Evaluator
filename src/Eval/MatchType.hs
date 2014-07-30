@@ -13,7 +13,6 @@ import Control.Monad.State
 import Data.Eval
 import Data.EvalError
 import Data.ExpObj
-import Data.HasPos
 import Data.Type
 
 class HasType a where getRoot :: a -> TypeTree

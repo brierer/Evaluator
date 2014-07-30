@@ -5,7 +5,6 @@ import Control.Monad.State
 import Data.EvalError
 import Data.ExpToken
 import Data.ExpObj
-import Data.HasPos
 import Data.Maybe
 import Eval.Marshall
 import Test.Framework
@@ -106,7 +105,7 @@ objExpOfWith good vs bad = do
   let ps = zip is vs
       keys = zipWith f [0..] ks where f j x = fromMaybe x $ lookup j ps
   p <- randPos'
-  (a,_) <- expOrFunc' (mkObj' p $ zipWith mkPair keys ts) (ObjO p $ zip keys os)
+  (a,_) <- expOrFunc' (mkObj' p $ zipWith mkPair keys ts) (mkObjO p $ zip keys os)
   (_,o) <- uncurry expOrFunc' $ head bads
   return (a,o)
 
@@ -134,6 +133,6 @@ validTableExp = do
   p <- randPos'
   (n,m) <- lift getNM
   h <- liftM (map snd) $ replicateM n strExp
-  funcValue =<< liftM (flip (TableO p) h.map (map snd)) (replicateM n $ replicateM m atomExp)
+  funcValue =<< liftM (flip (mkTableO p) h.map (map snd)) (replicateM n $ replicateM m atomExp)
 
   

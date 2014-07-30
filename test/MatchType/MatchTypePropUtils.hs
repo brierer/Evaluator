@@ -13,11 +13,11 @@ import Control.Monad.State
 import Data.Eval
 import Data.EvalError
 import Data.ExpObj
-import Data.HasPos
 import Data.Type
 import Eval.MatchType
 import Test.Framework
 
+import Marshall.MarshallPropUtils
 import Marshall.MarshallUtils
 import MatchType.MatchTypeUtils
 import Parser.ParserPropUtils
@@ -112,7 +112,6 @@ instance Arbitrary PlotOA where arbitrary = sized1 tall; shrink (PlotOA (PlotO p
 instance Tall      PlotOA where                                                  tall n = mPlotOA  arbitrary  (talls n)     (talls n)
 mPlotOA = liftMF3 f un (map un) (map un) where f x y = PlotOA .PlotO x y
 instance Unto (ExpOA,ExpOA) (ExpObj,ExpObj) where un (x,y) = (un x, un y); to (x,y) = (to x, to y)
-instance Tall (ExpOA,ExpOA) where tall n =  liftM2 (,) (tall n) (tall n)
 
 data ArrOA = ArrOA ExpObj deriving (Show)
 instance Unto  ArrOA ExpObj where to = ArrOA; un (ArrOA a) = a
@@ -126,7 +125,7 @@ instance Arbitrary ObjOA where arbitrary = sized1 tall; shrink (ObjOA (ObjO p ps
 instance Tall      ObjOA where                                              tall n = mObjOA  arbitrary  (talls n)
 mObjOA = liftMF2 f un (map (second un)) where f x = ObjOA .ObjO x
 instance Unto (String,ExpOA) (String,ExpObj) where un = second un; to = second to
-instance Tall (String,ExpOA) where tall n =  liftM2 (,) arbitrary (tall n)
+instance Tall String where tall _ = arbitrary
 
 data StrOA =  StrOA ExpObj deriving (Show)
 instance Unto StrOA ExpObj where to = StrOA; un (StrOA s) = s
@@ -275,14 +274,14 @@ mNullTypeFailure   :: Gen TableOA -> Gen PlotOA -> Gen ArrOA -> Gen ObjOA -> Gen
 mShrinkTypeFailure :: (ExpObj -> b) -> [ExpOA] -> [b]
 
 mExpOA   :: (Applicative m, Monad m) => m ExpObj                                       -> m ExpOA
-mTableOA :: (Applicative m, Monad m) => m P -> m [[ExpOA]]       -> m [ExpOA]          -> m TableOA
-mPlotOA  :: (Applicative m, Monad m) => m P -> m [(ExpOA,ExpOA)] -> m [(String,ExpOA)] -> m PlotOA
-mArrOA   :: (Applicative m, Monad m) => m P -> m [ExpOA]                               -> m ArrOA
-mObjOA   :: (Applicative m, Monad m) => m P -> m [(String,ExpOA)]                      -> m ObjOA
-mStrOA   :: (Applicative m, Monad m) => m P -> m String                                -> m StrOA
-mNumOA   :: (Applicative m, Monad m) => m P -> m Double                                -> m NumOA
-mBoolOA  :: (Applicative m, Monad m) => m P -> m Bool                                  -> m BoolOA
-mNullOA  :: (Applicative m, Monad m) => m P                                            -> m NullOA
+mTableOA :: (Applicative m, Monad m) => m COP -> m [[ExpOA]]       -> m [ExpOA]          -> m TableOA
+mPlotOA  :: (Applicative m, Monad m) => m COP -> m [(ExpOA,ExpOA)] -> m [(String,ExpOA)] -> m PlotOA
+mArrOA   :: (Applicative m, Monad m) => m COP -> m [ExpOA]                               -> m ArrOA
+mObjOA   :: (Applicative m, Monad m) => m COP -> m [(String,ExpOA)]                      -> m ObjOA
+mStrOA   :: (Applicative m, Monad m) => m UOP -> m String                                -> m StrOA
+mNumOA   :: (Applicative m, Monad m) => m UOP -> m Double                                -> m NumOA
+mBoolOA  :: (Applicative m, Monad m) => m UOP -> m Bool                                  -> m BoolOA
+mNullOA  :: (Applicative m, Monad m) => m UOP                                            -> m NullOA
 
 mArrOfTypeFailure :: (Applicative m, Monad m) => m TypeA -> m  TypeA  -> m ArrOfTypeFailure
 mObjOfTypeFailure :: (Applicative m, Monad m) => m TypeA -> m  TypeA  -> m ObjOfTypeFailure

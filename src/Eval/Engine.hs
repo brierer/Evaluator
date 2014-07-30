@@ -50,16 +50,16 @@ funcs = -- 1 arg functions
         atom      = Or [Str,Num,Bool,Null]
 
 {-| Function stubs: extract from list, check some simple constraints and call the actual function -}
-showL      :: Pos -> [ExpObj] -> EvalFunc ExpObj
-multiL     :: Pos -> [ExpObj] -> EvalFunc ExpObj
-meanL      :: Pos -> [ExpObj] -> EvalFunc ExpObj
-descL      :: Pos -> [ExpObj] -> EvalFunc ExpObj
-tableL     :: Pos -> [ExpObj] -> EvalFunc ExpObj
-nTimesL    :: Pos -> [ExpObj] -> EvalFunc ExpObj
-takeL      :: Pos -> [ExpObj] -> EvalFunc ExpObj
-sortL      :: Pos -> [ExpObj] -> EvalFunc ExpObj
-colL       :: Pos -> [ExpObj] -> EvalFunc ExpObj
-plotL      :: Pos -> [ExpObj] -> EvalFunc ExpObj
+showL      :: ObjPos -> [ExpObj] -> EvalFunc ExpObj
+multiL     :: ObjPos -> [ExpObj] -> EvalFunc ExpObj
+meanL      :: ObjPos -> [ExpObj] -> EvalFunc ExpObj
+descL      :: ObjPos -> [ExpObj] -> EvalFunc ExpObj
+tableL     :: ObjPos -> [ExpObj] -> EvalFunc ExpObj
+nTimesL    :: ObjPos -> [ExpObj] -> EvalFunc ExpObj
+takeL      :: ObjPos -> [ExpObj] -> EvalFunc ExpObj
+sortL      :: ObjPos -> [ExpObj] -> EvalFunc ExpObj
+colL       :: ObjPos -> [ExpObj] -> EvalFunc ExpObj
+plotL      :: ObjPos -> [ExpObj] -> EvalFunc ExpObj
 
 showL   p [x]                               =                      showF   p x;                   showL   _ xs = error $ "Engine::showL  [Unexpected pattern ["++show xs++"]]"
 multiL  p [a@(ArrO _ ns)]                   = nonEmpty a >>        multiF  p ns;                  multiL  _ xs = error $ "Engine::multiL [Unexpected pattern ["++show xs++"]]"
@@ -85,8 +85,8 @@ nonEmpty :: ExpObj -> EvalFunc ()
 nonEmpty (ArrO p es) = nonEmpty' p es
 nonEmpty x           = error $ "Eval.Engine::nonEmpty [Unexpected pattern ["++show x++"]]"
 
-nonEmpty' :: Pos -> [a] -> EvalFunc()
-nonEmpty' p xs = when (P.null xs) $ lift $ Left $ IllegalEmpty p
+nonEmpty' :: ObjPos -> [a] -> EvalFunc()
+nonEmpty' p xs = when (P.null xs) $ lift $ Left $ IllegalEmpty $ fromObjPos p
 
 nonEmptyMatrix :: ExpObj -> EvalFunc ()
 nonEmptyMatrix a@(ArrO _ es) = nonEmpty a >> mapM_ nonEmpty es
@@ -94,11 +94,11 @@ nonEmptyMatrix x             = error $ "Eval.Engine::nonEmptyMatrix [Unexpected 
 
 {-| Actual Functions -}
 -- Wrap the topmost result (table or plot) in an object (arbitrary, otherwise the object would be left unchanged)
-showF :: Pos ->  ExpObj  -> EvalFunc ExpObj
+showF :: ObjPos ->  ExpObj  -> EvalFunc ExpObj
 showF p x = return $ ObjO p [("result",x)]
 
 --Multiply all the given numbers
-multiF :: Pos -> [ExpObj] -> EvalFunc ExpObj
+multiF :: ObjPos -> [ExpObj] -> EvalFunc ExpObj
 multiF p ns = return $ NumO p $ product $ getNums ns
 
 getNums :: [ExpObj] -> [Double]
@@ -107,17 +107,17 @@ getNums = map (\(NumO _ x)->x).filter f where
   f _        = False
 
 --Take the mean of he given numbers
-meanF :: Pos -> [ExpObj] -> EvalFunc ExpObj
+meanF :: ObjPos -> [ExpObj] -> EvalFunc ExpObj
 meanF p ns = return $ NumO p $ mean $ toStatList ns
 
 toStatList :: [ExpObj] -> V.Vector Double
 toStatList = V.fromList.getNums
 
 --Builds a table of some frequenc descriptive measures for the given numbers
-descF :: Pos -> [ExpObj] -> EvalFunc ExpObj
+descF :: ObjPos -> [ExpObj] -> EvalFunc ExpObj
 descF  p ns = tableL p [mkColumns p ns,ObjO p []]
 
-mkColumns :: Pos -> [ExpObj] -> ExpObj
+mkColumns :: ObjPos -> [ExpObj] -> ExpObj
 mkColumns p ns = ArrO p [ArrO p $ map (StrO p.fst) desc, ArrO p $ map (NumO p.snd) desc ]
   where desc = zip ["count","sum","mean","variance","skewness","kurtosis"] $ map ($ toStatList ns)
                    [ count , sum , mean , variance , skewness , kurtosis]
@@ -129,7 +129,7 @@ sum :: V.Vector Double -> Double
 sum = P.sum. V.toList
 
 -- Builds a table with the given arrays (columns) and pairs (options dict)
-tableF :: Pos-> [ExpObj] -> [(String, ExpObj)] -> EvalFunc ExpObj
+tableF :: ObjPos-> [ExpObj] -> [(String, ExpObj)] -> EvalFunc ExpObj
 tableF p es ps = do ess <- getMatrix es; liftM (TableO p ess) $ getHeader (length ess) ps
 
 getMatrix :: [ExpObj] -> EvalFunc [[ExpObj]]
@@ -148,31 +148,31 @@ processHeader _ Nothing              = return []
 processHeader l (Just (ArrO p ss)) = validateLength p l ss TableHeaderLengthMismatch
 processHeader _ x = error $ "Engine::processHeader [UnexpectedPattern ["++show x++"]]"
 
-validateLength :: Pos -> Int -> [a] -> (Pos -> Int -> Int -> EvalError) -> EvalFunc [a]
-validateLength p expected val errorType = let actual = length val in if expected == actual then return val else lift $ Left $ errorType p expected actual
+validateLength :: ObjPos -> Int -> [a] -> (Pos -> Int -> Int -> EvalError) -> EvalFunc [a]
+validateLength p expected val mkError = let actual = length val in if expected == actual then return val else lift $ Left $ mkError (fromObjPos p) expected actual
 
 -- Repeats the given number n times
-nTimesF :: Pos -> ExpObj -> Double -> EvalFunc ExpObj
+nTimesF :: ObjPos -> ExpObj -> Double -> EvalFunc ExpObj
 nTimesF p v n = return $ ArrO p $ replicate (floor n) v
 
 -- Takes from a table the n first rows
-takeTF :: Pos -> Pos -> Int -> [[ExpObj]] -> [ExpObj] -> EvalFunc ExpObj
-takeTF _ q n _ _ | n <= 0 = lift $ Left $ IllegalTakeTableLength q 1 n
+takeTF :: ObjPos -> ObjPos -> Int -> [[ExpObj]] -> [ExpObj] -> EvalFunc ExpObj
+takeTF _ q n _ _ | n <= 0 = lift $ Left $ IllegalTakeTableLength (fromObjPos q) 1 n
 takeTF p _ n ess h        = return $ TableO p (map (take n) ess) h
 
 -- Takes from an array the n first elements
-takeAF :: Pos -> Int -> [ExpObj] -> EvalFunc ExpObj
+takeAF :: ObjPos -> Int -> [ExpObj] -> EvalFunc ExpObj
 takeAF  p n es = return $ ArrO p $ take n es
 
 -- Sorts a table by its n'th column
-sortTF :: Pos -> Pos -> Int -> [[ExpObj]] -> [ExpObj] -> EvalFunc ExpObj
+sortTF :: ObjPos -> ObjPos -> Int -> [[ExpObj]] -> [ExpObj] -> EvalFunc ExpObj
 sortTF p pn n ess h = liftM (flip (TableO p) h) $ sortMatrix pn n ess
 
-sortMatrix :: Pos -> Int -> [[ExpObj]] -> EvalFunc [[ExpObj]]
+sortMatrix :: ObjPos -> Int -> [[ExpObj]] -> EvalFunc [[ExpObj]]
 sortMatrix pn n ess = validateIndex pn n 0 (length ess - 1) >> return (transpose $ map snd $ sort $ zip (toIgnorePos ess !! n) $ transpose ess)
 
 toIgnorePos :: [[ExpObj]] -> [[ExpObj]]
-toIgnorePos = map $ map $ setPos (0,0) where
+toIgnorePos = map $ map $ setPos $ Calc (0,0) where
   setPos p (TableO _ a b) = TableO p a b
   setPos p (PlotO  _ a b) = PlotO  p a b
   setPos p (ArrO _ a)     = ArrO p a
@@ -182,24 +182,24 @@ toIgnorePos = map $ map $ setPos (0,0) where
   setPos p (BoolO _ a)    = BoolO p a
   setPos p (NullO _)      = NullO p
 
-validateIndex :: Pos -> Int -> Int -> Int -> EvalFunc ()
-validateIndex pn n minL maxL = when (n < minL || n > maxL) $ lift $ Left $ IndexOutOfBounds pn minL maxL n
+validateIndex :: ObjPos -> Int -> Int -> Int -> EvalFunc ()
+validateIndex pn n minL maxL = when (n < minL || n > maxL) $ lift $ Left $ IndexOutOfBounds (fromObjPos pn) minL maxL n
 
 -- Sorts an array of arrays (matrix) by the n'th array-element (column)
-sortAF :: Pos -> Pos -> Int -> [ExpObj] -> EvalFunc ExpObj
+sortAF :: ObjPos -> ObjPos -> Int -> [ExpObj] -> EvalFunc ExpObj
 sortAF p pn n arrays =  let (fs,ess) = unzip $ map (\(ArrO q es) -> (ArrO q,es)) arrays
                         in  liftM (ArrO p . zipWith ($) fs) (sortMatrix pn n ess)
 
 -- Extracts from a table the n'th column as an array
-colTF :: Pos -> Pos -> Int -> [[ExpObj]] -> EvalFunc ExpObj
+colTF :: ObjPos -> ObjPos -> Int -> [[ExpObj]] -> EvalFunc ExpObj
 colTF p pn n ess = validateIndex pn n 0 (length ess - 1) >> return (ArrO p $ ess !! n)
 
 -- Extracts from an array of arrays (matrix) the n'th array-element (column)
-colAF :: Pos -> Pos -> Int -> [ExpObj] -> EvalFunc ExpObj
+colAF :: ObjPos -> ObjPos -> Int -> [ExpObj] -> EvalFunc ExpObj
 colAF p pn n arrays = validateIndex pn n 0 (length arrays - 1) >> return (let ArrO _ es = arrays !! n in ArrO p es)
 
 -- Plots a line graph using the (x,y) points
-plotF :: Pos -> [ExpObj] -> [ExpObj] -> [(String,ExpObj)] -> EvalFunc ExpObj
+plotF :: ObjPos -> [ExpObj] -> [ExpObj] -> [(String,ExpObj)] -> EvalFunc ExpObj
 plotF p xs ys ps = return $ PlotO p (zip xs ys) $ getAttributes ps
 
 getAttributes :: [(String,ExpObj)] -> [(String,ExpObj)]
