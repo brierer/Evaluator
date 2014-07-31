@@ -1,5 +1,5 @@
 {-# OPTIONS_GHC -F -pgmF htfpp #-}
-module Parser.ParserUnit where
+module Parser.ParserUnitSuccess where
 
 import Eval.Parser
 import Test.Framework

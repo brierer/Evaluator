@@ -27,7 +27,8 @@ executable Evaluator
   other-modules:   
                    Data.Eval,
                    Data.EvalError,
-                   Data.Type
+                   Data.Type,
+                   Eval.Serialize
 
 test-suite Evaluator-tests
   type:           exitcode-stdio-1.0
@@ -45,5 +46,7 @@ test-suite Evaluator-tests
                  Data.EvalError,
                  Data.Type,
                  Engine.EngineUnitFailureType,
-                 Engine.EngineUtils
+                 Engine.EngineUtils,
+                 Serialize.SerializeUnit,
+                 Eval.Serialize
 

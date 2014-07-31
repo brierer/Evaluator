@@ -2,6 +2,7 @@ module Eval.Parser
 ( progT,formT,pairT,idT,expT
 , funcT,arrT,objT,varT,strT,numT,boolT,nullT
 , unparse
+, reservedWord
 ) where
 
 import Control.Applicative           hiding (many)
@@ -12,6 +13,8 @@ import Data.Char
 import Data.List
 import Data.ExpToken
 import Control.Monad
+import Text.ParserCombinators.Parsec.Error
+import Text.ParserCombinators.Parsec.Pos
 
 {-| Non expression tokens -}
 -- START -> progT
@@ -131,3 +134,10 @@ withWS   :: W2 -> String -> String
 
 unparses   :: Unparse a => [a] -> String
 unparses'  :: Unparse a => String -> [a] -> String
+
+reservedWord :: Pos -> String -> ParseError
+reservedWord (x,y) m = newErrorMessage (Message $ "Use of reserved word ["++m++"]") (newPos "" x y)
+
+
+
+
