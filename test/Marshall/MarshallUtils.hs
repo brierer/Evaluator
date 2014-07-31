@@ -20,22 +20,32 @@ noArgFunc' s v = [(s,[],Func $ \_ _ -> return v)]
 mockSuccess     = Right nullO
 mockSuccessFunc = Func $ \_ _ -> lift mockSuccess
 
-tableO = mkTableO p0
-plotO  = mkPlotO p0
-arrO   = mkArrO p0
-objO   = mkObjO p0
-strO   = mkStrO p0
-numO   = mkNumO p0
-boolO  = mkBoolO p0
-nullO  = mkNullO p0
+tableO = mkTableC p0
+plotO  = mkPlotC p0
+arrO   = mkArrC p0
+objO   = mkObjC p0
+strO   = mkStrU p0
+numO   = mkNumU p0
+boolO  = mkBoolU p0
+nullO  = mkNullU p0
 
-mkTableO = TableO .Calc
-mkPlotO  = PlotO  .Calc
-mkArrO   = ArrO   .Calc
-mkObjO   = ObjO   .Calc
-mkStrO   = StrO   .Upd
-mkNumO   = NumO   .Upd
-mkBoolO  = BoolO  .Upd
-mkNullO  = NullO  .Upd
+mkTableC = TableO .Calc
+mkPlotC  = PlotO  .Calc
+mkArrC   = ArrO   .Calc
+mkObjC   = ObjO   .Calc
+mkStrC   = StrO   .Calc
+mkNumC   = NumO   .Calc
+mkBoolC  = BoolO  .Calc
+mkNullC  = NullO  .Calc
 
-mkNumO'  = NumO .Calc
+mkTableU = TableO .Upd
+mkPlotU  = PlotO  .Upd
+mkArrU   = ArrO   .Upd
+mkObjU   = ObjO   .Upd
+mkStrU   = StrO   .Upd
+mkNumU   = NumO   .Upd
+mkBoolU  = BoolO  .Upd
+mkNullU  = NullO  .Upd
+
+
+

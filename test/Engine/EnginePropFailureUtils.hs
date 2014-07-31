@@ -44,7 +44,7 @@ nullExp  = expOrFunc $ liftM un  (arbitrary :: Gen NullTA)
 arrExpOf good bad = do
   (ts,os,[(badT,badO)],_) <- mkElems good bad 1
   p <- randPos'
-  (a,_) <- expOrFunc' (mkArr' p ts) (mkArrO p os)
+  (a,_) <- expOrFunc' (mkArr' p ts) (mkArrC p os)
   (_,o) <- expOrFunc' badT badO
   return (a,o)
 
@@ -52,13 +52,13 @@ arrExpOf' good = do
   (firstT,firstO)   <- good
   (beforeT,beforeO) <- liftM unzip $ many good
   p <- randPos'
-  expOrFunc' (mkArr' p $ firstT:beforeT) (mkArrO p $ firstO:beforeO)
+  expOrFunc' (mkArr' p $ firstT:beforeT) (mkArrC p $ firstO:beforeO)
 
 objExpOf good bad = do
   (ts,os,[(badT,badO)],_) <- mkElems good bad (1 :: Int)
   keys              <- replicateM (length ts) $ lift arbitrary
   p <- randPos'
-  (a,_) <- expOrFunc' (mkObj' p $ zipWith mkPair keys ts) (mkObjO p $ zip keys os)
+  (a,_) <- expOrFunc' (mkObj' p $ zipWith mkPair keys ts) (mkObjC p $ zip keys os)
   (_,o) <- expOrFunc' badT badO
   return (a,o)
 
@@ -67,7 +67,7 @@ objExpOf' good = do
   (beforeT,beforeO) <- liftM unzip $ many good
   keys              <- replicateM (length beforeT + 1) $ lift arbitrary
   p <- randPos'
-  expOrFunc' (mkObj' p $ zipWith mkPair keys $ firstT:beforeT) (mkObjO p $ zip keys $ firstO:beforeO)
+  expOrFunc' (mkObj' p $ zipWith mkPair keys $ firstT:beforeT) (mkObjC p $ zip keys $ firstO:beforeO)
 
 mkElems good bad n = do
   goods <- many good
