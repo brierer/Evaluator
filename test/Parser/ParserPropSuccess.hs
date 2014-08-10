@@ -1,13 +1,17 @@
 {-# OPTIONS_GHC -F -pgmF htfpp #-}
 module Parser.ParserPropSuccess where
 
+import Data.ExpToken
 import Eval.Parser
 import Test.Framework
 
 import Parser.ParserPropUtils
 
 -- Program
+prop_ProgEmpty (W w)       =               (Right $ ProgT (1,1) []) == evalParse progT w
+
 prop_Prog (ProgTA prog)    =                prog .= testCase progT prog
+
 prop_Form (FormTA form)    =                form .= testCase formT form
 prop_Pair (PairTA pair)    =                pair .= testCase pairT pair
 prop_Id   (IdTA i)         =                i    .= testCase idT i

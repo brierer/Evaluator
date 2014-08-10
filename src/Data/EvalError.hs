@@ -6,7 +6,8 @@ module Data.EvalError
 import Data.ExpToken
 import Data.Type
 
-data EvalError = MultipleDefinitions Pos String
+data EvalError = InvalidParse Pos [String]
+               | MultipleDefinitions Pos String
                | UndefinedVariable Pos String
                | CycleInDefinitions [(Pos,String)]
                | UndefinedFunction Pos String

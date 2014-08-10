@@ -48,5 +48,6 @@ test-suite Evaluator-tests
                  Engine.EngineUnitFailureType,
                  Engine.EngineUtils,
                  Serialize.SerializeUnit,
-                 Eval.Serialize
+                 Eval.Serialize,
+                 Parser.ParserUnitFailureUtils
 

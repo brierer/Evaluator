@@ -9,7 +9,7 @@ import {-@ HTF_TESTS @-} Marshall.MarshallUnit
 import {-@ HTF_TESTS @-} MatchType.MatchTypeUnitFailure
 import {-@ HTF_TESTS @-} MatchType.MatchTypeUnitSuccess
 import {-@ HTF_TESTS @-} MultiPass.MultiPassUnit
---import {-@ HTF_TESTS @-} Parser.ParserUnitFailure
+import {-@ HTF_TESTS @-} Parser.ParserUnitFailure
 import {-@ HTF_TESTS @-} Parser.ParserUnitSuccess
 import {-@ HTF_TESTS @-} Serialize.SerializeUnit
 

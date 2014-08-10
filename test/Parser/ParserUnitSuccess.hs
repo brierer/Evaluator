@@ -11,7 +11,10 @@ import Parser.ParserUtils
 
 -- Program
 test_Prog = do assertEqual (mkProg  (1,1) [])                                  $ unsafeParse progT ""
+               assertEqual (mkProg  (1,1) [])                                  $ unsafeParse progT " \n\t"
                assertEqual (mkProg  (1,1) [mkForm' (1,1) "x" $ mkNull' (1,3)]) $ unsafeParse progT "x=null"
+               assertEqual (mkProg  (1,1) [mkForm' (1,1) "x" $ mkNull' (1,3),
+                                           mkForm' (1,8) "y" $ mkNull' (1,10)])$ unsafeParse progT "x=null;y=null"
 test_Form = do assertEqual (mkForm' (1,1) "a" $ mkVar' (1,3) "b")              $ unsafeParse formT "a=b"
                assertEqual (mkForm' (1,1) "b" $ mkStr' (1,3) "hello")          $ unsafeParse formT "b=\"hello\""
 test_Pair = do assertEqual (mkPair' (1,1) "c" $ mkNum' (1,3) "1" 1)            $ unsafeParse pairT "c:1"

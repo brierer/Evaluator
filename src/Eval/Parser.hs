@@ -1,5 +1,6 @@
 module Eval.Parser
-( progT,formT,pairT,idT,expT
+( evalParse
+, progT,formT,pairT,idT,expT
 , funcT,arrT,objT,varT,strT,numT,boolT,nullT
 , unparse
 , reservedWord
@@ -10,16 +11,21 @@ import Prelude                       hiding ((^),(>))
 import Text.ParserCombinators.Parsec hiding ((<|>))
 
 import Data.Char
+import Data.Eval
+import Data.EvalError
 import Data.List
 import Data.ExpToken
 import Control.Monad
 import Text.ParserCombinators.Parsec.Error
 import Text.ParserCombinators.Parsec.Pos
 
+evalParse :: Parser a -> String -> Eval a
+evalParse p s = case parse p "" s of Right x -> return x; Left e -> let q = errorPos e in Left $ InvalidParse (sourceLine q, sourceColumn q) $ lines $ show e
+
 {-| Non expression tokens -}
 -- START -> progT
 -- progT -> EMPTY | formT (';' formT)*
-progT = ProgT ^ pos > (formT `sepBy` char ';')
+progT = emptyProg <|> ProgT ^ pos > (formT `sepBy1` char ';') where emptyProg = try $ skipMany space >> eof >> return (ProgT (1,1) [])
 
 -- formT -> idT '=' expT
 formT = FormT ^ idT > (char '=' >> expT)
@@ -64,12 +70,12 @@ nullT = commonT f $ kw "null" where f p w _ = NullT p w
 
 {-| Subatomics -}
 -- idS -> alpha [alpha | digit]*
-idS = (:) ^ oneAlpha > many (oneAlpha <|> oneNum) where
+idS = (:) ^ oneAlpha > many (oneAlpha <|> oneNum) <?> "identifier" where
   oneAlpha = oneOf $ ['a'..'z'] ++ ['A'..'Z']
   oneNum   = oneOf ['0'..'9']
 
 -- integerS -> '-'? $digit+
-integerS = (++) ^ option "" (string "-") > many1 digit
+integerS = (++) ^ option "" (string "-") > many1 digit <?> "number"
 
 {-| Unparse the derivation tree, exactly as it was parsed -}
 class Unparse a where unparse :: a -> String
@@ -120,7 +126,7 @@ numT  :: Parser ExpToken
 boolT :: Parser ExpToken
 nullT :: Parser ExpToken
 
-idS :: Parser IdS
+idS      :: Parser IdS
 integerS :: Parser IntegerS
 (^) :: Functor f => (a -> b) -> f a -> f b
 (>) :: Applicative f => f (a -> b) -> f a -> f b

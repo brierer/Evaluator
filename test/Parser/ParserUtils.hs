@@ -1,6 +1,7 @@
 module Parser.ParserUtils where
 
 import Data.ExpToken
+import Eval.Parser
 import Text.ParserCombinators.Parsec
 import Text.ParserCombinators.Parsec.Error
 
@@ -10,7 +11,7 @@ p0 = (0,0) :: Pos
 ws1 = ""
 ws2 = ("","")
 
-unsafeParse p = unsafeRight . parse p ""
+unsafeParse p = unsafeRight . evalParse p
 simpleParse p = parse p ""
 
 unsafeRight (Right x) = x
