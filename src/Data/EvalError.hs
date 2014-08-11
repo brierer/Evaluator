@@ -14,7 +14,6 @@ data EvalError = InvalidParse Pos [String]
                | NonTopLevelShow Pos
                | NoShow
                | ArgCountMismatch Pos String Int Int
-               | ArgError Int String EvalError
                | TypeMismatch TMTree
                | IllegalEmpty Pos
                | TableColumnLengthMismatch Pos Int Int
