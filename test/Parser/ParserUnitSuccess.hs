@@ -41,7 +41,8 @@ test_Obj =  do assertEqual (mkObj'  (1,1) [mkPair' (1,2) "x" $ mkStr' (1,4) "hel
 -- Atomic expressions
 test_Var =  do assertEqual (mkVar'  (1,1) "X")          $ unsafeParse varT  "X"
                assertEqual (mkVar'  (1,1) "vaR123")     $ unsafeParse varT  "vaR123"
-test_Str =     assertEqual (mkStr'  (1,1) ascii)        $ unsafeParse strT  $ "\"" ++ ascii ++ "\""
+test_Str =  do assertEqual (mkStr'  (1,1) "")           $ unsafeParse strT    "\"\""
+               assertEqual (mkStr'  (1,1) ascii)        $ unsafeParse strT  $ "\"" ++ ascii ++ "\""
 test_Num =  do assertEqual (mkNum'  (1,1) "10" 10)      $ unsafeParse numT  "10"
                assertEqual (mkNum'  (1,1) "11.5" 11.5)  $ unsafeParse numT  "11.5"
                assertEqual (mkNum'  (1,1) "1.23E2" 123) $ unsafeParse numT  "1.23E2"

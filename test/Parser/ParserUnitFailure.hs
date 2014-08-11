@@ -1,7 +1,6 @@
 {-# OPTIONS_GHC -F -pgmF htfpp #-}
 module Parser.ParserUnitFailure where
 
-import Data.EvalError
 import Eval.Parser
 import Test.Framework
 
@@ -9,105 +8,330 @@ import Parser.ParserUnitFailureUtils
 
 {-# ANN module "HLint: ignore Use camelCase" #-}
 
-test_Prog = do assertEqual (mkInvalidParse 1 2 ["unexpected end of input",expectEq])    $ evalParse progT "x" 
-               assertEqual (mkInvalidParse 1 3 ["unexpected end of input",expectExp])   $ evalParse progT "x=" 
-               assertEqual (mkInvalidParse 1 1 ["unexpected '='",         expectForm])  $ evalParse progT "=" 
-               assertEqual (mkInvalidParse 1 1 ["unexpected ';'",         expectForm])  $ evalParse progT ";" 
-               assertEqual (mkInvalidParse 1 1 ["unexpected ':'",         expectForm])  $ evalParse progT ":" 
-               assertEqual (mkInvalidParse 1 1 ["unexpected '{'",         expectForm])  $ evalParse progT "{}" 
-               assertEqual (mkInvalidParse 1 1 ["unexpected '['",         expectForm])  $ evalParse progT "[]" 
-               assertEqual (mkInvalidParse 1 1 ["unexpected '('",         expectForm])  $ evalParse progT "()"
-               
-               assertEqual (mkInvalidParse 1 2 ["unexpected \";\"",       expectEq])    $ evalParse progT "x;x=0" 
-               assertEqual (mkInvalidParse 1 3 ["unexpected \";\"",       expectExp])   $ evalParse progT "x=;x=0" 
-               assertEqual (mkInvalidParse 1 1 ["unexpected '='",         expectForm])  $ evalParse progT "=;x=0" 
-               assertEqual (mkInvalidParse 1 1 ["unexpected ';'",         expectForm])  $ evalParse progT ";;x=0" 
-               assertEqual (mkInvalidParse 1 1 ["unexpected ':'",         expectForm])  $ evalParse progT ":;x=0" 
-               assertEqual (mkInvalidParse 1 1 ["unexpected '{'",         expectForm])  $ evalParse progT "{};x=0" 
-               assertEqual (mkInvalidParse 1 1 ["unexpected '['",         expectForm])  $ evalParse progT "[];x=0" 
-               assertEqual (mkInvalidParse 1 1 ["unexpected '('",         expectForm])  $ evalParse progT "();x=0"
-               
-               assertEqual (mkInvalidParse 1 6 ["unexpected end of input",expectEq])    $ evalParse progT "x=0;x" 
-               assertEqual (mkInvalidParse 1 7 ["unexpected end of input",expectExp])   $ evalParse progT "x=0;x=" 
-               assertEqual (mkInvalidParse 1 5 ["unexpected \"=\"",       expectForm2]) $ evalParse progT "x=0;=" 
-               assertEqual (mkInvalidParse 1 5 ["unexpected \";\"",       expectForm2]) $ evalParse progT "x=0;;" 
-               assertEqual (mkInvalidParse 1 5 ["unexpected \":\"",       expectForm2]) $ evalParse progT "x=0;:" 
-               assertEqual (mkInvalidParse 1 5 ["unexpected \"{\"",       expectForm2]) $ evalParse progT "x=0;{}" 
-               assertEqual (mkInvalidParse 1 5 ["unexpected \"[\"",       expectForm2]) $ evalParse progT "x=0;[]" 
-               assertEqual (mkInvalidParse 1 5 ["unexpected \"(\"",       expectForm2]) $ evalParse progT "x=0;()" 
+test_Prog = do assertEqual (mkInvalidParse 1 2 ["unexpected end of input",expectEq])       $ evalParse progT "x"
+               assertEqual (mkInvalidParse 1 3 ["unexpected end of input",expectExp])      $ evalParse progT "x="
+                                                                                           
+               assertEqual (mkInvalidParse 1 1 ["unexpected '0'",expectForm])              $ evalParse progT "0"
+               assertEqual (mkInvalidParse 1 1 ["unexpected '='",expectForm])              $ evalParse progT "="
+               assertEqual (mkInvalidParse 1 1 ["unexpected ';'",expectForm])              $ evalParse progT ";"
+               assertEqual (mkInvalidParse 1 1 ["unexpected ':'",expectForm])              $ evalParse progT ":"
+               assertEqual (mkInvalidParse 1 1 ["unexpected '{'",expectForm])              $ evalParse progT "{}"
+               assertEqual (mkInvalidParse 1 1 ["unexpected '['",expectForm])              $ evalParse progT "[]"
+               assertEqual (mkInvalidParse 1 1 ["unexpected '('",expectForm])              $ evalParse progT "()"
+                                                                                           
+               assertEqual (mkInvalidParse 1 2 ["unexpected \";\"",expectEq])              $ evalParse progT "x;x=0"
+               assertEqual (mkInvalidParse 1 3 ["unexpected \";\"",expectExp])             $ evalParse progT "x=;x=0"
+               assertEqual (mkInvalidParse 1 1 ["unexpected '0'",expectForm])              $ evalParse progT "0;x=0"
+               assertEqual (mkInvalidParse 1 1 ["unexpected '='",expectForm])              $ evalParse progT "=;x=0"
+               assertEqual (mkInvalidParse 1 1 ["unexpected ';'",expectForm])              $ evalParse progT ";;x=0"
+               assertEqual (mkInvalidParse 1 1 ["unexpected ':'",expectForm])              $ evalParse progT ":;x=0"
+               assertEqual (mkInvalidParse 1 1 ["unexpected '{'",expectForm])              $ evalParse progT "{};x=0"
+               assertEqual (mkInvalidParse 1 1 ["unexpected '['",expectForm])              $ evalParse progT "[];x=0"
+               assertEqual (mkInvalidParse 1 1 ["unexpected '('",expectForm])              $ evalParse progT "();x=0"
+                                                                                           
+               assertEqual (mkInvalidParse 1 6 ["unexpected end of input",expectEq])       $ evalParse progT "x=0;x"
+               assertEqual (mkInvalidParse 1 7 ["unexpected end of input",expectExp])      $ evalParse progT "x=0;x="
+               assertEqual (mkInvalidParse 1 5 ["unexpected \"0\"",expectId])              $ evalParse progT "x=0;0"
+               assertEqual (mkInvalidParse 1 5 ["unexpected \"=\"",expectId])              $ evalParse progT "x=0;="
+               assertEqual (mkInvalidParse 1 5 ["unexpected \";\"",expectId])              $ evalParse progT "x=0;;"
+               assertEqual (mkInvalidParse 1 5 ["unexpected \":\"",expectId])              $ evalParse progT "x=0;:"
+               assertEqual (mkInvalidParse 1 5 ["unexpected \"{\"",expectId])              $ evalParse progT "x=0;{}"
+               assertEqual (mkInvalidParse 1 5 ["unexpected \"[\"",expectId])              $ evalParse progT "x=0;[]"
+               assertEqual (mkInvalidParse 1 5 ["unexpected \"(\"",expectId])              $ evalParse progT "x=0;()"
+                                                                                           
+test_Form = do assertEqual (mkInvalidParse 1 1 ["unexpected end of input",expectId])       $ evalParse formT ""
+               assertEqual (mkInvalidParse 1 2 ["unexpected end of input",expectEq])       $ evalParse formT "x"
+               assertEqual (mkInvalidParse 1 3 ["unexpected end of input",expectExp])      $ evalParse formT "x="
+                                                                                           
+               assertEqual (mkInvalidParse 1 1 ["unexpected \"0\"",expectId])              $ evalParse formT "0"
+               assertEqual (mkInvalidParse 1 1 ["unexpected \"=\"",expectId])              $ evalParse formT "="
+               assertEqual (mkInvalidParse 1 1 ["unexpected \";\"",expectId])              $ evalParse formT ";"
+               assertEqual (mkInvalidParse 1 1 ["unexpected \":\"",expectId])              $ evalParse formT ":"
+               assertEqual (mkInvalidParse 1 1 ["unexpected \"{\"",expectId])              $ evalParse formT "{}"
+               assertEqual (mkInvalidParse 1 1 ["unexpected \"[\"",expectId])              $ evalParse formT "[]"
+               assertEqual (mkInvalidParse 1 1 ["unexpected \"(\"",expectId])              $ evalParse formT "()"
+                                                                                           
+               assertEqual (mkInvalidParse 1 1 ["unexpected \"0\"",expectId])              $ evalParse formT "0=0"
+               assertEqual (mkInvalidParse 1 1 ["unexpected \"=\"",expectId])              $ evalParse formT "==0"
+               assertEqual (mkInvalidParse 1 1 ["unexpected \";\"",expectId])              $ evalParse formT ";=0"
+               assertEqual (mkInvalidParse 1 1 ["unexpected \":\"",expectId])              $ evalParse formT ":=0"
+               assertEqual (mkInvalidParse 1 1 ["unexpected \"{\"",expectId])              $ evalParse formT "{}=0"
+               assertEqual (mkInvalidParse 1 1 ["unexpected \"[\"",expectId])              $ evalParse formT "[]=0"
+               assertEqual (mkInvalidParse 1 1 ["unexpected \"(\"",expectId])              $ evalParse formT "()=0"
+                                                                                           
+               assertEqual (mkInvalidParse 1 3 ["unexpected \"=\"",expectExp])             $ evalParse formT "x=="
+               assertEqual (mkInvalidParse 1 3 ["unexpected \";\"",expectExp])             $ evalParse formT "x=;"
+               assertEqual (mkInvalidParse 1 3 ["unexpected \":\"",expectExp])             $ evalParse formT "x=:"
+               assertEqual (mkInvalidParse 1 3 ["unexpected \"(\"",expectExp])             $ evalParse formT "x=()"
+                                                                                           
+test_Pair = do assertEqual (mkInvalidParse 1 1 ["unexpected end of input",expectId])       $ evalParse pairT ""
+               assertEqual (mkInvalidParse 1 2 ["unexpected end of input",expectColon])    $ evalParse pairT "x"
+               assertEqual (mkInvalidParse 1 3 ["unexpected end of input",expectExp])      $ evalParse pairT "x:"
+                                                                                           
+               assertEqual (mkInvalidParse 1 1 ["unexpected \"0\"",expectId])              $ evalParse pairT "0"
+               assertEqual (mkInvalidParse 1 1 ["unexpected \"=\"",expectId])              $ evalParse pairT "="
+               assertEqual (mkInvalidParse 1 1 ["unexpected \";\"",expectId])              $ evalParse pairT ";"
+               assertEqual (mkInvalidParse 1 1 ["unexpected \":\"",expectId])              $ evalParse pairT ":"
+               assertEqual (mkInvalidParse 1 1 ["unexpected \"{\"",expectId])              $ evalParse pairT "{}"
+               assertEqual (mkInvalidParse 1 1 ["unexpected \"[\"",expectId])              $ evalParse pairT "[]"
+               assertEqual (mkInvalidParse 1 1 ["unexpected \"(\"",expectId])              $ evalParse pairT "()"
+                                                                                           
+               assertEqual (mkInvalidParse 1 1 ["unexpected \"0\"",expectId])              $ evalParse pairT "0:0"
+               assertEqual (mkInvalidParse 1 1 ["unexpected \"=\"",expectId])              $ evalParse pairT "=:0"
+               assertEqual (mkInvalidParse 1 1 ["unexpected \";\"",expectId])              $ evalParse pairT ";:0"
+               assertEqual (mkInvalidParse 1 1 ["unexpected \":\"",expectId])              $ evalParse pairT "::0"
+               assertEqual (mkInvalidParse 1 1 ["unexpected \"{\"",expectId])              $ evalParse pairT "{}:0"
+               assertEqual (mkInvalidParse 1 1 ["unexpected \"[\"",expectId])              $ evalParse pairT "[]:0"
+               assertEqual (mkInvalidParse 1 1 ["unexpected \"(\"",expectId])              $ evalParse pairT "():0"
+                                                                                           
+               assertEqual (mkInvalidParse 1 3 ["unexpected \"=\"",expectExp])             $ evalParse pairT "x:="
+               assertEqual (mkInvalidParse 1 3 ["unexpected \";\"",expectExp])             $ evalParse pairT "x:;"
+               assertEqual (mkInvalidParse 1 3 ["unexpected \":\"",expectExp])             $ evalParse pairT "x::"
+               assertEqual (mkInvalidParse 1 3 ["unexpected \"(\"",expectExp])             $ evalParse pairT "x:()"
+                                                                                           
+test_Id = do   assertEqual (mkInvalidParse 1 1 ["unexpected end of input",expectId])       $ evalParse idT ""
+               assertEqual (mkInvalidParse 1 1 ["unexpected \"0\"",expectId])              $ evalParse idT "0"
+               assertEqual (mkInvalidParse 1 1 ["unexpected \"0\"",expectId])              $ evalParse idT "0x"
+                                                                                           
+               assertEqual (mkInvalidParse 1 1 ["unexpected \"=\"",expectId])              $ evalParse idT "="
+               assertEqual (mkInvalidParse 1 1 ["unexpected \";\"",expectId])              $ evalParse idT ";"
+               assertEqual (mkInvalidParse 1 1 ["unexpected \":\"",expectId])              $ evalParse idT ":"
+               assertEqual (mkInvalidParse 1 1 ["unexpected \"{\"",expectId])              $ evalParse idT "{}"
+               assertEqual (mkInvalidParse 1 1 ["unexpected \"[\"",expectId])              $ evalParse idT "[]"
+               assertEqual (mkInvalidParse 1 1 ["unexpected \"(\"",expectId])              $ evalParse idT "()"
 
+test_Func = do assertEqual (mkInvalidParse 1 1 ["unexpected end of input",expectId])       $ evalParse funcT ""
+               assertEqual (mkInvalidParse 1 2 ["unexpected end of input",expectParen])    $ evalParse funcT "x"
+               assertEqual (mkInvalidParse 1 3 ["unexpected end of input",expectFuncEnd1]) $ evalParse funcT "x("
+               assertEqual (mkInvalidParse 1 4 ["unexpected end of input",expectFuncEnd2]) $ evalParse funcT "x(x"
+               assertEqual (mkInvalidParse 1 5 ["unexpected end of input",expectExp])      $ evalParse funcT "x(x,"
+               assertEqual (mkInvalidParse 1 6 ["unexpected end of input",expectFuncEnd3]) $ evalParse funcT "x(x,x"
+                                                                           
+               assertEqual (mkInvalidParse 1 1 ["unexpected \"0\"",expectId])              $ evalParse funcT "0"
+               assertEqual (mkInvalidParse 1 1 ["unexpected \"=\"",expectId])              $ evalParse funcT "="
+               assertEqual (mkInvalidParse 1 1 ["unexpected \";\"",expectId])              $ evalParse funcT ";"
+               assertEqual (mkInvalidParse 1 1 ["unexpected \":\"",expectId])              $ evalParse funcT ":"
+               assertEqual (mkInvalidParse 1 1 ["unexpected \"[\"",expectId])              $ evalParse funcT "[]"
+               assertEqual (mkInvalidParse 1 1 ["unexpected \"{\"",expectId])              $ evalParse funcT "{}"
+               assertEqual (mkInvalidParse 1 1 ["unexpected \"(\"",expectId])              $ evalParse funcT "()"
+                                                                           
+test_Arr = do  assertEqual (mkInvalidParse 1 1 ["unexpected end of input",expectArr])      $ evalParse arrT ""
+               assertEqual (mkInvalidParse 1 2 ["unexpected end of input",expectArrEnd1])  $ evalParse arrT "["
+               assertEqual (mkInvalidParse 1 3 ["unexpected end of input",expectArrEnd2])  $ evalParse arrT "[x"
+               assertEqual (mkInvalidParse 1 4 ["unexpected end of input",expectExp])      $ evalParse arrT "[x,"
+               assertEqual (mkInvalidParse 1 5 ["unexpected end of input",expectArrEnd3])  $ evalParse arrT "[x,x"
+                                                                                           
+               assertEqual (mkInvalidParse 1 1 ["unexpected \"x\"",expectArr])             $ evalParse arrT "x"
+               assertEqual (mkInvalidParse 1 1 ["unexpected \"0\"",expectArr])             $ evalParse arrT "0"
+               assertEqual (mkInvalidParse 1 1 ["unexpected \"=\"",expectArr])             $ evalParse arrT "="
+               assertEqual (mkInvalidParse 1 1 ["unexpected \";\"",expectArr])             $ evalParse arrT ";"
+               assertEqual (mkInvalidParse 1 1 ["unexpected \":\"",expectArr])             $ evalParse arrT ":"
+               assertEqual (mkInvalidParse 1 1 ["unexpected \"{\"",expectArr])             $ evalParse arrT "{}"
+               assertEqual (mkInvalidParse 1 1 ["unexpected \"(\"",expectArr])             $ evalParse arrT "()"
+                                                                                           
+test_Obj = do  assertEqual (mkInvalidParse 1 1 ["unexpected end of input",expectObj])      $ evalParse objT ""
+               assertEqual (mkInvalidParse 1 2 ["unexpected end of input",expectObjEnd1])  $ evalParse objT "{"
+               assertEqual (mkInvalidParse 1 3 ["unexpected end of input",expectColon])    $ evalParse objT "{x"
+               assertEqual (mkInvalidParse 1 4 ["unexpected end of input",expectExp])      $ evalParse objT "{x:"
+               assertEqual (mkInvalidParse 1 5 ["unexpected end of input",expectObjEnd2])  $ evalParse objT "{x:0"
+               assertEqual (mkInvalidParse 1 6 ["unexpected end of input",expectId])       $ evalParse objT "{x:0,"
+               assertEqual (mkInvalidParse 1 7 ["unexpected end of input",expectColon])    $ evalParse objT "{x:0,x"
+               assertEqual (mkInvalidParse 1 8 ["unexpected end of input",expectExp])      $ evalParse objT "{x:0,x:"
+               assertEqual (mkInvalidParse 1 9 ["unexpected end of input",expectObjEnd3])  $ evalParse objT "{x:0,x:0"
+                                                                                           
+               assertEqual (mkInvalidParse 1 1 ["unexpected \"x\"",expectObj])             $ evalParse objT "x"
+               assertEqual (mkInvalidParse 1 1 ["unexpected \"0\"",expectObj])             $ evalParse objT "0"
+               assertEqual (mkInvalidParse 1 1 ["unexpected \"=\"",expectObj])             $ evalParse objT "="
+               assertEqual (mkInvalidParse 1 1 ["unexpected \";\"",expectObj])             $ evalParse objT ";"
+               assertEqual (mkInvalidParse 1 1 ["unexpected \":\"",expectObj])             $ evalParse objT ":"
+               assertEqual (mkInvalidParse 1 1 ["unexpected \"[\"",expectObj])             $ evalParse objT "[]"
+               assertEqual (mkInvalidParse 1 1 ["unexpected \"(\"",expectObj])             $ evalParse objT "()"
+                                                                                           
+test_Var = do  assertEqual (mkInvalidParse 1 1 ["unexpected end of input",expectId])       $ evalParse varT ""
+                                                                                           
+               assertEqual (mkInvalidParse 1 1 ["unexpected \"0\"",expectId])              $ evalParse varT "0"
+               assertEqual (mkInvalidParse 1 1 ["unexpected \"0\"",expectId])              $ evalParse varT "0x"
+               assertEqual (mkInvalidParse 1 1 ["unexpected \"_\"",expectId])              $ evalParse varT "_"
+               assertEqual (mkInvalidParse 1 1 ["unexpected \"_\"",expectId])              $ evalParse varT "_x"
+                                                                                           
+               assertEqual (mkInvalidParse 1 1 ["unexpected \"=\"",expectId])              $ evalParse varT "="
+               assertEqual (mkInvalidParse 1 1 ["unexpected \";\"",expectId])              $ evalParse varT ";"
+               assertEqual (mkInvalidParse 1 1 ["unexpected \":\"",expectId])              $ evalParse varT ":"
+               assertEqual (mkInvalidParse 1 1 ["unexpected \"[\"",expectId])              $ evalParse varT "[]"
+               assertEqual (mkInvalidParse 1 1 ["unexpected \"{\"",expectId])              $ evalParse varT "{}"
+               assertEqual (mkInvalidParse 1 1 ["unexpected \"(\"",expectId])              $ evalParse varT "()"
+                                                                                           
+                                                                                           
+test_Str = do  assertEqual (mkInvalidParse 1 1 ["unexpected end of input",expectStr])      $ evalParse strT ""
+               assertEqual (mkInvalidParse 1 2 ["unexpected end of input",expectQuote])    $ evalParse strT "\""
+               assertEqual (mkInvalidParse 1 3 ["unexpected end of input",expectQuote])    $ evalParse strT "\"x"
+                                                                                           
+               assertEqual (mkInvalidParse 1 1 ["unexpected \"x\"",expectStr])             $ evalParse strT "x"
+               assertEqual (mkInvalidParse 1 1 ["unexpected \"x\"",expectStr])             $ evalParse strT "x\"\""
+               assertEqual (mkInvalidParse 1 1 ["unexpected \"x\"",expectStr])             $ evalParse strT "x\"x\""
+               assertEqual (mkInvalidParse 1 1 ["unexpected \"0\"",expectStr])             $ evalParse strT "0\"\""
+               assertEqual (mkInvalidParse 1 1 ["unexpected \"0\"",expectStr])             $ evalParse strT "0\"x\""
+                                                                                           
+test_Num = do  assertEqual (mkInvalidParse 1 1 ["unexpected end of input",expectNum'])     $ evalParse numT ""
+               assertEqual (mkInvalidParse 1 3 ["unexpected end of input",expectDigit])    $ evalParse numT "0."
+               assertEqual (mkInvalidParse 1 5 ["unexpected end of input",expectNum])      $ evalParse numT "0.0e"
+               assertEqual (mkInvalidParse 1 3 ["unexpected end of input",expectNum])      $ evalParse numT "0E"
+                                                                                           
+               assertEqual (mkInvalidParse 1 2 ["unexpected end of input",expectDigit])    $ evalParse numT "-"
+               assertEqual (mkInvalidParse 1 4 ["unexpected end of input",expectDigit])    $ evalParse numT "-0."
+               assertEqual (mkInvalidParse 1 6 ["unexpected end of input",expectNum])      $ evalParse numT "-0.0e"
+               assertEqual (mkInvalidParse 1 4 ["unexpected end of input",expectNum])      $ evalParse numT "-0E"
+                                                                                           
+               assertEqual (mkInvalidParse 1 1 ["unexpected \"x\"",expectNum'])            $ evalParse numT "x"
+               assertEqual (mkInvalidParse 1 1 ["unexpected \"x\"",expectNum'])            $ evalParse numT "x.0"
+               assertEqual (mkInvalidParse 1 1 ["unexpected \"x\"",expectNum'])            $ evalParse numT "x.0e0"
+               assertEqual (mkInvalidParse 1 1 ["unexpected \"x\"",expectNum'])            $ evalParse numT "xE0"
+               assertEqual (mkInvalidParse 1 3 ["unexpected \"x\"",expectDigit])           $ evalParse numT "0.x"
+               assertEqual (mkInvalidParse 1 5 ["unexpected \"x\"",expectNum])             $ evalParse numT "0.0ex"
+               assertEqual (mkInvalidParse 1 3 ["unexpected \"x\"",expectNum])             $ evalParse numT "0Ex"
+                                                                                           
+               assertEqual (mkInvalidParse 1 2 ["unexpected \"x\"",expectDigit])           $ evalParse numT "-x"
+               assertEqual (mkInvalidParse 1 2 ["unexpected \"x\"",expectDigit])           $ evalParse numT "-x.0"
+               assertEqual (mkInvalidParse 1 2 ["unexpected \"x\"",expectDigit])           $ evalParse numT "-x.0e0"
+               assertEqual (mkInvalidParse 1 2 ["unexpected \"x\"",expectDigit])           $ evalParse numT "-xE0"
+               assertEqual (mkInvalidParse 1 4 ["unexpected \"x\"",expectDigit])           $ evalParse numT "-0.x"
+               assertEqual (mkInvalidParse 1 6 ["unexpected \"x\"",expectNum])             $ evalParse numT "-0.0ex"
+               assertEqual (mkInvalidParse 1 4 ["unexpected \"x\"",expectNum])             $ evalParse numT "-0Ex"
+                                                                                           
+               assertEqual (mkInvalidParse 1 1 ["unexpected \"x\"",expectNum'])            $ evalParse numT "x0.0"
+               assertEqual (mkInvalidParse 1 1 ["unexpected \"x\"",expectNum'])            $ evalParse numT "x0.0e0"
+               assertEqual (mkInvalidParse 1 1 ["unexpected \"x\"",expectNum'])            $ evalParse numT "x0E0"
+               assertEqual (mkInvalidParse 1 1 ["unexpected \"x\"",expectNum'])            $ evalParse numT "x-0.0"
+               assertEqual (mkInvalidParse 1 1 ["unexpected \"x\"",expectNum'])            $ evalParse numT "x-0.0e0"
+               assertEqual (mkInvalidParse 1 1 ["unexpected \"x\"",expectNum'])            $ evalParse numT "x-0E0"
+                                                                                           
+test_Bool = do assertEqual (mkInvalidParse 1 1 ["unexpected end of input",expectBool])     $ evalParse boolT ""
+               assertEqual (mkInvalidParse 1 1 ["unexpected end of input",expectTrue])     $ evalParse boolT "t"
+               assertEqual (mkInvalidParse 1 1 ["unexpected end of input",expectTrue])     $ evalParse boolT "tr"
+               assertEqual (mkInvalidParse 1 1 ["unexpected end of input",expectTrue])     $ evalParse boolT "tru"
+               assertEqual (mkInvalidParse 1 1 ["unexpected end of input",expectFalse])    $ evalParse boolT "f"
+               assertEqual (mkInvalidParse 1 1 ["unexpected end of input",expectFalse])    $ evalParse boolT "fa"
+               assertEqual (mkInvalidParse 1 1 ["unexpected end of input",expectFalse])    $ evalParse boolT "fal"
+               assertEqual (mkInvalidParse 1 1 ["unexpected end of input",expectFalse])    $ evalParse boolT "fals"
+                                                                                           
+               assertEqual (mkInvalidParse 1 1 ["unexpected \"x\"",expectBool])            $ evalParse boolT "x"
+               assertEqual (mkInvalidParse 1 1 ["unexpected \"x\"",expectBool])            $ evalParse boolT "xt"
+               assertEqual (mkInvalidParse 1 1 ["unexpected \"x\"",expectBool])            $ evalParse boolT "xtr"
+               assertEqual (mkInvalidParse 1 1 ["unexpected \"x\"",expectBool])            $ evalParse boolT "xtru"
+               assertEqual (mkInvalidParse 1 1 ["unexpected \"x\"",expectBool])            $ evalParse boolT "xf"
+               assertEqual (mkInvalidParse 1 1 ["unexpected \"x\"",expectBool])            $ evalParse boolT "xfa"
+               assertEqual (mkInvalidParse 1 1 ["unexpected \"x\"",expectBool])            $ evalParse boolT "xfal"
+               assertEqual (mkInvalidParse 1 1 ["unexpected \"x\"",expectBool])            $ evalParse boolT "xfals"
+               assertEqual (mkInvalidParse 1 1 ["unexpected \"x\"",expectTrue])            $ evalParse boolT "tx"
+               assertEqual (mkInvalidParse 1 1 ["unexpected \"x\"",expectTrue])            $ evalParse boolT "trx"
+               assertEqual (mkInvalidParse 1 1 ["unexpected \"x\"",expectTrue])            $ evalParse boolT "trux"
+               assertEqual (mkInvalidParse 1 1 ["unexpected \"x\"",expectFalse])           $ evalParse boolT "fx"
+               assertEqual (mkInvalidParse 1 1 ["unexpected \"x\"",expectFalse])           $ evalParse boolT "fax"
+               assertEqual (mkInvalidParse 1 1 ["unexpected \"x\"",expectFalse])           $ evalParse boolT "falx"
+               assertEqual (mkInvalidParse 1 1 ["unexpected \"x\"",expectFalse])           $ evalParse boolT "falsx"
+                                                                                           
+               assertEqual (mkInvalidParse 1 1 ["unexpected \"0\"",expectBool])            $ evalParse boolT "0"
+               assertEqual (mkInvalidParse 1 1 ["unexpected \"0\"",expectBool])            $ evalParse boolT "0t"
+               assertEqual (mkInvalidParse 1 1 ["unexpected \"0\"",expectBool])            $ evalParse boolT "0tr"
+               assertEqual (mkInvalidParse 1 1 ["unexpected \"0\"",expectBool])            $ evalParse boolT "0tru"
+               assertEqual (mkInvalidParse 1 1 ["unexpected \"0\"",expectBool])            $ evalParse boolT "0f"
+               assertEqual (mkInvalidParse 1 1 ["unexpected \"0\"",expectBool])            $ evalParse boolT "0fa"
+               assertEqual (mkInvalidParse 1 1 ["unexpected \"0\"",expectBool])            $ evalParse boolT "0fal"
+               assertEqual (mkInvalidParse 1 1 ["unexpected \"0\"",expectBool])            $ evalParse boolT "0fals"
+               assertEqual (mkInvalidParse 1 1 ["unexpected \"0\"",expectTrue])            $ evalParse boolT "t0"
+               assertEqual (mkInvalidParse 1 1 ["unexpected \"0\"",expectTrue])            $ evalParse boolT "tr0"
+               assertEqual (mkInvalidParse 1 1 ["unexpected \"0\"",expectTrue])            $ evalParse boolT "tru0"
+               assertEqual (mkInvalidParse 1 1 ["unexpected \"0\"",expectFalse])           $ evalParse boolT "f0"
+               assertEqual (mkInvalidParse 1 1 ["unexpected \"0\"",expectFalse])           $ evalParse boolT "fa0"
+               assertEqual (mkInvalidParse 1 1 ["unexpected \"0\"",expectFalse])           $ evalParse boolT "fal0"
+               assertEqual (mkInvalidParse 1 1 ["unexpected \"0\"",expectFalse])           $ evalParse boolT "fals0"
+                                                                                           
+               assertEqual (mkInvalidParse 1 1 ["unexpected \"x\"",expectBool])            $ evalParse boolT "xtrue"
+               assertEqual (mkInvalidParse 1 1 ["unexpected \"x\"",expectBool])            $ evalParse boolT "xfalse"
+               assertEqual (mkInvalidParse 1 1 ["unexpected \"0\"",expectBool])            $ evalParse boolT "0true"
+               assertEqual (mkInvalidParse 1 1 ["unexpected \"0\"",expectBool])            $ evalParse boolT "0false"
+               assertEqual (mkInvalidParse 1 6 ["unexpected 'x'"])                         $ evalParse boolT "truex"
+               assertEqual (mkInvalidParse 1 7 ["unexpected 'x'"])                         $ evalParse boolT "falsex"
+               assertEqual (mkInvalidParse 1 6 ["unexpected '0'"])                         $ evalParse boolT "true0"
+               assertEqual (mkInvalidParse 1 7 ["unexpected '0'"])                         $ evalParse boolT "false0"
+                                                                                            
+                                                                                            
+test_Null = do assertEqual (mkInvalidParse 1 1 ["unexpected end of input",expectNull'])    $ evalParse nullT ""
+               assertEqual (mkInvalidParse 1 1 ["unexpected end of input",expectNull])     $ evalParse nullT "n"
+               assertEqual (mkInvalidParse 1 1 ["unexpected end of input",expectNull])     $ evalParse nullT "nu"
+               assertEqual (mkInvalidParse 1 1 ["unexpected end of input",expectNull])     $ evalParse nullT "nul"
+                                                                                           
+               assertEqual (mkInvalidParse 1 1 ["unexpected \"x\"",expectNull'])           $ evalParse nullT "x"
+               assertEqual (mkInvalidParse 1 1 ["unexpected \"x\"",expectNull'])           $ evalParse nullT "xn"
+               assertEqual (mkInvalidParse 1 1 ["unexpected \"x\"",expectNull'])           $ evalParse nullT "xnu"
+               assertEqual (mkInvalidParse 1 1 ["unexpected \"x\"",expectNull'])           $ evalParse nullT "xnul"
+               assertEqual (mkInvalidParse 1 1 ["unexpected \"x\"",expectNull])            $ evalParse nullT "nx"
+               assertEqual (mkInvalidParse 1 1 ["unexpected \"x\"",expectNull])            $ evalParse nullT "nux"
+               assertEqual (mkInvalidParse 1 1 ["unexpected \"x\"",expectNull])            $ evalParse nullT "nulx"
+                                                                                           
+               assertEqual (mkInvalidParse 1 1 ["unexpected \"0\"",expectNull'])           $ evalParse nullT "0"
+               assertEqual (mkInvalidParse 1 1 ["unexpected \"0\"",expectNull'])           $ evalParse nullT "0n"
+               assertEqual (mkInvalidParse 1 1 ["unexpected \"0\"",expectNull'])           $ evalParse nullT "0nu"
+               assertEqual (mkInvalidParse 1 1 ["unexpected \"0\"",expectNull'])           $ evalParse nullT "0nul"
+               assertEqual (mkInvalidParse 1 1 ["unexpected \"0\"",expectNull])            $ evalParse nullT "n0"
+               assertEqual (mkInvalidParse 1 1 ["unexpected \"0\"",expectNull])            $ evalParse nullT "nu0"
+               assertEqual (mkInvalidParse 1 1 ["unexpected \"0\"",expectNull])            $ evalParse nullT "nul0"
+                                                                                           
+               assertEqual (mkInvalidParse 1 1 ["unexpected \"x\"",expectNull'])           $ evalParse nullT "xnull"
+               assertEqual (mkInvalidParse 1 1 ["unexpected \"0\"",expectNull'])           $ evalParse nullT "0null"
+               assertEqual (mkInvalidParse 1 6 ["unexpected 'x'"])                         $ evalParse nullT "nullx"
+               assertEqual (mkInvalidParse 1 6 ["unexpected '0'"])                         $ evalParse nullT "null0"
+                                                                                           
+test_Exp = do  assertEqual (mkInvalidParse 1 1 ["unexpected end of input",expectExp])      $ evalParse expT ""
+               assertEqual (mkInvalidParse 1 4 ["unexpected end of input",expectFuncEnd2]) $ evalParse expT "x(x"
+               assertEqual (mkInvalidParse 1 5 ["unexpected end of input",expectExp])      $ evalParse expT "x(x,"
+               assertEqual (mkInvalidParse 1 6 ["unexpected end of input",expectFuncEnd3]) $ evalParse expT "x(x,x"
+                                                                                           
+               assertEqual (mkInvalidParse 1 2 ["unexpected end of input",expectArrEnd1])  $ evalParse expT "["
+               assertEqual (mkInvalidParse 1 3 ["unexpected end of input",expectArrEnd2])  $ evalParse expT "[x"
+               assertEqual (mkInvalidParse 1 4 ["unexpected end of input",expectExp])      $ evalParse expT "[x,"
+               assertEqual (mkInvalidParse 1 5 ["unexpected end of input",expectArrEnd3])  $ evalParse expT "[x,x"
+                                                                                           
+               assertEqual (mkInvalidParse 1 2 ["unexpected end of input",expectObjEnd1])  $ evalParse expT "{"
+               assertEqual (mkInvalidParse 1 3 ["unexpected end of input",expectColon])    $ evalParse expT "{x"
+               assertEqual (mkInvalidParse 1 4 ["unexpected end of input",expectExp])      $ evalParse expT "{x:"
+               assertEqual (mkInvalidParse 1 5 ["unexpected end of input",expectObjEnd2])  $ evalParse expT "{x:0"
+               assertEqual (mkInvalidParse 1 6 ["unexpected end of input",expectId])       $ evalParse expT "{x:0,"
+               assertEqual (mkInvalidParse 1 7 ["unexpected end of input",expectColon])    $ evalParse expT "{x:0,x"
+               assertEqual (mkInvalidParse 1 8 ["unexpected end of input",expectExp])      $ evalParse expT "{x:0,x:"
+               assertEqual (mkInvalidParse 1 9 ["unexpected end of input",expectObjEnd3])  $ evalParse expT "{x:0,x:0"
+                                                                                           
+               assertEqual (mkInvalidParse 1 1 ["unexpected \"_\"",expectExp])             $ evalParse expT "_"
+               assertEqual (mkInvalidParse 1 1 ["unexpected \"_\"",expectExp])             $ evalParse expT "_x"
+                                                                                           
+               assertEqual (mkInvalidParse 1 2 ["unexpected end of input",expectQuote])    $ evalParse expT "\""
+               assertEqual (mkInvalidParse 1 3 ["unexpected end of input",expectQuote])    $ evalParse expT "\"x"
+                                                                                           
+               assertEqual (mkInvalidParse 1 3 ["unexpected end of input",expectDigit])    $ evalParse expT "0."
+               assertEqual (mkInvalidParse 1 5 ["unexpected end of input",expectNum])      $ evalParse expT "0.0e"
+               assertEqual (mkInvalidParse 1 3 ["unexpected end of input",expectNum])      $ evalParse expT "0E"
+                                                                                           
+               assertEqual (mkInvalidParse 1 2 ["unexpected end of input",expectDigit])    $ evalParse expT "-"
+               assertEqual (mkInvalidParse 1 4 ["unexpected end of input",expectDigit])    $ evalParse expT "-0."
+               assertEqual (mkInvalidParse 1 6 ["unexpected end of input",expectNum])      $ evalParse expT "-0.0e"
+               assertEqual (mkInvalidParse 1 4 ["unexpected end of input",expectNum])      $ evalParse expT "-0E"
+                                                                                           
+               assertEqual (mkInvalidParse 1 3 ["unexpected \"x\"",expectDigit])           $ evalParse expT "0.x"
+               assertEqual (mkInvalidParse 1 5 ["unexpected \"x\"",expectNum])             $ evalParse expT "0.0ex"
+               assertEqual (mkInvalidParse 1 3 ["unexpected \"x\"",expectNum])             $ evalParse expT "0Ex"
+                                                                                           
+               assertEqual (mkInvalidParse 1 2 ["unexpected \"x\"",expectDigit])           $ evalParse expT "-x"
+               assertEqual (mkInvalidParse 1 2 ["unexpected \"x\"",expectDigit])           $ evalParse expT "-x.0"
+               assertEqual (mkInvalidParse 1 2 ["unexpected \"x\"",expectDigit])           $ evalParse expT "-x.0e0"
+               assertEqual (mkInvalidParse 1 2 ["unexpected \"x\"",expectDigit])           $ evalParse expT "-xE0"
+               assertEqual (mkInvalidParse 1 4 ["unexpected \"x\"",expectDigit])           $ evalParse expT "-0.x"
+               assertEqual (mkInvalidParse 1 6 ["unexpected \"x\"",expectNum])             $ evalParse expT "-0.0ex"
+               assertEqual (mkInvalidParse 1 4 ["unexpected \"x\"",expectNum])             $ evalParse expT "-0Ex"
+                                                                                           
+               assertEqual (mkInvalidParse 1 3 ["unexpected '('",expectFuncEnd1])          $ evalParse expT "x("
+                                                                                           
+               assertEqual (mkInvalidParse 1 1 ["unexpected \"=\"",expectExp])             $ evalParse expT "="
+               assertEqual (mkInvalidParse 1 1 ["unexpected \";\"",expectExp])             $ evalParse expT ";"
+               assertEqual (mkInvalidParse 1 1 ["unexpected \":\"",expectExp])             $ evalParse expT ":"
+               assertEqual (mkInvalidParse 1 1 ["unexpected \"(\"",expectExp])             $ evalParse expT "()"
 
--- Program
---test_Prog = do assertEqual (mkProg  (1,1) [])                                  $ unsafeParse progT ""
---               assertEqual (mkProg  (1,1) [mkForm' (1,1) "x" $ mkNull' (1,3)]) $ unsafeParse progT "x=null"
---test_Form = do assertEqual (mkForm' (1,1) "a" $ mkVar' (1,3) "b")              $ unsafeParse formT "a=b"
---               assertEqual (mkForm' (1,1) "b" $ mkStr' (1,3) "hello")          $ unsafeParse formT "b=\"hello\""
---test_Pair = do assertEqual (mkPair' (1,1) "c" $ mkNum' (1,3) "1" 1)            $ unsafeParse pairT "c:1"
---               assertEqual (mkPair' (1,1) "d" $ mkNum' (1,3) "2.0" 2)          $ unsafeParse pairT "d:2.0"
---test_Id =   do assertEqual (mkId'   (1,1) "a123")                              $ unsafeParse idT  "a123"
---               assertEqual (mkId'   (1,1) "hello")                             $ unsafeParse idT  "hello"
---test_Exp =  do assertEqual (mkFunc' (1,1) "f" [])                              $ unsafeParse expT "f()"
---               assertEqual (mkArr'  (1,1) [])                                  $ unsafeParse expT "[]"
---               assertEqual (mkObj'  (1,1) [])                                  $ unsafeParse expT "{}"
---               assertEqual (mkVar'  (1,1) "x")                                 $ unsafeParse expT "x"
---               assertEqual (mkStr'  (1,1) "")                                  $ unsafeParse expT "\"\""
---               assertEqual (mkNum'  (1,1) "-1" (-1))                           $ unsafeParse expT "-1"
---               assertEqual (mkBool' (1,1) True)                                $ unsafeParse expT "true"
---               assertEqual (mkNull' (1,1))                                     $ unsafeParse expT "null"
---
----- Composite expressions
---test_Func = do assertEqual (mkFunc' (1,1) "f1" [mkNull' (1,4)])                                                     $ unsafeParse funcT "f1(null)"
---               assertEqual (mkFunc' (1,1) "f2" [mkNull' (1,4),mkBool' (1,9) False])                                 $ unsafeParse funcT "f2(null,false)"
---test_Arr =  do assertEqual (mkArr'  (1,1) [mkNum' (1,2) "0" 0])                                                     $ unsafeParse arrT  "[0]"
---               assertEqual (mkArr'  (1,1) [mkNum' (1,2) "-1.0" (-1),mkNum' (1,7) "-2e2" (-200)])                    $ unsafeParse arrT  "[-1.0,-2e2]"
---test_Obj =  do assertEqual (mkObj'  (1,1) [mkPair' (1,2) "x" $ mkStr' (1,4) "hello"])                               $ unsafeParse objT  "{x:\"hello\"}"
---               assertEqual (mkObj'  (1,1) [mkPair' (1,2) "x" $ mkVar' (1,4) "y",mkPair' (1,6) "y" $ mkNull' (1,8)]) $ unsafeParse objT  "{x:y,y:null}"
---
----- Atomic expressions
---test_Var =  do assertEqual (mkVar'  (1,1) "X")          $ unsafeParse varT  "X"
---               assertEqual (mkVar'  (1,1) "vaR123")     $ unsafeParse varT  "vaR123"
---test_Str =     assertEqual (mkStr'  (1,1) ascii)        $ unsafeParse strT  $ "\"" ++ ascii ++ "\""
---test_Num =  do assertEqual (mkNum'  (1,1) "10" 10)      $ unsafeParse numT  "10"
---               assertEqual (mkNum'  (1,1) "11.5" 11.5)  $ unsafeParse numT  "11.5"
---               assertEqual (mkNum'  (1,1) "1.23E2" 123) $ unsafeParse numT  "1.23E2"
---test_Bool = do assertEqual (mkBool' (1,1) True)         $ unsafeParse boolT "true"
---               assertEqual (mkBool' (1,1) False)        $ unsafeParse boolT "false"
---test_Null =    assertEqual (mkNull' (1,1))              $ unsafeParse nullT "null"
---
---{-| Unparse -}
----- Program
---test_UnparseProg = do assertEqual ""            $ unparse $ mkProg  (1,1) []
---                      assertEqual "x=null"      $ unparse $ mkProg  (1,1) [mkForm' (1,1) "x" $ mkNull' (1,3)]
---test_UnparseForm = do assertEqual "a=b"         $ unparse $ mkForm' (1,1) "a" $ mkVar' (1,3) "b"
---                      assertEqual "b=\"hello\"" $ unparse $ mkForm' (1,1) "b" $ mkStr' (1,3) "hello"
---test_UnparsePair = do assertEqual "c:1"         $ unparse $ mkPair' (1,1) "c" $ mkNum' (1,3) "1" 1
---                      assertEqual "d:2.0"       $ unparse $ mkPair' (1,1) "d" $ mkNum' (1,3) "2.0" 2
---test_UnparseId =   do assertEqual "a123"        $ unparse $ mkId'   (1,1) "a123"
---                      assertEqual "hello"       $ unparse $ mkId'   (1,1) "hello"
---test_UnparseExp =  do assertEqual "f()"         $ unparse $ mkFunc' (1,1) "f" []
---                      assertEqual "[]"          $ unparse $ mkArr'  (1,1) []
---                      assertEqual "{}"          $ unparse $ mkObj'  (1,1) []
---                      assertEqual "x"           $ unparse $ mkVar'  (1,1) "x"
---                      assertEqual "\"\""        $ unparse $ mkStr'  (1,1) ""
---                      assertEqual "-1"          $ unparse $ mkNum'  (1,1) "-1" (-1)
---                      assertEqual "true"        $ unparse $ mkBool' (1,1) True
---                      assertEqual "null"        $ unparse $ mkNull' (1,1)
---
----- Composite expressions
---test_UnparseFunc = do assertEqual "f1(null)"        $ unparse $ mkFunc' (1,1) "f1" [mkNull' (1,4)]
---                      assertEqual "f2(null,false)"  $ unparse $ mkFunc' (1,1) "f2" [mkNull' (1,4),mkBool' (1,9) False]
---test_UnparseArr =  do assertEqual "[0]"             $ unparse $ mkArr'  (1,1) [mkNum' (1,2) "0" 0]
---                      assertEqual "[-1.0,-2e2]"     $ unparse $ mkArr'  (1,1) [mkNum' (1,2) "-1.0" (-1),mkNum' (1,7) "-2e2" (-200)]
---test_UnparseObj =  do assertEqual "{x:\"hello\"}"   $ unparse $ mkObj'  (1,1) [mkPair' (1,2) "x" $ mkStr' (1,4) "hello"]
---                      assertEqual "{x:y,y:null}"    $ unparse $ mkObj'  (1,1) [mkPair' (1,2) "x" $ mkVar' (1,4) "y",mkPair' (1,6) "y" $ mkNull' (1,8)]
---
----- Atomic expressions
---test_UnparseVar =  do assertEqual "X"                     $ unparse $ mkVar'  (1,1) "X"
---                      assertEqual "vaR123"                $ unparse $ mkVar'  (1,1) "vaR123"
---test_UnparseStr =     assertEqual ("\"" ++ ascii ++ "\"") $ unparse $ mkStr'  (1,1) ascii
---test_UnparseNum =  do assertEqual "10"                    $ unparse $ mkNum'  (1,1) "10" 10
---                      assertEqual "11.5"                  $ unparse $ mkNum'  (1,1) "11.5" 11.5
---                      assertEqual "1.23E2"                $ unparse $ mkNum'  (1,1) "1.23E2" 123
---test_UnparseBool = do assertEqual "true"                  $ unparse $ mkBool' (1,1) True
---                      assertEqual "false"                 $ unparse $ mkBool' (1,1) False
---test_UnparseNull =    assertEqual "null"                  $ unparse $ mkNull' (1,1)
