@@ -5,10 +5,7 @@ import Data.EvalError
 import Data.Type
 import Test.Framework
 
-import Marshall.MarshallPropUtils
-import Marshall.MarshallUtils
 import Serialize.SerializePropUtils
-import Serialize.SerializeUtils
 
 {-# ANN module "HLint: ignore Use camelCase" #-}
 
@@ -250,34 +247,9 @@ import Serialize.SerializeUtils
 --                assertEqual "{_type:UPD,_pos:[1,2],_val:{_x:{_type:UPD,_pos:[3,4],_val:false}}}"                                $ serializeValid $ Right $ mkObjU (1,2) [("_x",mkBoolU  (3,4) False)]
 --                assertEqual "{_type:UPD,_pos:[1,2],_val:{_x:{_type:UPD,_pos:[3,4],_val:null}}}"                                 $ serializeValid $ Right $ mkObjU (1,2) [("_x",mkNullU  (3,4))]
 --
---test_Str = do   assertEqual "\"0\""                             $ serializeValid $ Right $ mkStrC (0,0) "0"
---                assertEqual "\"\""                              $ serializeValid $ Right $ mkStrC (0,0) ""
---
---                assertEqual "{_type:UPD,_pos:[1,2],_val:\"0\"}" $ serializeValid $ Right $ mkStrU (1,2) "0"
---                assertEqual "{_type:UPD,_pos:[1,2],_val:\"\"}"  $ serializeValid $ Right $ mkStrU (1,2) ""
---
---test_Num = do   assertEqual "1.0"                               $ serializeValid $ Right $ mkNumC (0,0) 1
---                assertEqual "0.0"                               $ serializeValid $ Right $ mkNumC (0,0) 0
---
---                assertEqual "{_type:UPD,_pos:[1,2],_val:1.0}"   $ serializeValid $ Right $ mkNumU (1,2) 1
---                assertEqual "{_type:UPD,_pos:[1,2],_val:0.0}"   $ serializeValid $ Right $ mkNumU (1,2) 0
---
---test_Bool = do  assertEqual "true"                              $ serializeValid $ Right $ mkBoolC (0,0) True
---                assertEqual "false"                             $ serializeValid $ Right $ mkBoolC (0,0) False
---
---                assertEqual "{_type:UPD,_pos:[1,2],_val:true}"  $ serializeValid $ Right $ mkBoolU (1,2) True
---                assertEqual "{_type:UPD,_pos:[1,2],_val:false}" $ serializeValid $ Right $ mkBoolU (1,2) False
---
-
-prop_Null (NullPA calc) (NullPA upd) = "null" == serializeValid (Right calc) && ("{_type:UPD,_pos:"++getPosStr upd++",_val:null}") == serializeValid (Right upd) 
-
-{-| Mandatory type signatures -}
-prop_Null :: NullPA COP -> NullPA UOP -> Bool
-
-
-
-
-
-
+prop_Str  (StrS  expA inA expB inB) = serializeCase expA inA expB inB Right
+prop_Num  (NumS  expA inA expB inB) = serializeCase expA inA expB inB Right
+prop_Bool (BoolS expA inA expB inB) = serializeCase expA inA expB inB Right
+prop_Null (NullS expA inA expB inB) = serializeCase expA inA expB inB Right
 
 
