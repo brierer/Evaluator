@@ -1,6 +1,5 @@
 module Parser.ParserUnitUtils where
 
-import Data.EvalError
 import Data.ExpToken
 import Data.List
 

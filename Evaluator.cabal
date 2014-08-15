@@ -51,5 +51,6 @@ test-suite Evaluator-tests
                  Serialize.SerializeUnit,
                  Eval.Serialize,
                  Parser.ParserUnitFailureUtils,
-                 Serialize.SerializeUtils
+                 Serialize.SerializeUtils,
+                 Serialize.SerializePropUtils
 

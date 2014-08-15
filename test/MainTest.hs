@@ -22,7 +22,7 @@ import {-@ HTF_TESTS @-} MatchType.MatchTypeProp
 import {-@ HTF_TESTS @-} MultiPass.MultiPassProp
 --import {-@ HTF_TESTS @-} Parser.ParserPropFailure
 import {-@ HTF_TESTS @-} Parser.ParserPropSuccess
---import {-@ HTF_TESTS @-} Serialize.SerializeProp
+import {-@ HTF_TESTS @-} Serialize.SerializeProp
 
 main :: IO ()
 main = htfMain htf_importedTests
