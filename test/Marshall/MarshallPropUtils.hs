@@ -6,8 +6,6 @@ import Prelude   hiding (any)
 
 import qualified Prelude as P
 
-import Control.Arrow  (second)
-
 import Control.Applicative
 import Control.Monad.State
 import Data.Eval
@@ -131,16 +129,14 @@ data ObjPA a =  ObjPA ExpObj deriving (Show)
 instance Unto (ObjPA a) ExpObj where to = ObjPA; un (ObjPA o) = o
 instance (Arbitrary a,Unto a ObjPos) => Arbitrary (ObjPA a) where arbitrary = sized1 tall; shrink (ObjPA (ObjO p ps)) = mObjPA (tShrink p) (tShrinks ps)
 instance (Arbitrary a,Unto a ObjPos) => Tall      (ObjPA a) where                                              tall n = mObjPA  arbitrary  (talls n)
-mObjPA = liftMF2 f un (map (second un)) where f x = ObjPA .ObjO x
-instance Unto (String,ExpOA) (String,ExpObj) where un = second un; to = second to
-instance Tall String where tall _ = arbitrary
+mObjPA = liftMF2 f un (map un) where f x = ObjPA .ObjO x
 
 data StrPA a =  StrPA ExpObj deriving (Show)
 instance Unto (StrPA a) ExpObj where to = StrPA; un (StrPA s) = s
 instance (Arbitrary a,Unto a ObjPos) => Arbitrary (StrPA a) where
   arbitrary                 = mStrPA  arbitrary   arbitrary
-  shrink (StrPA (StrO p s)) = mStrPA (tShrink p) (sShrink s)
-mStrPA = liftMF2 f un id where f x = StrPA .StrO x
+  shrink (StrPA (StrO p s)) = mStrPA (tShrink p) (tShrink s)
+mStrPA = liftMF2 f un un where f x = StrPA .StrO x
 
 data NumPA a = NumPA ExpObj deriving (Show)
 instance Unto (NumPA a) ExpObj where to  = NumPA; un (NumPA n) = n
@@ -187,7 +183,6 @@ instance Unto  PlotUCA ExpObj where to = PlotUCA; un (PlotUCA p) = p
 instance Arbitrary PlotUCA where arbitrary = sized1 tall; shrink (PlotUCA (PlotO p ps o)) = mPlotUCA (tShrink p) (tShrinks ps) (tShrinks o)
 instance Tall      PlotUCA where                                                   tall n = mPlotUCA  arbitrary  (talls n)     (talls n)
 mPlotUCA = liftMF3 f un (map un) (map un) where f x y = PlotUCA .PlotO x y
-instance Unto (String,ExpUCA) (String,ExpObj) where un = second un; to = second to
 
 data ArrUCA = ArrUCA ExpObj deriving (Show)
 instance Unto ArrUCA ExpObj where to = ArrUCA; un (ArrUCA a) = a
@@ -199,7 +194,7 @@ data ObjUCA = ObjUCA ExpObj deriving (Show)
 instance Unto ObjUCA ExpObj where to = ObjUCA; un (ObjUCA o) = o
 instance Arbitrary ObjUCA where arbitrary = sized1 tall; shrink (ObjUCA (ObjO p ps)) = mObjUCA (tShrink p) (tShrinks ps)
 instance Tall      ObjUCA where                                               tall n = mObjUCA  arbitrary  (talls n)
-mObjUCA = liftMF2 f un (map (second un)) where f x = ObjUCA .ObjO x
+mObjUCA = liftMF2 f un (map un) where f x = ObjUCA .ObjO x
 
 data ExpTS =  ExpTS ExpToken deriving (Show)
 instance Unto ExpTS ExpToken where to = ExpTS; un (ExpTS e) = e
@@ -242,7 +237,17 @@ instance Arbitrary COP where
 mCOP = liftM (COP .Calc .un)
 
 instance Unto b ExpObj    => Unto (FuncTA,b) (ExpToken,ExpObj) where un (x,y) = (un x,un y); to (x,y) = (to x,to y)
+instance Unto b ExpObj    => Unto (AsciiStr,b) (String,ExpObj) where un (x,y) = (un x,un y); to (x,y) = (to x,to y)
 instance (Tall a, Tall b) => Tall (a,b)                        where tall n = liftM2 (,) (tall n) (tall n)
+
+data AsciiStr = AsciiStr String deriving (Show)
+instance Unto AsciiStr String where to = AsciiStr .asciiStr; un (AsciiStr s) = s
+instance Tall AsciiStr where tall _ = arbitrary
+instance Arbitrary AsciiStr where
+  arbitrary           = mAsciiStr  arbitrary
+  shrink (AsciiStr s) = mAsciiStr (shrink s)
+mAsciiStr = liftM (AsciiStr .sList.asciiStr)
+asciiStr = filter (`elem` [' '..'~'])
 
 chooseT f = f [(arr,isArr),(obj,isObj),(Str,isStr),(Num,isNum),(Bool,isBool),(Null,isNull)]
 
@@ -263,22 +268,23 @@ removeVarsAndFuncs (ArrT p w es)           = ArrT p w $ map removeVarsAndFuncs e
 removeVarsAndFuncs (ObjT p w ps)           = ObjT p w $ map (mapPair removeVarsAndFuncs) ps
 removeVarsAndFuncs x                       = x
 
-{-| Mandatory type signatures -}
-mExpOA   :: (Applicative m, Monad m)               => m ExpObj                                       -> m  ExpOA
-mTablePA :: (Applicative m, Monad m,Unto a ObjPos) => m a -> m [[ExpOA]]         -> m [ExpOA]        -> m (TablePA a)
-mPlotPA  :: (Applicative m, Monad m,Unto a ObjPos) => m a -> m [(ExpOA,ExpOA)] -> m [(String,ExpOA)] -> m (PlotPA a)
-mArrPA   :: (Applicative m, Monad m,Unto a ObjPos) => m a -> m [ExpOA]                               -> m (ArrPA a)
-mObjPA   :: (Applicative m, Monad m,Unto a ObjPos) => m a -> m [(String,ExpOA)]                      -> m (ObjPA a)
-mStrPA   :: (Applicative m, Monad m,Unto a ObjPos) => m a -> m String                                -> m (StrPA a)
-mNumPA   :: (Applicative m, Monad m,Unto a ObjPos) => m a -> m Double                                -> m (NumPA a)
-mBoolPA  :: (Applicative m, Monad m,Unto a ObjPos) => m a -> m Bool                                  -> m (BoolPA a)
-mNullPA  :: (Applicative m, Monad m,Unto a ObjPos) => m a                                            -> m (NullPA a)
 
-mExpUCA   :: (Applicative m, Monad m) => m ExpObj                                          -> m ExpUCA
-mTableUCA :: (Applicative m, Monad m) => m ObjPosA -> m [[ExpUCA]]        -> m [ExpUCA]          -> m TableUCA
-mPlotUCA  :: (Applicative m, Monad m) => m ObjPosA -> m [(ExpUCA,ExpUCA)] -> m [(String,ExpUCA)] -> m PlotUCA
-mArrUCA   :: (Applicative m, Monad m) => m ObjPosA -> m [ExpUCA]                                 -> m ArrUCA
-mObjUCA   :: (Applicative m, Monad m) => m ObjPosA -> m [(String,ExpUCA)]                        -> m ObjUCA
+{-| Mandatory type signatures -}
+mExpOA   :: (Applicative m, Monad m)               => m ExpObj                                         -> m  ExpOA
+mTablePA :: (Applicative m, Monad m,Unto a ObjPos) => m a -> m [[ExpOA]]         -> m [ExpOA]          -> m (TablePA a)
+mPlotPA  :: (Applicative m, Monad m,Unto a ObjPos) => m a -> m [(ExpOA,ExpOA)] -> m [(AsciiStr,ExpOA)] -> m (PlotPA a)
+mArrPA   :: (Applicative m, Monad m,Unto a ObjPos) => m a -> m [ExpOA]                                 -> m (ArrPA a)
+mObjPA   :: (Applicative m, Monad m,Unto a ObjPos) => m a -> m [(AsciiStr,ExpOA)]                      -> m (ObjPA a)
+mStrPA   :: (Applicative m, Monad m,Unto a ObjPos) => m a -> m AsciiStr                                -> m (StrPA a)
+mNumPA   :: (Applicative m, Monad m,Unto a ObjPos) => m a -> m Double                                  -> m (NumPA a)
+mBoolPA  :: (Applicative m, Monad m,Unto a ObjPos) => m a -> m Bool                                    -> m (BoolPA a)
+mNullPA  :: (Applicative m, Monad m,Unto a ObjPos) => m a                                              -> m (NullPA a)
+
+mExpUCA   :: (Applicative m, Monad m) => m ExpObj                                                  -> m ExpUCA
+mTableUCA :: (Applicative m, Monad m) => m ObjPosA -> m [[ExpUCA]]        -> m [ExpUCA]            -> m TableUCA
+mPlotUCA  :: (Applicative m, Monad m) => m ObjPosA -> m [(ExpUCA,ExpUCA)] -> m [(AsciiStr,ExpUCA)] -> m PlotUCA
+mArrUCA   :: (Applicative m, Monad m) => m ObjPosA -> m [ExpUCA]                                   -> m ArrUCA
+mObjUCA   :: (Applicative m, Monad m) => m ObjPosA -> m [(AsciiStr,ExpUCA)]                        -> m ObjUCA
 
 mExpTS   :: (Applicative m, Monad m) => m ExpTA -> m ExpTS
 mArrTS   :: (Applicative m, Monad m) => m ArrTA -> m ArrTS
@@ -287,3 +293,5 @@ mObjTS   :: (Applicative m, Monad m) => m ObjTA -> m ObjTS
 mObjPosA :: (Applicative m, Monad m) => m (Pos -> ObjPos) -> m P -> m ObjPosA
 mUOP     :: (Applicative m, Monad m) => m P -> m UOP
 mCOP     :: (Applicative m, Monad m) => m P -> m COP
+
+mAsciiStr :: (Applicative m, Monad m) => m String -> m AsciiStr

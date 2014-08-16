@@ -1,11 +1,12 @@
 {-# OPTIONS_GHC -F -pgmF htfpp #-}
 module Serialize.SerializeProp where
 
-import Data.EvalError
-import Data.Type
 import Test.Framework
 
 import Serialize.SerializePropUtils
+import Serialize.SerializeUtils
+
+import Data.ExpObj
 
 {-# ANN module "HLint: ignore Use camelCase" #-}
 
@@ -76,180 +77,14 @@ import Serialize.SerializePropUtils
 --                assertEqual "{_type:ERROR,_errType:INDEX_OUT_OF_BOUNDS,_pos:[0,1],_min:2,_max:3,_act:4}" $ serializeValid $ Left $ IndexOutOfBounds (0,1) 2 3 4
 --                assertEqual "{_type:ERROR,_errType:INDEX_OUT_OF_BOUNDS,_pos:[5,6],_min:7,_max:8,_act:9}" $ serializeValid $ Left $ IndexOutOfBounds (5,6) 7 8 9
 --
---test_Table = do assertEqual "{_type:TABLE,_data:[[\"\"]],_head:[]}"                                                              $ serializeValid $ Right $ mkTableC (1,2) [[mkStrC  (3,4) ""]] []
---                assertEqual "{_type:TABLE,_data:[[0.0]],_head:[]}"                                                               $ serializeValid $ Right $ mkTableC (1,2) [[mkNumC  (3,4) 0.0]] []
---                assertEqual "{_type:TABLE,_data:[[false]],_head:[]}"                                                             $ serializeValid $ Right $ mkTableC (1,2) [[mkBoolC (3,4) False]] []
---                assertEqual "{_type:TABLE,_data:[[null]],_head:[]}"                                                              $ serializeValid $ Right $ mkTableC (1,2) [[mkNullC (3,4)]] []
---
---                assertEqual "{_type:TABLE,_data:[[{_type:UPD,_pos:[3,4],_val:\"\"}]],_head:[]}"                                  $ serializeValid $ Right $ mkTableC (1,2) [[mkStrU  (3,4) ""]] []
---                assertEqual "{_type:TABLE,_data:[[{_type:UPD,_pos:[3,4],_val:0.0}]],_head:[]}"                                   $ serializeValid $ Right $ mkTableC (1,2) [[mkNumU  (3,4) 0.0]] []
---                assertEqual "{_type:TABLE,_data:[[{_type:UPD,_pos:[3,4],_val:false}]],_head:[]}"                                 $ serializeValid $ Right $ mkTableC (1,2) [[mkBoolU (3,4) False]] []
---                assertEqual "{_type:TABLE,_data:[[{_type:UPD,_pos:[3,4],_val:null}]],_head:[]}"                                  $ serializeValid $ Right $ mkTableC (1,2) [[mkNullU (3,4)]] []
---
---                assertEqual "{_type:UPD,_pos:[1,2],_val:{_type:TABLE,_data:[[\"\"]],_head:[]}}"                                  $ serializeValid $ Right $ mkTableU (1,2) [[mkStrC  (3,4) ""]] []
---                assertEqual "{_type:UPD,_pos:[1,2],_val:{_type:TABLE,_data:[[0.0]],_head:[]}}"                                   $ serializeValid $ Right $ mkTableU (1,2) [[mkNumC  (3,4) 0.0]] []
---                assertEqual "{_type:UPD,_pos:[1,2],_val:{_type:TABLE,_data:[[false]],_head:[]}}"                                 $ serializeValid $ Right $ mkTableU (1,2) [[mkBoolC (3,4) False]] []
---                assertEqual "{_type:UPD,_pos:[1,2],_val:{_type:TABLE,_data:[[null]],_head:[]}}"                                  $ serializeValid $ Right $ mkTableU (1,2) [[mkNullC (3,4)]] []
---
---                assertEqual "{_type:UPD,_pos:[1,2],_val:{_type:TABLE,_data:[[{_type:UPD,_pos:[3,4],_val:\"\"}]],_head:[]}}"      $ serializeValid $ Right $ mkTableU (1,2) [[mkStrU  (3,4) ""]] []
---                assertEqual "{_type:UPD,_pos:[1,2],_val:{_type:TABLE,_data:[[{_type:UPD,_pos:[3,4],_val:0.0}]],_head:[]}}"       $ serializeValid $ Right $ mkTableU (1,2) [[mkNumU  (3,4) 0.0]] []
---                assertEqual "{_type:UPD,_pos:[1,2],_val:{_type:TABLE,_data:[[{_type:UPD,_pos:[3,4],_val:false}]],_head:[]}}"     $ serializeValid $ Right $ mkTableU (1,2) [[mkBoolU (3,4) False]] []
---                assertEqual "{_type:UPD,_pos:[1,2],_val:{_type:TABLE,_data:[[{_type:UPD,_pos:[3,4],_val:null}]],_head:[]}}"      $ serializeValid $ Right $ mkTableU (1,2) [[mkNullU (3,4)]] []
---
---                assertEqual "{_type:TABLE,_data:[[\"\"]],_head:[\"\"]}"                                                          $ serializeValid $ Right $ mkTableC (1,2) [[mkStrC  (3,4) ""]]    [mkStrC  (5,6) ""]
---                assertEqual "{_type:TABLE,_data:[[0.0]],_head:[\"\"]}"                                                           $ serializeValid $ Right $ mkTableC (1,2) [[mkNumC  (3,4) 0.0]]   [mkStrC  (5,6) ""]
---                assertEqual "{_type:TABLE,_data:[[false]],_head:[\"\"]}"                                                         $ serializeValid $ Right $ mkTableC (1,2) [[mkBoolC (3,4) False]] [mkStrC  (5,6) ""]
---                assertEqual "{_type:TABLE,_data:[[null]],_head:[\"\"]}"                                                          $ serializeValid $ Right $ mkTableC (1,2) [[mkNullC (3,4)]]       [mkStrC  (5,6) ""]
---
---                assertEqual "{_type:TABLE,_data:[[\"\"]],_head:[{_type:UPD,_pos:[5,6],_val:\"\"}]}"                              $ serializeValid $ Right $ mkTableC (1,2) [[mkStrC  (3,4) ""]]    [mkStrU  (5,6) ""]
---                assertEqual "{_type:TABLE,_data:[[0.0]],_head:[{_type:UPD,_pos:[5,6],_val:\"\"}]}"                               $ serializeValid $ Right $ mkTableC (1,2) [[mkNumC  (3,4) 0.0]]   [mkStrU  (5,6) ""]
---                assertEqual "{_type:TABLE,_data:[[false]],_head:[{_type:UPD,_pos:[5,6],_val:\"\"}]}"                             $ serializeValid $ Right $ mkTableC (1,2) [[mkBoolC (3,4) False]] [mkStrU  (5,6) ""]
---                assertEqual "{_type:TABLE,_data:[[null]],_head:[{_type:UPD,_pos:[5,6],_val:\"\"}]}"                              $ serializeValid $ Right $ mkTableC (1,2) [[mkNullC (3,4)]]       [mkStrU  (5,6) ""]
---
---                assertEqual "{_type:TABLE,_data:[[{_type:UPD,_pos:[3,4],_val:\"\"}]],_head:[\"\"]}"                              $ serializeValid $ Right $ mkTableC (1,2) [[mkStrU  (3,4) ""]]    [mkStrC  (5,6) ""]
---                assertEqual "{_type:TABLE,_data:[[{_type:UPD,_pos:[3,4],_val:0.0}]],_head:[\"\"]}"                               $ serializeValid $ Right $ mkTableC (1,2) [[mkNumU  (3,4) 0.0]]   [mkStrC  (5,6) ""]
---                assertEqual "{_type:TABLE,_data:[[{_type:UPD,_pos:[3,4],_val:false}]],_head:[\"\"]}"                             $ serializeValid $ Right $ mkTableC (1,2) [[mkBoolU (3,4) False]] [mkStrC  (5,6) ""]
---                assertEqual "{_type:TABLE,_data:[[{_type:UPD,_pos:[3,4],_val:null}]],_head:[\"\"]}"                              $ serializeValid $ Right $ mkTableC (1,2) [[mkNullU (3,4)]]       [mkStrC  (5,6) ""]
---
---                assertEqual "{_type:TABLE,_data:[[{_type:UPD,_pos:[3,4],_val:\"\"}]],_head:[{_type:UPD,_pos:[5,6],_val:\"\"}]}"  $ serializeValid $ Right $ mkTableC (1,2) [[mkStrU  (3,4) ""]]    [mkStrU  (5,6) ""]
---                assertEqual "{_type:TABLE,_data:[[{_type:UPD,_pos:[3,4],_val:0.0}]],_head:[{_type:UPD,_pos:[5,6],_val:\"\"}]}"   $ serializeValid $ Right $ mkTableC (1,2) [[mkNumU  (3,4) 0.0]]   [mkStrU  (5,6) ""]
---                assertEqual "{_type:TABLE,_data:[[{_type:UPD,_pos:[3,4],_val:false}]],_head:[{_type:UPD,_pos:[5,6],_val:\"\"}]}" $ serializeValid $ Right $ mkTableC (1,2) [[mkBoolU (3,4) False]] [mkStrU  (5,6) ""]
---                assertEqual "{_type:TABLE,_data:[[{_type:UPD,_pos:[3,4],_val:null}]],_head:[{_type:UPD,_pos:[5,6],_val:\"\"}]}"  $ serializeValid $ Right $ mkTableC (1,2) [[mkNullU (3,4)]]       [mkStrU  (5,6) ""]
---
---                assertEqual "{_type:UPD,_pos:[1,2],_val:{_type:TABLE,_data:[[\"\"]],_head:[\"\"]}}"                              $ serializeValid $ Right $ mkTableU (1,2) [[mkStrC  (3,4) ""]]    [mkStrC  (5,6) ""]
---                assertEqual "{_type:UPD,_pos:[1,2],_val:{_type:TABLE,_data:[[0.0]],_head:[\"\"]}}"                               $ serializeValid $ Right $ mkTableU (1,2) [[mkNumC  (3,4) 0.0]]   [mkStrC  (5,6) ""]
---                assertEqual "{_type:UPD,_pos:[1,2],_val:{_type:TABLE,_data:[[false]],_head:[\"\"]}}"                             $ serializeValid $ Right $ mkTableU (1,2) [[mkBoolC (3,4) False]] [mkStrC  (5,6) ""]
---                assertEqual "{_type:UPD,_pos:[1,2],_val:{_type:TABLE,_data:[[null]],_head:[\"\"]}}"                              $ serializeValid $ Right $ mkTableU (1,2) [[mkNullC (3,4)]]       [mkStrC  (5,6) ""]
---
---                assertEqual "{_type:UPD,_pos:[1,2],_val:{_type:TABLE,_data:[[\"\"]],_head:[{_type:UPD,_pos:[5,6],_val:\"\"}]}}"  $ serializeValid $ Right $ mkTableU (1,2) [[mkStrC  (3,4) ""]]    [mkStrU  (5,6) ""]
---                assertEqual "{_type:UPD,_pos:[1,2],_val:{_type:TABLE,_data:[[0.0]],_head:[{_type:UPD,_pos:[5,6],_val:\"\"}]}}"   $ serializeValid $ Right $ mkTableU (1,2) [[mkNumC  (3,4) 0.0]]   [mkStrU  (5,6) ""]
---                assertEqual "{_type:UPD,_pos:[1,2],_val:{_type:TABLE,_data:[[false]],_head:[{_type:UPD,_pos:[5,6],_val:\"\"}]}}" $ serializeValid $ Right $ mkTableU (1,2) [[mkBoolC (3,4) False]] [mkStrU  (5,6) ""]
---                assertEqual "{_type:UPD,_pos:[1,2],_val:{_type:TABLE,_data:[[null]],_head:[{_type:UPD,_pos:[5,6],_val:\"\"}]}}"  $ serializeValid $ Right $ mkTableU (1,2) [[mkNullC (3,4)]]       [mkStrU  (5,6) ""]
---
---                assertEqual "{_type:UPD,_pos:[1,2],_val:{_type:TABLE,_data:[[{_type:UPD,_pos:[3,4],_val:\"\"}]],_head:[\"\"]}}"  $ serializeValid $ Right $ mkTableU (1,2) [[mkStrU  (3,4) ""]]    [mkStrC  (5,6) ""]
---                assertEqual "{_type:UPD,_pos:[1,2],_val:{_type:TABLE,_data:[[{_type:UPD,_pos:[3,4],_val:0.0}]],_head:[\"\"]}}"   $ serializeValid $ Right $ mkTableU (1,2) [[mkNumU  (3,4) 0.0]]   [mkStrC  (5,6) ""]
---                assertEqual "{_type:UPD,_pos:[1,2],_val:{_type:TABLE,_data:[[{_type:UPD,_pos:[3,4],_val:false}]],_head:[\"\"]}}" $ serializeValid $ Right $ mkTableU (1,2) [[mkBoolU (3,4) False]] [mkStrC  (5,6) ""]
---                assertEqual "{_type:UPD,_pos:[1,2],_val:{_type:TABLE,_data:[[{_type:UPD,_pos:[3,4],_val:null}]],_head:[\"\"]}}"  $ serializeValid $ Right $ mkTableU (1,2) [[mkNullU (3,4)]]       [mkStrC  (5,6) ""]
---
---                assertEqual "{_type:UPD,_pos:[1,2],_val:{_type:TABLE,_data:[[{_type:UPD,_pos:[3,4],_val:\"\"}]],_head:[{_type:UPD,_pos:[5,6],_val:\"\"}]}}"    $ serializeValid $ Right $ mkTableU (1,2) [[mkStrU  (3,4) ""]]    [mkStrU  (5,6) ""]
---                assertEqual "{_type:UPD,_pos:[1,2],_val:{_type:TABLE,_data:[[{_type:UPD,_pos:[3,4],_val:0.0}]],_head:[{_type:UPD,_pos:[5,6],_val:\"\"}]}}"     $ serializeValid $ Right $ mkTableU (1,2) [[mkNumU  (3,4) 0.0]]   [mkStrU  (5,6) ""]
---                assertEqual "{_type:UPD,_pos:[1,2],_val:{_type:TABLE,_data:[[{_type:UPD,_pos:[3,4],_val:false}]],_head:[{_type:UPD,_pos:[5,6],_val:\"\"}]}}"   $ serializeValid $ Right $ mkTableU (1,2) [[mkBoolU (3,4) False]] [mkStrU  (5,6) ""]
---                assertEqual "{_type:UPD,_pos:[1,2],_val:{_type:TABLE,_data:[[{_type:UPD,_pos:[3,4],_val:null}]],_head:[{_type:UPD,_pos:[5,6],_val:\"\"}]}}"    $ serializeValid $ Right $ mkTableU (1,2) [[mkNullU (3,4)]]       [mkStrU  (5,6) ""]
---
---test_Plot = do  assertEqual "{_type:PLOT,_data:[],_head:{}}"                                                                                                   $ serializeValid $ Right $ mkPlotC (1,2) [] []
---                assertEqual "{_type:UPD,_pos:[1,2],_val:{_type:PLOT,_data:[],_head:{}}}"                                                                       $ serializeValid $ Right $ mkPlotU (1,2) [] []
---
---                assertEqual "{_type:PLOT,_data:[[10.0,11.0]],_head:{}}"                                                                                        $ serializeValid $ Right $ mkPlotC (1,2) [(mkNumC (3,4) 10.0,mkNumC (5,6) 11.0)] []
---                assertEqual "{_type:PLOT,_data:[[{_type:UPD,_pos:[3,4],_val:10.0},11.0]],_head:{}}"                                                            $ serializeValid $ Right $ mkPlotC (1,2) [(mkNumU (3,4) 10.0,mkNumC (5,6) 11.0)] []
---                assertEqual "{_type:PLOT,_data:[[10.0,{_type:UPD,_pos:[5,6],_val:11.0}]],_head:{}}"                                                            $ serializeValid $ Right $ mkPlotC (1,2) [(mkNumC (3,4) 10.0,mkNumU (5,6) 11.0)] []
---                assertEqual "{_type:PLOT,_data:[[{_type:UPD,_pos:[3,4],_val:10.0},{_type:UPD,_pos:[5,6],_val:11.0}]],_head:{}}"                                $ serializeValid $ Right $ mkPlotC (1,2) [(mkNumU (3,4) 10.0,mkNumU (5,6) 11.0)] []
---
---                assertEqual "{_type:UPD,_pos:[1,2],_val:{_type:PLOT,_data:[[10.0,11.0]],_head:{}}}"                                                            $ serializeValid $ Right $ mkPlotU (1,2) [(mkNumC (3,4) 10.0,mkNumC (5,6) 11.0)] []
---                assertEqual "{_type:UPD,_pos:[1,2],_val:{_type:PLOT,_data:[[{_type:UPD,_pos:[3,4],_val:10.0},11.0]],_head:{}}}"                                $ serializeValid $ Right $ mkPlotU (1,2) [(mkNumU (3,4) 10.0,mkNumC (5,6) 11.0)] []
---                assertEqual "{_type:UPD,_pos:[1,2],_val:{_type:PLOT,_data:[[10.0,{_type:UPD,_pos:[5,6],_val:11.0}]],_head:{}}}"                                $ serializeValid $ Right $ mkPlotU (1,2) [(mkNumC (3,4) 10.0,mkNumU (5,6) 11.0)] []
---                assertEqual "{_type:UPD,_pos:[1,2],_val:{_type:PLOT,_data:[[{_type:UPD,_pos:[3,4],_val:10.0},{_type:UPD,_pos:[5,6],_val:11.0}]],_head:{}}}"    $ serializeValid $ Right $ mkPlotU (1,2) [(mkNumU (3,4) 10.0,mkNumU (5,6) 11.0)] []
---
---                assertEqual "{_type:PLOT,_data:[],_head:{title:\"\"}}"                                                                                         $ serializeValid $ Right $ mkPlotC (1,2) [] [("title",mkStrC (7,8) "")]
---                assertEqual "{_type:UPD,_pos:[1,2],_val:{_type:PLOT,_data:[],_head:{title:\"\"}}}"                                                             $ serializeValid $ Right $ mkPlotU (1,2) [] [("title",mkStrC (7,8) "")]
---
---                assertEqual "{_type:PLOT,_data:[[10.0,11.0]],_head:{title:\"\"}}"                                                                              $ serializeValid $ Right $ mkPlotC (1,2) [(mkNumC (3,4) 10.0,mkNumC (5,6) 11.0)] [("title",mkStrC (7,8) "")]
---                assertEqual "{_type:PLOT,_data:[[10.0,{_type:UPD,_pos:[5,6],_val:11.0}]],_head:{title:\"\"}}"                                                  $ serializeValid $ Right $ mkPlotC (1,2) [(mkNumC (3,4) 10.0,mkNumU (5,6) 11.0)] [("title",mkStrC (7,8) "")]
---                assertEqual "{_type:PLOT,_data:[[{_type:UPD,_pos:[3,4],_val:10.0},11.0]],_head:{title:\"\"}}"                                                  $ serializeValid $ Right $ mkPlotC (1,2) [(mkNumU (3,4) 10.0,mkNumC (5,6) 11.0)] [("title",mkStrC (7,8) "")]
---                assertEqual "{_type:PLOT,_data:[[{_type:UPD,_pos:[3,4],_val:10.0},{_type:UPD,_pos:[5,6],_val:11.0}]],_head:{title:\"\"}}"                      $ serializeValid $ Right $ mkPlotC (1,2) [(mkNumU (3,4) 10.0,mkNumU (5,6) 11.0)] [("title",mkStrC (7,8) "")]
---
---                assertEqual "{_type:UPD,_pos:[1,2],_val:{_type:PLOT,_data:[[10.0,11.0]],_head:{title:\"\"}}}"                                                         $ serializeValid $ Right $ mkPlotU (1,2) [(mkNumC (3,4) 10.0,mkNumC (5,6) 11.0)] [("title",mkStrC (7,8) "")]
---                assertEqual "{_type:UPD,_pos:[1,2],_val:{_type:PLOT,_data:[[{_type:UPD,_pos:[3,4],_val:10.0},11.0]],_head:{title:\"\"}}}"                             $ serializeValid $ Right $ mkPlotU (1,2) [(mkNumU (3,4) 10.0,mkNumC (5,6) 11.0)] [("title",mkStrC (7,8) "")]
---                assertEqual "{_type:UPD,_pos:[1,2],_val:{_type:PLOT,_data:[[10.0,{_type:UPD,_pos:[5,6],_val:11.0}]],_head:{title:\"\"}}}"                             $ serializeValid $ Right $ mkPlotU (1,2) [(mkNumC (3,4) 10.0,mkNumU (5,6) 11.0)] [("title",mkStrC (7,8) "")]
---                assertEqual "{_type:UPD,_pos:[1,2],_val:{_type:PLOT,_data:[[{_type:UPD,_pos:[3,4],_val:10.0},{_type:UPD,_pos:[5,6],_val:11.0}]],_head:{title:\"\"}}}" $ serializeValid $ Right $ mkPlotU (1,2) [(mkNumU (3,4) 10.0,mkNumU (5,6) 11.0)] [("title",mkStrC (7,8) "")]
---
---                assertEqual "{_type:PLOT,_data:[],_head:{title:{_type:UPD,_pos:[7,8],_val:\"\"}}}"                                                                                              $ serializeValid $ Right $ mkPlotC (1,2) [] [("title",mkStrU (7,8) "")]
---                assertEqual "{_type:UPD,_pos:[1,2],_val:{_type:PLOT,_data:[],_head:{title:{_type:UPD,_pos:[7,8],_val:\"\"}}}}"                                                                  $ serializeValid $ Right $ mkPlotU (1,2) [] [("title",mkStrU (7,8) "")]
---
---                assertEqual "{_type:PLOT,_data:[[10.0,11.0]],_head:{title:{_type:UPD,_pos:[7,8],_val:\"\"}}}"                                                                                   $ serializeValid $ Right $ mkPlotC (1,2) [(mkNumC (3,4) 10.0,mkNumC (5,6) 11.0)] [("title",mkStrU (7,8) "")]
---                assertEqual "{_type:PLOT,_data:[[{_type:UPD,_pos:[3,4],_val:10.0},11.0]],_head:{title:{_type:UPD,_pos:[7,8],_val:\"\"}}}"                                                       $ serializeValid $ Right $ mkPlotC (1,2) [(mkNumU (3,4) 10.0,mkNumC (5,6) 11.0)] [("title",mkStrU (7,8) "")]
---                assertEqual "{_type:PLOT,_data:[[10.0,{_type:UPD,_pos:[5,6],_val:11.0}]],_head:{title:{_type:UPD,_pos:[7,8],_val:\"\"}}}"                                                       $ serializeValid $ Right $ mkPlotC (1,2) [(mkNumC (3,4) 10.0,mkNumU (5,6) 11.0)] [("title",mkStrU (7,8) "")]
---                assertEqual "{_type:PLOT,_data:[[{_type:UPD,_pos:[3,4],_val:10.0},{_type:UPD,_pos:[5,6],_val:11.0}]],_head:{title:{_type:UPD,_pos:[7,8],_val:\"\"}}}"                           $ serializeValid $ Right $ mkPlotC (1,2) [(mkNumU (3,4) 10.0,mkNumU (5,6) 11.0)] [("title",mkStrU (7,8) "")]
---
---                assertEqual "{_type:UPD,_pos:[1,2],_val:{_type:PLOT,_data:[[10.0,11.0]],_head:{title:{_type:UPD,_pos:[7,8],_val:\"\"}}}}"                                                         $ serializeValid $ Right $ mkPlotU (1,2) [(mkNumC (3,4) 10.0,mkNumC (5,6) 11.0)] [("title",mkStrU (7,8) "")]
---                assertEqual "{_type:UPD,_pos:[1,2],_val:{_type:PLOT,_data:[[{_type:UPD,_pos:[3,4],_val:10.0},11.0]],_head:{title:{_type:UPD,_pos:[7,8],_val:\"\"}}}}"                             $ serializeValid $ Right $ mkPlotU (1,2) [(mkNumU (3,4) 10.0,mkNumC (5,6) 11.0)] [("title",mkStrU (7,8) "")]
---                assertEqual "{_type:UPD,_pos:[1,2],_val:{_type:PLOT,_data:[[10.0,{_type:UPD,_pos:[5,6],_val:11.0}]],_head:{title:{_type:UPD,_pos:[7,8],_val:\"\"}}}}"                             $ serializeValid $ Right $ mkPlotU (1,2) [(mkNumC (3,4) 10.0,mkNumU (5,6) 11.0)] [("title",mkStrU (7,8) "")]
---                assertEqual "{_type:UPD,_pos:[1,2],_val:{_type:PLOT,_data:[[{_type:UPD,_pos:[3,4],_val:10.0},{_type:UPD,_pos:[5,6],_val:11.0}]],_head:{title:{_type:UPD,_pos:[7,8],_val:\"\"}}}}" $ serializeValid $ Right $ mkPlotU (1,2) [(mkNumU (3,4) 10.0,mkNumU (5,6) 11.0)] [("title",mkStrU (7,8) "")]
---
---test_Arr = do   assertEqual "[{_type:TABLE,_data:[[0.0]],_head:[]}]"                            $ serializeValid $ Right $ mkArrC (1,2) [mkTableC (3,4) [[mkNumC  (0,0) 0.0]] []]
---                assertEqual "[{_type:PLOT,_data:[],_head:{}}]"                                  $ serializeValid $ Right $ mkArrC (1,2) [mkPlotC  (3,4) [] []]
---                assertEqual "[[]]"                                                              $ serializeValid $ Right $ mkArrC (1,2) [mkArrC   (3,4) []]
---                assertEqual "[{}]"                                                              $ serializeValid $ Right $ mkArrC (1,2) [mkObjC   (3,4) []]
---                assertEqual "[\"\"]"                                                            $ serializeValid $ Right $ mkArrC (1,2) [mkStrC   (3,4) ""]
---                assertEqual "[0.0]"                                                             $ serializeValid $ Right $ mkArrC (1,2) [mkNumC   (3,4) 0.0]
---                assertEqual "[false]"                                                           $ serializeValid $ Right $ mkArrC (1,2) [mkBoolC  (3,4) False]
---                assertEqual "[null]"                                                            $ serializeValid $ Right $ mkArrC (1,2) [mkNullC  (3,4)]
---
---                assertEqual "[{_type:UPD,_pos:[3,4],_val:{_type:TABLE,_data:[[0.0]],_head:[]}}]" $ serializeValid $ Right $ mkArrC (1,2) [mkTableU (3,4) [[mkNumC  (0,0) 0.0]] []]
---                assertEqual "[{_type:UPD,_pos:[3,4],_val:{_type:PLOT,_data:[],_head:{}}}]"       $ serializeValid $ Right $ mkArrC (1,2) [mkPlotU  (3,4) [] []]
---                assertEqual "[{_type:UPD,_pos:[3,4],_val:[]}]"                                   $ serializeValid $ Right $ mkArrC (1,2) [mkArrU   (3,4) []]
---                assertEqual "[{_type:UPD,_pos:[3,4],_val:{}}]"                                   $ serializeValid $ Right $ mkArrC (1,2) [mkObjU   (3,4) []]
---                assertEqual "[{_type:UPD,_pos:[3,4],_val:\"\"}]"                                 $ serializeValid $ Right $ mkArrC (1,2) [mkStrU   (3,4) ""]
---                assertEqual "[{_type:UPD,_pos:[3,4],_val:0.0}]"                                  $ serializeValid $ Right $ mkArrC (1,2) [mkNumU   (3,4) 0.0]
---                assertEqual "[{_type:UPD,_pos:[3,4],_val:false}]"                                $ serializeValid $ Right $ mkArrC (1,2) [mkBoolU  (3,4) False]
---                assertEqual "[{_type:UPD,_pos:[3,4],_val:null}]"                                 $ serializeValid $ Right $ mkArrC (1,2) [mkNullU  (3,4)]
---
---                assertEqual "{_type:UPD,_pos:[1,2],_val:[{_type:TABLE,_data:[[0.0]],_head:[]}]}" $ serializeValid $ Right $ mkArrU (1,2) [mkTableC (3,4) [[mkNumC  (0,0) 0.0]] []]
---                assertEqual "{_type:UPD,_pos:[1,2],_val:[{_type:PLOT,_data:[],_head:{}}]}"       $ serializeValid $ Right $ mkArrU (1,2) [mkPlotC  (3,4) [] []]
---                assertEqual "{_type:UPD,_pos:[1,2],_val:[[]]}"                                   $ serializeValid $ Right $ mkArrU (1,2) [mkArrC   (3,4) []]
---                assertEqual "{_type:UPD,_pos:[1,2],_val:[{}]}"                                   $ serializeValid $ Right $ mkArrU (1,2) [mkObjC   (3,4) []]
---                assertEqual "{_type:UPD,_pos:[1,2],_val:[\"\"]}"                                 $ serializeValid $ Right $ mkArrU (1,2) [mkStrC   (3,4) ""]
---                assertEqual "{_type:UPD,_pos:[1,2],_val:[0.0]}"                                  $ serializeValid $ Right $ mkArrU (1,2) [mkNumC   (3,4) 0.0]
---                assertEqual "{_type:UPD,_pos:[1,2],_val:[false]}"                                $ serializeValid $ Right $ mkArrU (1,2) [mkBoolC  (3,4) False]
---                assertEqual "{_type:UPD,_pos:[1,2],_val:[null]}"                                 $ serializeValid $ Right $ mkArrU (1,2) [mkNullC  (3,4)]
---
---                assertEqual "{_type:UPD,_pos:[1,2],_val:[{_type:UPD,_pos:[3,4],_val:{_type:TABLE,_data:[[0.0]],_head:[]}}]}" $ serializeValid $ Right $ mkArrU (1,2) [mkTableU (3,4) [[mkNumC  (0,0) 0.0]] []]
---                assertEqual "{_type:UPD,_pos:[1,2],_val:[{_type:UPD,_pos:[3,4],_val:{_type:PLOT,_data:[],_head:{}}}]}"       $ serializeValid $ Right $ mkArrU (1,2) [mkPlotU  (3,4) [] []]
---                assertEqual "{_type:UPD,_pos:[1,2],_val:[{_type:UPD,_pos:[3,4],_val:[]}]}"                                   $ serializeValid $ Right $ mkArrU (1,2) [mkArrU   (3,4) []]
---                assertEqual "{_type:UPD,_pos:[1,2],_val:[{_type:UPD,_pos:[3,4],_val:{}}]}"                                   $ serializeValid $ Right $ mkArrU (1,2) [mkObjU   (3,4) []]
---                assertEqual "{_type:UPD,_pos:[1,2],_val:[{_type:UPD,_pos:[3,4],_val:\"\"}]}"                                 $ serializeValid $ Right $ mkArrU (1,2) [mkStrU   (3,4) ""]
---                assertEqual "{_type:UPD,_pos:[1,2],_val:[{_type:UPD,_pos:[3,4],_val:0.0}]}"                                  $ serializeValid $ Right $ mkArrU (1,2) [mkNumU   (3,4) 0.0]
---                assertEqual "{_type:UPD,_pos:[1,2],_val:[{_type:UPD,_pos:[3,4],_val:false}]}"                                $ serializeValid $ Right $ mkArrU (1,2) [mkBoolU  (3,4) False]
---                assertEqual "{_type:UPD,_pos:[1,2],_val:[{_type:UPD,_pos:[3,4],_val:null}]}"                                 $ serializeValid $ Right $ mkArrU (1,2) [mkNullU  (3,4)]
---
---test_Obj = do   assertEqual "{_x:{_type:TABLE,_data:[[0.0]],_head:[]}}"                           $ serializeValid $ Right $ mkObjC (1,2) [("_x",mkTableC (3,4) [[mkNumC  (0,0) 0.0]] [])]
---                assertEqual "{_x:{_type:PLOT,_data:[],_head:{}}}"                                 $ serializeValid $ Right $ mkObjC (1,2) [("_x",mkPlotC  (3,4) [] [])]
---                assertEqual "{_x:[]}"                                                             $ serializeValid $ Right $ mkObjC (1,2) [("_x",mkArrC   (3,4) [])]
---                assertEqual "{_x:{}}"                                                             $ serializeValid $ Right $ mkObjC (1,2) [("_x",mkObjC   (3,4) [])]
---                assertEqual "{_x:\"\"}"                                                           $ serializeValid $ Right $ mkObjC (1,2) [("_x",mkStrC   (3,4) "")]
---                assertEqual "{_x:0.0}"                                                            $ serializeValid $ Right $ mkObjC (1,2) [("_x",mkNumC   (3,4) 0)]
---                assertEqual "{_x:false}"                                                          $ serializeValid $ Right $ mkObjC (1,2) [("_x",mkBoolC  (3,4) False)]
---                assertEqual "{_x:null}"                                                           $ serializeValid $ Right $ mkObjC (1,2) [("_x",mkNullC  (3,4))]
---
---                assertEqual "{_x:{_type:UPD,_pos:[3,4],_val:{_type:TABLE,_data:[[0.0]],_head:[]}}}" $ serializeValid $ Right $ mkObjC (1,2) [("_x",mkTableU (3,4) [[mkNumC  (0,0) 0.0]] [])]
---                assertEqual "{_x:{_type:UPD,_pos:[3,4],_val:{_type:PLOT,_data:[],_head:{}}}}"       $ serializeValid $ Right $ mkObjC (1,2) [("_x",mkPlotU  (3,4) [] [])]
---                assertEqual "{_x:{_type:UPD,_pos:[3,4],_val:[]}}"                                   $ serializeValid $ Right $ mkObjC (1,2) [("_x",mkArrU   (3,4) [])]
---                assertEqual "{_x:{_type:UPD,_pos:[3,4],_val:{}}}"                                   $ serializeValid $ Right $ mkObjC (1,2) [("_x",mkObjU   (3,4) [])]
---                assertEqual "{_x:{_type:UPD,_pos:[3,4],_val:\"\"}}"                                 $ serializeValid $ Right $ mkObjC (1,2) [("_x",mkStrU   (3,4) "")]
---                assertEqual "{_x:{_type:UPD,_pos:[3,4],_val:0.0}}"                                  $ serializeValid $ Right $ mkObjC (1,2) [("_x",mkNumU   (3,4) 0)]
---                assertEqual "{_x:{_type:UPD,_pos:[3,4],_val:false}}"                                $ serializeValid $ Right $ mkObjC (1,2) [("_x",mkBoolU  (3,4) False)]
---                assertEqual "{_x:{_type:UPD,_pos:[3,4],_val:null}}"                                 $ serializeValid $ Right $ mkObjC (1,2) [("_x",mkNullU  (3,4))]
---
---                assertEqual "{_type:UPD,_pos:[1,2],_val:{_x:{_type:TABLE,_data:[[0.0]],_head:[]}}}" $ serializeValid $ Right $ mkObjU (1,2) [("_x",mkTableC (3,4) [[mkNumC  (0,0) 0.0]] [])]
---                assertEqual "{_type:UPD,_pos:[1,2],_val:{_x:{_type:PLOT,_data:[],_head:{}}}}"       $ serializeValid $ Right $ mkObjU (1,2) [("_x",mkPlotC  (3,4) [] [])]
---                assertEqual "{_type:UPD,_pos:[1,2],_val:{_x:[]}}"                                   $ serializeValid $ Right $ mkObjU (1,2) [("_x",mkArrC   (3,4) [])]
---                assertEqual "{_type:UPD,_pos:[1,2],_val:{_x:{}}}"                                   $ serializeValid $ Right $ mkObjU (1,2) [("_x",mkObjC   (3,4) [])]
---                assertEqual "{_type:UPD,_pos:[1,2],_val:{_x:\"\"}}"                                 $ serializeValid $ Right $ mkObjU (1,2) [("_x",mkStrC   (3,4) "")]
---                assertEqual "{_type:UPD,_pos:[1,2],_val:{_x:0.0}}"                                  $ serializeValid $ Right $ mkObjU (1,2) [("_x",mkNumC   (3,4) 0)]
---                assertEqual "{_type:UPD,_pos:[1,2],_val:{_x:false}}"                                $ serializeValid $ Right $ mkObjU (1,2) [("_x",mkBoolC  (3,4) False)]
---                assertEqual "{_type:UPD,_pos:[1,2],_val:{_x:null}}"                                 $ serializeValid $ Right $ mkObjU (1,2) [("_x",mkNullC  (3,4))]
---
---                assertEqual "{_type:UPD,_pos:[1,2],_val:{_x:{_type:UPD,_pos:[3,4],_val:{_type:TABLE,_data:[[0.0]],_head:[]}}}}" $ serializeValid $ Right $ mkObjU (1,2) [("_x",mkTableU (3,4) [[mkNumC  (0,0) 0.0]] [])]
---                assertEqual "{_type:UPD,_pos:[1,2],_val:{_x:{_type:UPD,_pos:[3,4],_val:{_type:PLOT,_data:[],_head:{}}}}}"       $ serializeValid $ Right $ mkObjU (1,2) [("_x",mkPlotU  (3,4) [] [])]
---                assertEqual "{_type:UPD,_pos:[1,2],_val:{_x:{_type:UPD,_pos:[3,4],_val:[]}}}"                                   $ serializeValid $ Right $ mkObjU (1,2) [("_x",mkArrU   (3,4) [])]
---                assertEqual "{_type:UPD,_pos:[1,2],_val:{_x:{_type:UPD,_pos:[3,4],_val:{}}}}"                                   $ serializeValid $ Right $ mkObjU (1,2) [("_x",mkObjU   (3,4) [])]
---                assertEqual "{_type:UPD,_pos:[1,2],_val:{_x:{_type:UPD,_pos:[3,4],_val:\"\"}}}"                                 $ serializeValid $ Right $ mkObjU (1,2) [("_x",mkStrU   (3,4) "")]
---                assertEqual "{_type:UPD,_pos:[1,2],_val:{_x:{_type:UPD,_pos:[3,4],_val:0.0}}}"                                  $ serializeValid $ Right $ mkObjU (1,2) [("_x",mkNumU   (3,4) 0)]
---                assertEqual "{_type:UPD,_pos:[1,2],_val:{_x:{_type:UPD,_pos:[3,4],_val:false}}}"                                $ serializeValid $ Right $ mkObjU (1,2) [("_x",mkBoolU  (3,4) False)]
---                assertEqual "{_type:UPD,_pos:[1,2],_val:{_x:{_type:UPD,_pos:[3,4],_val:null}}}"                                 $ serializeValid $ Right $ mkObjU (1,2) [("_x",mkNullU  (3,4))]
---
-prop_Str  (StrS  expA inA expB inB) = serializeCase expA inA expB inB Right
-prop_Num  (NumS  expA inA expB inB) = serializeCase expA inA expB inB Right
-prop_Bool (BoolS expA inA expB inB) = serializeCase expA inA expB inB Right
-prop_Null (NullS expA inA expB inB) = serializeCase expA inA expB inB Right
+prop_Table (TableS expA inA expB inB) = serializeCase expA inA expB inB Right
+prop_Plot  (PlotS  expA inA expB inB) = serializeCase expA inA expB inB Right
+prop_Arr   (ArrS   expA inA expB inB) = serializeCase expA inA expB inB Right
+prop_Obj   (ObjS   expA inA expB inB) = serializeCase expA inA expB inB Right
+prop_Str   (StrS   expA inA expB inB) = serializeCase expA inA expB inB Right
+prop_Num   (NumS   expA inA expB inB) = serializeCase expA inA expB inB Right
+prop_Bool  (BoolS  expA inA expB inB) = serializeCase expA inA expB inB Right
+prop_Null  (NullS  expA inA expB inB) = serializeCase expA inA expB inB Right
 
-
+           
+           

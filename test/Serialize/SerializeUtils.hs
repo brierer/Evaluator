@@ -5,7 +5,7 @@ import Data.List
 import Data.List.Split
 import Eval.Serialize
 
-serializeValid x = let r = serialize x in case decode r :: Result JSValue of Error s -> r ++ " || " ++ s; _ -> unString r
+serializeValid x = let r = serialize x in case decode r :: Result JSValue of Error s -> r ++ " [" ++ s ++ "]"; _ -> unString r
 
 unString r = foldl removeQuotes r keywords
 removeQuotes s v = intercalate v $ splitOn ("\"" ++ v ++ "\"") s
