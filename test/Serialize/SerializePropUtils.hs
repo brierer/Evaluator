@@ -125,7 +125,7 @@ instance Arbitrary TableColLenS where
   arbitrary                                                 = mTableColLenS  arbitrary  arbitrary  arbitrary
   shrink (TableColLenS _ (TableColumnLengthMismatch p e a)) = mTableColLenS (tShrink p) (shrink e) (shrink a)
 mTableColLenS pa ea aa = do 
-  p  <- liftM un pa; e <- ea; a <- aa; 
+  (p,e,a) <- getPea pa ea aa
   return $ TableColLenS ("{_type:ERROR,_errType:TABLE_COL_LEN,_pos:"++posStr p++",_exp:"++show e++",_act:"++show a++"}") $ TableColumnLengthMismatch p e a
 
 data TableHeadLenS = TableHeadLenS String EvalError deriving (Show)
@@ -133,7 +133,7 @@ instance Arbitrary TableHeadLenS where
   arbitrary                                                  = mTableHeadLenS  arbitrary  arbitrary  arbitrary
   shrink (TableHeadLenS _ (TableHeaderLengthMismatch p e a)) = mTableHeadLenS (tShrink p) (shrink e) (shrink a)
 mTableHeadLenS pa ea aa = do 
-  p  <- liftM un pa; e <- ea; a <- aa; 
+  (p,e,a) <- getPea pa ea aa
   return $ TableHeadLenS ("{_type:ERROR,_errType:TABLE_HEAD_LEN,_pos:"++posStr p++",_exp:"++show e++",_act:"++show a++"}") $ TableHeaderLengthMismatch p e a
 
 data TableTakeLenS = TableTakeLenS String EvalError deriving (Show)
@@ -243,6 +243,8 @@ oPosStr x       = "SerializeProp::posStr [Unexpected pattern ["++show x++"]]"
 posStr (x,y) = show [x,y]
 
 serializeCase expect input f = expect == serializeValid (f input)
+
+getPea pa ea aa = do p <- pa; e <- ea; a <- aa; return (un p,e,a)
 
 {-| Mandatory type signatures -}
 mParseS            :: (Applicative m,Monad m) => m P -> m [AsciiStr]                           -> m ParseS

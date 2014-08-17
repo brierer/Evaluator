@@ -4,11 +4,6 @@ module Serialize.SerializeProp where
 import Test.Framework
 
 import Serialize.SerializePropUtils
-import Serialize.SerializeUtils
-
-import Data.ExpObj
-import Data.Type
-import Data.EvalError
 
 {-# ANN module "HLint: ignore Use camelCase" #-}
 
