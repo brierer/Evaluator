@@ -216,7 +216,7 @@ mObjTS = liftM (ObjTS .removeVarsAndFuncs.un)
 
 data ObjPosA =     ObjPosA ObjPos deriving (Show)
 instance Unto      ObjPosA ObjPos where to = ObjPosA; un (ObjPosA p) = p
-instance Arbitrary ObjPosA where 
+instance Arbitrary ObjPosA where
   arbitrary                 = mObjPosA (elements [Upd,Calc])  arbitrary
   shrink (ObjPosA (Upd  p)) = mObjPosA (return Upd)          (tShrink p)
   shrink (ObjPosA (Calc p)) = mObjPosA (return Calc)         (tShrink p)
@@ -224,14 +224,14 @@ mObjPosA fa p = do f <- fa; liftM (ObjPosA .f .un) p
 
 data UOP = UOP ObjPos deriving (Show)
 instance Unto UOP ObjPos where to = UOP; un (UOP p) = p
-instance Arbitrary UOP where 
+instance Arbitrary UOP where
   arbitrary            = mUOP  arbitrary
   shrink (UOP (Upd p)) = mUOP (tShrink p)
 mUOP = liftM (UOP .Upd .un)
 
 data COP = COP ObjPos deriving (Show)
 instance Unto COP ObjPos where to = COP; un (COP p) = p
-instance Arbitrary COP where 
+instance Arbitrary COP where
   arbitrary             = mCOP  arbitrary
   shrink (COP (Calc p)) = mCOP (tShrink p)
 mCOP = liftM (COP .Calc .un)
@@ -268,7 +268,6 @@ removeVarsAndFuncs (ArrT p w es)           = ArrT p w $ map removeVarsAndFuncs e
 removeVarsAndFuncs (ObjT p w ps)           = ObjT p w $ map (mapPair removeVarsAndFuncs) ps
 removeVarsAndFuncs x                       = x
 
-
 {-| Mandatory type signatures -}
 mExpOA   :: (Applicative m, Monad m)               => m ExpObj                                         -> m  ExpOA
 mTablePA :: (Applicative m, Monad m,Unto a ObjPos) => m a -> m [[ExpOA]]         -> m [ExpOA]          -> m (TablePA a)
@@ -289,7 +288,7 @@ mObjUCA   :: (Applicative m, Monad m) => m ObjPosA -> m [(AsciiStr,ExpUCA)]     
 mExpTS   :: (Applicative m, Monad m) => m ExpTA -> m ExpTS
 mArrTS   :: (Applicative m, Monad m) => m ArrTA -> m ArrTS
 mObjTS   :: (Applicative m, Monad m) => m ObjTA -> m ObjTS
-         
+
 mObjPosA :: (Applicative m, Monad m) => m (Pos -> ObjPos) -> m P -> m ObjPosA
 mUOP     :: (Applicative m, Monad m) => m P -> m UOP
 mCOP     :: (Applicative m, Monad m) => m P -> m COP

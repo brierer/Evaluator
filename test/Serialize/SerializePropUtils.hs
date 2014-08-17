@@ -19,23 +19,23 @@ data ParseS = ParseS String EvalError deriving (Show)
 instance Arbitrary ParseS where
   arbitrary                             = mParseS  arbitrary   arbitrary
   shrink (ParseS _ (InvalidParse p ls)) = mParseS (tShrink p) (tShrinks ls)
-mParseS pa lsa = do p  <- liftM un pa; ls <- liftM (map un) lsa; return $ ParseS ("{_type:ERROR,_errType:PARSE,_pos:"++posStr p++",_data:"++show ls++"}") $ InvalidParse p ls 
+mParseS pa lsa = do p  <- liftM un pa; ls <- liftM (map un) lsa; return $ ParseS ("{_type:ERROR,_errType:PARSE,_pos:"++posStr p++",_data:"++show ls++"}") $ InvalidParse p ls
 
 data MultDefS = MultDefS String EvalError deriving (Show)
 instance Arbitrary MultDefS where
   arbitrary                                     = mMultDefS  arbitrary   arbitrary
   shrink (MultDefS _ (MultipleDefinitions p s)) = mMultDefS (tShrink p) (tShrink s)
-mMultDefS pa sa = do p  <- liftM un pa; s <- liftM un sa; return $ MultDefS ("{_type:ERROR,_errType:MULT_DEFS,_pos:"++posStr p++",_data:"++show s++"}") $ MultipleDefinitions p s 
+mMultDefS pa sa = do p  <- liftM un pa; s <- liftM un sa; return $ MultDefS ("{_type:ERROR,_errType:MULT_DEFS,_pos:"++posStr p++",_data:"++show s++"}") $ MultipleDefinitions p s
 
 data UndefVarS = UndefVarS String EvalError deriving (Show)
 instance Arbitrary UndefVarS where
   arbitrary                                      = mUndefVarS  arbitrary   arbitrary
   shrink (UndefVarS _ (MultipleDefinitions p s)) = mUndefVarS (tShrink p) (tShrink s)
-mUndefVarS pa sa = do p  <- liftM un pa; s <- liftM un sa; return $ UndefVarS ("{_type:ERROR,_errType:UNDEF_VAR,_pos:"++posStr p++",_data:"++show s++"}") $ UndefinedVariable p s 
+mUndefVarS pa sa = do p  <- liftM un pa; s <- liftM un sa; return $ UndefVarS ("{_type:ERROR,_errType:UNDEF_VAR,_pos:"++posStr p++",_data:"++show s++"}") $ UndefinedVariable p s
 
 data CycleS = CycleS String EvalError deriving (Show)
 instance Arbitrary CycleS where
-  arbitrary                                 = mCycleS  arbitrary  
+  arbitrary                                 = mCycleS  arbitrary
   shrink (CycleS _ (CycleInDefinitions ps)) = mCycleS (tShrinks ps)
 mCycleS psa = do ps  <- liftM (map un) psa; return $ CycleS ("{_type:ERROR,_errType:CYCLE,_data:"++showCycles ps++"}") $ CycleInDefinitions ps
 showCycles ps = "[" ++ intercalate "," (map showCycle ps) ++ "]"
@@ -46,24 +46,24 @@ data UndefFuncS = UndefFuncS String EvalError deriving (Show)
 instance Arbitrary UndefFuncS where
   arbitrary                                       = mUndefFuncS  arbitrary   arbitrary
   shrink (UndefFuncS _ (MultipleDefinitions p s)) = mUndefFuncS (tShrink p) (tShrink s)
-mUndefFuncS pa sa = do p  <- liftM un pa; s <- liftM un sa; return $ UndefFuncS ("{_type:ERROR,_errType:UNDEF_FUNC,_pos:"++posStr p++",_data:"++show s++"}") $ UndefinedFunction p s 
+mUndefFuncS pa sa = do p  <- liftM un pa; s <- liftM un sa; return $ UndefFuncS ("{_type:ERROR,_errType:UNDEF_FUNC,_pos:"++posStr p++",_data:"++show s++"}") $ UndefinedFunction p s
 
 data NonTopShowS = NonTopShowS String EvalError deriving (Show)
 instance Arbitrary NonTopShowS where
   arbitrary                                  = mNonTopShowS  arbitrary
   shrink (NonTopShowS _ (NonTopLevelShow p)) = mNonTopShowS (tShrink p)
-mNonTopShowS pa = do p <- liftM un pa; return $ NonTopShowS ("{_type:ERROR,_errType:NON_TOP_SHOW,_pos:"++posStr p++"}") $ NonTopLevelShow p 
+mNonTopShowS pa = do p <- liftM un pa; return $ NonTopShowS ("{_type:ERROR,_errType:NON_TOP_SHOW,_pos:"++posStr p++"}") $ NonTopLevelShow p
 
 data NoShowS = NoShowS String EvalError deriving (Show)
-instance Arbitrary NoShowS where arbitrary = return $ NoShowS "{_type:ERROR,_errType:NO_SHOW}" NoShow 
+instance Arbitrary NoShowS where arbitrary = return $ NoShowS "{_type:ERROR,_errType:NO_SHOW}" NoShow
 
 data ArgCountS = ArgCountS String EvalError deriving (Show)
 instance Arbitrary ArgCountS where
   arbitrary                                       = mArgCountS  arbitrary   arbitrary  arbitrary  arbitrary
   shrink (ArgCountS _ (ArgCountMismatch p s e a)) = mArgCountS (tShrink p) (tShrink s) (shrink e) (shrink a)
-mArgCountS pa sa ea aa = do 
-  p  <- liftM un pa; s <- liftM un sa; e <- ea; a <- aa; 
-  return $ ArgCountS ("{_type:ERROR,_errType:ARG_COUNT,_pos:"++posStr p++",_func:"++show s++",_exp:"++show e++",_act:"++show a++"}") $ ArgCountMismatch p s e a 
+mArgCountS pa sa ea aa = do
+  p  <- liftM un pa; s <- liftM un sa; e <- ea; a <- aa;
+  return $ ArgCountS ("{_type:ERROR,_errType:ARG_COUNT,_pos:"++posStr p++",_func:"++show s++",_exp:"++show e++",_act:"++show a++"}") $ ArgCountMismatch p s e a
 
 data TypeTreeA = TypeTreeA TypeTree deriving (Show)
 instance Unto TypeTreeA TypeTree where to = TypeTreeA; un (TypeTreeA t) = t
@@ -73,7 +73,7 @@ instance Tall      TypeTreeA where                                        tall n
 randomTypeTree 0              = elements basicTypeTrees
 randomTypeTree n              = do ts <- sListOf $ randomTypeTree $ n-1; elements (NodeOr ts:basicTypeTrees)
 
-shrinkTypeTree (NodeOr ts) = liftM (NodeOr .map un) (tShrinks ts :: [[TypeTreeA]]) ++ ts 
+shrinkTypeTree (NodeOr ts) = liftM (NodeOr .map un) (tShrinks ts :: [[TypeTreeA]]) ++ ts
 shrinkTypeTree _           = []
 
 mTypeTreeA = liftM TypeTreeA
@@ -90,10 +90,10 @@ instance Tall      TMTreeA where                                      tall n = m
 randomTree 0              = mTMLeaf arbitrary arbitrary arbitrary
 randomTree n              = mTMNode $ talls $ n-1
 
-shrinkTree (TMLeaf p e a) = mTMLeaf (tShrink p) (tShrink e) (tShrink a) 
+shrinkTree (TMLeaf p e a) = mTMLeaf (tShrink p) (tShrink e) (tShrink a)
 shrinkTree (TMNode ts)    = mTMNode $ tShrinks ts
 
-mTMTreeA = liftM TMTreeA 
+mTMTreeA = liftM TMTreeA
 mTMLeaf  = liftMF3 TMLeaf un un un
 mTMNode  = liftM (TMNode .map un)
 
@@ -118,13 +118,13 @@ data IllegalEmptyS = IllegalEmptyS String EvalError deriving (Show)
 instance Arbitrary IllegalEmptyS where
   arbitrary                                 = mIllegalEmptyS  arbitrary
   shrink (IllegalEmptyS _ (IllegalEmpty p)) = mIllegalEmptyS (tShrink p)
-mIllegalEmptyS pa = do p <- liftM un pa; return $ IllegalEmptyS ("{_type:ERROR,_errType:ILLEGAL_EMPTY,_pos:"++posStr p++"}") $ IllegalEmpty p 
+mIllegalEmptyS pa = do p <- liftM un pa; return $ IllegalEmptyS ("{_type:ERROR,_errType:ILLEGAL_EMPTY,_pos:"++posStr p++"}") $ IllegalEmpty p
 
 data TableColLenS = TableColLenS String EvalError deriving (Show)
 instance Arbitrary TableColLenS where
   arbitrary                                                 = mTableColLenS  arbitrary  arbitrary  arbitrary
   shrink (TableColLenS _ (TableColumnLengthMismatch p e a)) = mTableColLenS (tShrink p) (shrink e) (shrink a)
-mTableColLenS pa ea aa = do 
+mTableColLenS pa ea aa = do
   (p,e,a) <- getPea pa ea aa
   return $ TableColLenS ("{_type:ERROR,_errType:TABLE_COL_LEN,_pos:"++posStr p++",_exp:"++show e++",_act:"++show a++"}") $ TableColumnLengthMismatch p e a
 
@@ -132,7 +132,7 @@ data TableHeadLenS = TableHeadLenS String EvalError deriving (Show)
 instance Arbitrary TableHeadLenS where
   arbitrary                                                  = mTableHeadLenS  arbitrary  arbitrary  arbitrary
   shrink (TableHeadLenS _ (TableHeaderLengthMismatch p e a)) = mTableHeadLenS (tShrink p) (shrink e) (shrink a)
-mTableHeadLenS pa ea aa = do 
+mTableHeadLenS pa ea aa = do
   (p,e,a) <- getPea pa ea aa
   return $ TableHeadLenS ("{_type:ERROR,_errType:TABLE_HEAD_LEN,_pos:"++posStr p++",_exp:"++show e++",_act:"++show a++"}") $ TableHeaderLengthMismatch p e a
 
@@ -140,16 +140,16 @@ data TableTakeLenS = TableTakeLenS String EvalError deriving (Show)
 instance Arbitrary TableTakeLenS where
   arbitrary                                               = mTableTakeLenS  arbitrary  arbitrary  arbitrary
   shrink (TableTakeLenS _ (IllegalTakeTableLength p e a)) = mTableTakeLenS (tShrink p) (shrink e) (shrink a)
-mTableTakeLenS pa ea aa = do 
-  p  <- liftM un pa; e <- ea; a <- aa; 
+mTableTakeLenS pa ea aa = do
+  p  <- liftM un pa; e <- ea; a <- aa;
   return $ TableTakeLenS ("{_type:ERROR,_errType:TABLE_TAKE_LEN,_pos:"++posStr p++",_exp:"++show e++",_act:"++show a++"}") $ IllegalTakeTableLength p e a
 
 data IndexOutOfBoundsS = IndexOutOfBoundsS String EvalError deriving (Show)
 instance Arbitrary IndexOutOfBoundsS where
   arbitrary                                                 = mIndexOutOfBoundsS  arbitrary   arbitrary   arbitrary  arbitrary
   shrink (IndexOutOfBoundsS _ (IndexOutOfBounds p mi ma a)) = mIndexOutOfBoundsS (tShrink p) (shrink mi) (shrink ma) (shrink a)
-mIndexOutOfBoundsS pa mia maa aa = do 
-  p  <- liftM un pa; mi <- mia; ma <- maa; a <- aa; 
+mIndexOutOfBoundsS pa mia maa aa = do
+  p  <- liftM un pa; mi <- mia; ma <- maa; a <- aa;
   return $ IndexOutOfBoundsS ("{_type:ERROR,_errType:INDEX_OUT_OF_BOUNDS,_pos:"++posStr p++",_min:"++show mi++",_max:"++show ma++",_act:"++show a++"}") $ IndexOutOfBounds p mi ma a
 
 data TableS = TableS String ExpObj String ExpObj deriving (Show)
@@ -193,7 +193,7 @@ showPair (k,o) = show k ++ ":" ++ serializeValid (Right o)
 
 data StrS = StrS String ExpObj String ExpObj deriving (Show)
 instance Arbitrary StrS where
-  arbitrary             = mStrS  arbitrary   arbitrary 
+  arbitrary             = mStrS  arbitrary   arbitrary
   shrink (StrS _ a _ b) = mStrS (tShrink a) (tShrink b)
 mStrS ca ua = do
   c@(StrO _ vc) <- liftM un ca
@@ -202,7 +202,7 @@ mStrS ca ua = do
 
 data NumS = NumS String ExpObj String ExpObj deriving (Show)
 instance Arbitrary NumS where
-  arbitrary             = mNumS  arbitrary   arbitrary 
+  arbitrary             = mNumS  arbitrary   arbitrary
   shrink (NumS _ a _ b) = mNumS (tShrink a) (tShrink b)
 mNumS ca ua = do
   c@(NumO _ vc) <- liftM un ca
@@ -211,17 +211,17 @@ mNumS ca ua = do
 
 data BoolS = BoolS String ExpObj String ExpObj deriving (Show)
 instance Arbitrary BoolS where
-  arbitrary              = mBoolS  arbitrary   arbitrary 
+  arbitrary              = mBoolS  arbitrary   arbitrary
   shrink (BoolS _ a _ b) = mBoolS (tShrink a) (tShrink b)
 mBoolS ca ua = do
   c@(BoolO _ vc) <- liftM un ca
   u@(BoolO _ vu) <- liftM un ua
   let toVal = map toLower . show
   return $ BoolS (toVal vc) c ("{_type:UPD,_pos:"++getPosStr u++",_val:"++toVal vu++"}") u
- 
+
 data NullS = NullS String ExpObj String ExpObj deriving (Show)
 instance Arbitrary NullS where
-  arbitrary              = mNullS  arbitrary   arbitrary 
+  arbitrary              = mNullS  arbitrary   arbitrary
   shrink (NullS _ a _ b) = mNullS (tShrink a) (tShrink b)
 mNullS ca ua = do
   c <- liftM un ca
@@ -260,7 +260,6 @@ mTableColLenS      :: (Applicative m,Monad m) => m P                -> m Int -> 
 mTableHeadLenS     :: (Applicative m,Monad m) => m P                -> m Int -> m Int          -> m TableHeadLenS
 mTableTakeLenS     :: (Applicative m,Monad m) => m P                -> m Int -> m Int          -> m TableTakeLenS
 mIndexOutOfBoundsS :: (Applicative m,Monad m) => m P                -> m Int -> m Int -> m Int -> m IndexOutOfBoundsS
-
 
 mTableS :: (Applicative m,Monad m) => m (TablePA COP) -> m (TablePA UOP) -> m TableS
 mPlotS  :: (Applicative m,Monad m) => m (PlotPA  COP) -> m (PlotPA  UOP) -> m PlotS

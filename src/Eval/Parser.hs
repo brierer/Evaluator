@@ -144,6 +144,3 @@ unparses'  :: Unparse a => String -> [a] -> String
 reservedWord :: Pos -> String -> ParseError
 reservedWord (x,y) m = newErrorMessage (Message $ "Use of reserved word ["++m++"]") (newPos "" x y)
 
-
-
-

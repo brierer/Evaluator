@@ -111,7 +111,7 @@ elems    (ArrO _ es) = es
 objElems (ObjO _ ps) = ps
 getMulti = product.getNums
 getMean = mean. V.fromList.getNums
-getDesc q es = let ns = getNums es; p = Calc q 
+getDesc q es = let ns = getNums es; p = Calc q
                in [map (StrO p)        ["count",            "sum", "mean",           "variance",             "skewness",            "kurtosis"],
                    map (NumO p.($ ns)) [fromIntegral.length ,sum,   mean. V.fromList, variance. V.fromList,   skewness .V.fromList,  kurtosis .V.fromList ]]
 

@@ -47,5 +47,3 @@ mkNumU   = NumO   .Upd
 mkBoolU  = BoolO  .Upd
 mkNullU  = NullO  .Upd
 
-
-

@@ -83,7 +83,7 @@ test_Table = do  assertEqual' (Right $ mkTableC (1,1) [[mkNumU (1,9) 0]] [])    
                  assertEqual' (Right $ mkTableC (1,1) [[mkNumU (1,9) 0]] [])                                                      $ runWith "table(f(),{not:[]})"                   [("f",mkArrC (0,0) [mkArrC (0,0) [mkNumU (1,9) 0]])]
                  assertEqual' (Right $ mkTableC (1,1) [[mkNumU (1,9) 0]] [mkStrU (1,17) "1"])                                     $ runWith "table(f(),{col:[\"1\"]})"              [("f",mkArrC (0,0) [mkArrC (0,0) [mkNumU (1,9) 0]])]
                  assertEqual' (Right $ mkTableC (1,1) [[mkNumU (1,9) 0]] [mkStrU (1,24) "1"])                                     $ runWith "table(f(),{not:[],col:[\"1\"]})"       [("f",mkArrC (0,0) [mkArrC (0,0) [mkNumU (1,9) 0]])]
-                                                                                                                               
+
                  assertEqual' (Right $ mkTableC (1,1) [[mkNumU (1,9) 0],[mkNumU (1,13) 1]] [])                                    $ runWith "table(f(),{})"                         [("f",mkArrC (0,0) [mkArrC (0,0) [mkNumU (1,9) 0],mkArrC (0,0) [mkNumU (1,13) 1]])]
                  assertEqual' (Right $ mkTableC (1,1) [[mkNumU (1,9) 0],[mkNumU (1,13) 1]] [])                                    $ runWith "table(f(),{not:[]})"                   [("f",mkArrC (0,0) [mkArrC (0,0) [mkNumU (1,9) 0],mkArrC (0,0) [mkNumU (1,13) 1]])]
                  assertEqual' (Right $ mkTableC (1,1) [[mkNumU (1,9) 0],[mkNumU (1,13) 1]] [mkStrU (1,17) "1",mkStrU (1,21) "2"]) $ runWith "table(f(),{col:[\"1\",\"2\"]})"        [("f",mkArrC (0,0) [mkArrC (0,0) [mkNumU (1,9) 0],mkArrC (0,0) [mkNumU (1,13) 1]])]
@@ -93,7 +93,7 @@ test_Table = do  assertEqual' (Right $ mkTableC (1,1) [[mkNumU (1,9) 0]] [])    
                  assertEqual' (Right $ mkTableC (1,1) [[mkNumU (1,9) 0]] [])                                                      $ runWith "table([[0]],f())"     [("f",mkObjC (0,0) [("not",mkArrC (0,0) [])])]
                  assertEqual' (Right $ mkTableC (1,1) [[mkNumU (1,9) 0]] [mkStrU (1,19) "1"])                                     $ runWith "table([[0]],f())"     [("f",mkObjC (0,0) [("col",mkArrC (0,0) [mkStrU (1,19) "1"])])]
                  assertEqual' (Right $ mkTableC (1,1) [[mkNumU (1,9) 0]] [mkStrU (1,26) "1"])                                     $ runWith "table([[0]],f())"     [("f",mkObjC (0,0) [("not",mkArrC (0,0) []),("col",mkArrC (0,0) [mkStrU (1,26) "1"])])]
-                                                                                                                                
+
                  assertEqual' (Right $ mkTableC (1,1) [[mkNumU (1,9) 0],[mkNumU (1,13) 1]] [])                                    $ runWith "table([[0],[1]],f())" [("f",mkObjC (0,0) [])]
                  assertEqual' (Right $ mkTableC (1,1) [[mkNumU (1,9) 0],[mkNumU (1,13) 1]] [])                                    $ runWith "table([[0],[1]],f())" [("f",mkObjC (0,0) [("not",mkArrC (0,0) [])])]
                  assertEqual' (Right $ mkTableC (1,1) [[mkNumU (1,9) 0],[mkNumU (1,13) 1]] [mkStrU (1,23) "1",mkStrU (1,27) "2"]) $ runWith "table([[0],[1]],f())" [("f",mkObjC (0,0) [("col",mkArrC (0,0) [mkStrU (1,23) "1",mkStrU (1,27) "2"])])]
@@ -103,7 +103,7 @@ test_Table = do  assertEqual' (Right $ mkTableC (1,1) [[mkNumU (1,9) 0]] [])    
                  assertEqual' (Right $ mkTableC (1,1) [[mkNumU (1,9) 0]] [])                                                      $ runWith "table(g(),f())" [("g",mkArrC (0,0) [mkArrC (0,0) [mkNumU (1,9) 0]]),                             ("f",mkObjC (0,0) [("not",mkArrC (0,0) [])])]
                  assertEqual' (Right $ mkTableC (1,1) [[mkNumU (1,9) 0]] [mkStrU (1,17) "1"])                                     $ runWith "table(f(),g())" [("f",mkArrC (0,0) [mkArrC (0,0) [mkNumU (1,9) 0]]),                             ("g",mkObjC (0,0) [("col",mkArrC (0,0) [mkStrU (1,17) "1"])])]
                  assertEqual' (Right $ mkTableC (1,1) [[mkNumU (1,9) 0]] [mkStrU (1,28) "1"])                                     $ runWith "table(g(),f())" [("g",mkArrC (0,0) [mkArrC (0,0) [mkNumU (1,9) 0]]),                             ("f",mkObjC (0,0) [("not",mkArrC (0,0) []),("col",mkArrC (0,0) [mkStrU (1,28) "1"])])]
-                                                                                                                               
+
                  assertEqual' (Right $ mkTableC (1,1) [[mkNumU (1,9) 0],[mkNumU (1,13) 1]] [])                                    $ runWith "table(f(),g())" [("f",mkArrC (0,0) [mkArrC (0,0) [mkNumU (1,9) 0],mkArrC (0,0) [mkNumU (1,13) 1]]),  ("g",mkObjC (0,0) [])]
                  assertEqual' (Right $ mkTableC (1,1) [[mkNumU (1,9) 0],[mkNumU (1,13) 1]] [])                                    $ runWith "table(g(),f())" [("g",mkArrC (0,0) [mkArrC (0,0) [mkNumU (1,9) 0],mkArrC (0,0) [mkNumU (1,13) 1]]),  ("f",mkObjC (0,0) [("not",mkArrC (0,0) [])])]
                  assertEqual' (Right $ mkTableC (1,1) [[mkNumU (1,9) 0],[mkNumU (1,13) 1]] [mkStrU (1,17) "1",mkStrU (1,21) "2"]) $ runWith "table(f(),g())" [("f",mkArrC (0,0) [mkArrC (0,0) [mkNumU (1,9) 0],mkArrC (0,0) [mkNumU (1,13) 1]]),  ("g",mkObjC (0,0) [("col",mkArrC (0,0) [mkStrU (1,17) "1",mkStrU (1,21) "2"])])]

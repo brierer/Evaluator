@@ -31,4 +31,3 @@ prop_Bool  (BoolS  expA inA expB inB) = serializeCase expA inA Right && serializ
 prop_Null  (NullS  expA inA expB inB) = serializeCase expA inA Right && serializeCase expB inB Right
 
            
-           

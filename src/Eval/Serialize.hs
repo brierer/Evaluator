@@ -12,7 +12,7 @@ import Data.Type
 serialize :: Eval ExpObj -> String
 serialize (Right e) = serializeExp e
 serialize (Left e)  = serializeErr e
- 
+
 serializeExp :: ExpObj -> String
 serializeExp e = withPos (getObjPos e) $ specific e
 
@@ -22,9 +22,9 @@ withPos (Upd (x,y)) s = customObj "UPD" [("_pos",show [x,y]),("_val",s)]
 
 specific :: ExpObj -> String
 specific (TableO _ ess h) = customObj "TABLE" [("_data", mapArr ess serializeArr)  ,("_head", between "[" "]" serializeExp h)]
-specific (PlotO  _ ps  h) = customObj "PLOT"  [("_data", mapArr ps  serializePoint),("_head", between "{" "}" serializePair h)] 
+specific (PlotO  _ ps  h) = customObj "PLOT"  [("_data", mapArr ps  serializePoint),("_head", between "{" "}" serializePair h)]
 specific (ArrO   _ es)    = serializeArr es
-specific (ObjO   _ ps)    = serializeObj ps 
+specific (ObjO   _ ps)    = serializeObj ps
 specific (StrO   _ v)     = show v
 specific (NumO   _ v)     = show v
 specific (BoolO  _ v)     = map toLower $ show v
@@ -65,7 +65,7 @@ serializeErr (IllegalEmpty              p)         = errorObj  "ILLEGAL_EMPTY"  
 serializeErr (TableColumnLengthMismatch p e a)     = errorObj  "TABLE_COL_LEN"       p [("_exp",show e),("_act",show a)]
 serializeErr (TableHeaderLengthMismatch p e a)     = errorObj  "TABLE_HEAD_LEN"      p [("_exp",show e),("_act",show a)]
 serializeErr (IllegalTakeTableLength    p e a)     = errorObj  "TABLE_TAKE_LEN"      p [("_exp",show e),("_act",show a)]
-serializeErr (IndexOutOfBounds          p mi ma a) = errorObj  "INDEX_OUT_OF_BOUNDS" p [("_min",show mi),("_max",show ma),("_act",show a)]  
+serializeErr (IndexOutOfBounds          p mi ma a) = errorObj  "INDEX_OUT_OF_BOUNDS" p [("_min",show mi),("_max",show ma),("_act",show a)]
 
 errorObj :: String -> (Int, Int) -> [(String, String)] -> String
 errorObj t (x,y) ps = customObj "ERROR" $ [("_errType",show t),("_pos",show [x,y])] ++ ps
@@ -88,6 +88,4 @@ simpleType LeafNum   = "Number"
 simpleType LeafBool  = "Boolean"
 simpleType LeafNull  = "Null"
 simpleType x         = error $ "Serialize::simpleType [Unexpected pattern ["++show x++"]]"
-
-
 

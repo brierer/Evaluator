@@ -269,5 +269,3 @@ test_Bool = do  assertEqual "true"                              $ serializeValid
 test_Null = do  assertEqual "null"                              $ serializeValid $ Right $ mkNullC (0,0)
                 assertEqual "{_type:UPD,_pos:[1,2],_val:null}"  $ serializeValid $ Right $ mkNullU (1,2)
 
-
-
