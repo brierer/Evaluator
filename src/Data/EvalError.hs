@@ -22,6 +22,6 @@ data EvalError = InvalidParse Pos [String]
                | IndexOutOfBounds Pos Int Int Int
                  deriving (Eq,Show)
 
-data TMTree = TMLeaf Pos TypeTree TypeTree
+data TMTree = TMLeaf Pos TypeHead TypeHead
             | TMNode [TMTree]
               deriving (Eq,Show)

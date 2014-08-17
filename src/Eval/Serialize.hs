@@ -74,11 +74,11 @@ typeError :: TMTree -> String
 typeError (TMNode ts)        = customObj "TM_NODE" [("_data",mapArr ts typeError)]
 typeError (TMLeaf (x,y) e a) = customObj "TM_LEAF" [("_pos",show [x,y]),("_exp",toType e),("_act",toType a)]
 
-toType :: TypeTree -> String
+toType :: TypeHead -> String
 toType (NodeOr ts) = customObj "OR_TYPE" [("_data",mapArr ts toType)]
 toType t = show $ simpleType t
 
-simpleType :: TypeTree -> String
+simpleType :: TypeHead -> String
 simpleType LeafTable = "Table"
 simpleType LeafPlot  = "Plot"
 simpleType NodeArr   = "Array"

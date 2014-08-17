@@ -65,23 +65,23 @@ mArgCountS pa sa ea aa = do
   p  <- liftM un pa; s <- liftM un sa; e <- ea; a <- aa;
   return $ ArgCountS ("{_type:ERROR,_errType:ARG_COUNT,_pos:"++posStr p++",_func:"++show s++",_exp:"++show e++",_act:"++show a++"}") $ ArgCountMismatch p s e a
 
-data TypeTreeA = TypeTreeA TypeTree deriving (Show)
-instance Unto TypeTreeA TypeTree where to = TypeTreeA; un (TypeTreeA t) = t
-instance Arbitrary TypeTreeA where arbitrary = sized1 tall; shrink (TypeTreeA t) = mTypeTreeA $ shrinkTypeTree t
-instance Tall      TypeTreeA where                                        tall n = mTypeTreeA $ randomTypeTree n
+data TypeHeadA = TypeHeadA TypeHead deriving (Show)
+instance Unto TypeHeadA TypeHead where to = TypeHeadA; un (TypeHeadA t) = t
+instance Arbitrary TypeHeadA where arbitrary = sized1 tall; shrink (TypeHeadA t) = mTypeHeadA $ shrinkTypeHead t
+instance Tall      TypeHeadA where                                        tall n = mTypeHeadA $ randomTypeHead n
 
-randomTypeTree 0              = elements basicTypeTrees
-randomTypeTree n              = do ts <- sListOf $ randomTypeTree $ n-1; elements (NodeOr ts:basicTypeTrees)
+randomTypeHead 0              = elements basicTypeHeads
+randomTypeHead n              = do ts <- sListOf $ randomTypeHead $ n-1; elements (NodeOr ts:basicTypeHeads)
 
-shrinkTypeTree (NodeOr ts) = liftM (NodeOr .map un) (tShrinks ts :: [[TypeTreeA]]) ++ ts
-shrinkTypeTree _           = []
+shrinkTypeHead (NodeOr ts) = liftM (NodeOr .map un) (tShrinks ts :: [[TypeHeadA]]) ++ ts
+shrinkTypeHead _           = []
 
-mTypeTreeA = liftM TypeTreeA
-basicTypeTrees = [LeafTable,LeafPlot,NodeArr,NodeObj,LeafStr,LeafNum,LeafBool,LeafNull]
+mTypeHeadA = liftM TypeHeadA
+basicTypeHeads = [LeafTable,LeafPlot,NodeArr,NodeObj,LeafStr,LeafNum,LeafBool,LeafNull]
 
-data TypeTreeS = TypeTreeS TypeTree deriving (Show)
-instance Unto TypeTreeS TypeTree where to = TypeTreeS; un (TypeTreeS t) = t
-instance Arbitrary TypeTreeS where arbitrary = liftM TypeTreeS $ elements basicTypeTrees
+data TypeHeadS = TypeHeadS TypeHead deriving (Show)
+instance Unto TypeHeadS TypeHead where to = TypeHeadS; un (TypeHeadS t) = t
+instance Arbitrary TypeHeadS where arbitrary = liftM TypeHeadS $ elements basicTypeHeads
 
 data TMTreeA = TMTreeA TMTree deriving (Show)
 instance Unto TMTreeA TMTree where to = TMTreeA; un (TMTreeA t) = t
@@ -102,17 +102,17 @@ instance Arbitrary TypeMismatchS where arbitrary = sized1 tall; shrink (TypeMism
 instance Tall      TypeMismatchS where                                                             tall n = mTypeMismatchS (tall n)
 mTypeMismatchS ta = do t <- liftM un ta; return $ TypeMismatchS ("{_type:ERROR,_errType:TYPE_MISMATCH,_data:"++showType t++"}") $ TypeMismatch t
 showType (TMNode ts)    = "{_type:TM_NODE,_data:["++intercalate "," (map showType ts)++"]}"
-showType (TMLeaf p e a) = "{_type:TM_LEAF,_pos:"++posStr p++",_exp:"++showTypeTree e++",_act:"++showTypeTree a++"}"
+showType (TMLeaf p e a) = "{_type:TM_LEAF,_pos:"++posStr p++",_exp:"++showTypeHead e++",_act:"++showTypeHead a++"}"
 
-showTypeTree LeafTable   = show "Table"
-showTypeTree LeafPlot    = show "Plot"
-showTypeTree NodeArr     = show "Array"
-showTypeTree NodeObj     = show "Object"
-showTypeTree LeafStr     = show "String"
-showTypeTree LeafNum     = show "Number"
-showTypeTree LeafBool    = show "Boolean"
-showTypeTree LeafNull    = show "Null"
-showTypeTree (NodeOr ts) = "{_type:OR_TYPE,_data:["++intercalate "," (map showTypeTree ts)++"]}"
+showTypeHead LeafTable   = show "Table"
+showTypeHead LeafPlot    = show "Plot"
+showTypeHead NodeArr     = show "Array"
+showTypeHead NodeObj     = show "Object"
+showTypeHead LeafStr     = show "String"
+showTypeHead LeafNum     = show "Number"
+showTypeHead LeafBool    = show "Boolean"
+showTypeHead LeafNull    = show "Null"
+showTypeHead (NodeOr ts) = "{_type:OR_TYPE,_data:["++intercalate "," (map showTypeHead ts)++"]}"
 
 data IllegalEmptyS = IllegalEmptyS String EvalError deriving (Show)
 instance Arbitrary IllegalEmptyS where
@@ -270,7 +270,7 @@ mNumS   :: (Applicative m,Monad m) => m (NumPA   COP) -> m (NumPA   UOP) -> m Nu
 mBoolS  :: (Applicative m,Monad m) => m (BoolPA  COP) -> m (BoolPA  UOP) -> m BoolS
 mNullS  :: (Applicative m,Monad m) => m (NullPA  COP) -> m (NullPA  UOP) -> m NullS
 
-mTypeTreeA :: (Applicative m,Monad m) => m TypeTree -> m TypeTreeA
+mTypeHeadA :: (Applicative m,Monad m) => m TypeHead -> m TypeHeadA
 mTMTreeA   :: (Applicative m,Monad m) => m TMTree -> m TMTreeA
-mTMLeaf    :: (Applicative m,Monad m) => m P -> m TypeTreeA -> m TypeTreeS -> m TMTree
+mTMLeaf    :: (Applicative m,Monad m) => m P -> m TypeHeadA -> m TypeHeadS -> m TMTree
 mTMNode    :: (Applicative m,Monad m) => m [TMTreeA]                       -> m TMTree

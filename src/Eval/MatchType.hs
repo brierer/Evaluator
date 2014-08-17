@@ -15,7 +15,7 @@ import Data.EvalError
 import Data.ExpObj
 import Data.Type
 
-class HasType a where getRoot :: a -> TypeTree
+class HasType a where getRoot :: a -> TypeHead
 instance HasType Type where
   getRoot  Table    = LeafTable
   getRoot  Plot     = LeafPlot
@@ -73,7 +73,7 @@ simplify _ ts | P.any (not.isLeaf) ts = typeError $ TMNode ts
                                 canBeSimplified = length (S.toList $ S.fromList canBeSame) == 1
                             in typeError $ if canBeSimplified then TMLeaf p (NodeOr $ sortNub orTypes) t2 else TMNode ts
 
-sortNub :: [TypeTree] -> [TypeTree]
+sortNub :: [TypeHead] -> [TypeHead]
 sortNub = reverse . S.toList . S.fromList
 
 isLeaf :: TMTree -> Bool

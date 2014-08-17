@@ -4,7 +4,7 @@ data Type = Null | Bool | Num | Str | ObjOf Type | ArrOf Type | Plot | Table
           | Or [Type]
             deriving (Eq,Ord,Show)
 
-data TypeTree = LeafNull | LeafBool | LeafNum | LeafStr
+data TypeHead = LeafNull | LeafBool | LeafNum | LeafStr
               | NodeObj  | NodeArr
-              | LeafPlot | LeafTable | NodeOr [TypeTree]
+              | LeafPlot | LeafTable | NodeOr [TypeHead]
                 deriving (Eq,Ord,Show)
