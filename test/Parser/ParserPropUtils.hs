@@ -189,12 +189,12 @@ liftMF4 g f1 f2 f3 f4 x1 x2 x3 x4  = g <$> liftM f1 x1 <*> liftM f2 x2 <*> liftM
 
 talls n = sListOf $ tall n
 
-sized1 p = sized f where f i = p $ i `mod` 3
+sized1 p = sized f where f i = p $ i `mod` 2
 sListOf  = liftM sList . listOf
 sList1Of = liftM sList . listOf1
-sList = take 5
+sList = take 4
 
-sShrink  = take 1.shrink
+sShrink  = take 2.shrink
 tShrink  = sShrink.to
 tShrinks = sShrink.map to
 
