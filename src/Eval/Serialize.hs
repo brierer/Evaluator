@@ -1,5 +1,7 @@
 module Eval.Serialize
-( serialize
+( serialize,
+  serializeErr,
+  serializeExp
 ) where
 
 import Data.Char
@@ -8,10 +10,18 @@ import Data.EvalError
 import Data.ExpObj
 import Data.List
 import Data.Type
+import Data.ExpToken
 
 serialize :: Eval ExpObj -> String
 serialize (Right e) = serializeExp e
 serialize (Left e)  = serializeErr e
+
+serializeEvalTable :: Eval Table -> String
+serializeEvalTable (Right t) = serializeTable t
+serializeEvalTable (Left e) = serializeErr e
+
+serializeTable :: Table -> String
+serializeTable t = show t
 
 serializeExp :: ExpObj -> String
 serializeExp e = withPos (getObjPos e) $ specific e
@@ -21,7 +31,6 @@ withPos (Calc{})    s = s
 withPos (Upd (x,y)) s = customObj "UPD" [("_pos",show [x,y]),("_val",s)]
 
 specific :: ExpObj -> String
-specific (TableO _ ess h) = customObj "TABLE" [("_data", mapArr ess serializeArr)  ,("_head", between "[" "]" serializeExp h)]
 specific (PlotO  _ ps  h) = customObj "PLOT"  [("_data", mapArr ps  serializePoint),("_head", between "{" "}" serializePair h)]
 specific (ArrO   _ es)    = serializeArr es
 specific (ObjO   _ ps)    = serializeObj ps
@@ -37,7 +46,7 @@ serializeArr :: [ExpObj] -> String
 serializeArr = between "[" "]" serializeExp
 
 serializeObj :: [(String,ExpObj)] -> String
-serializeObj = between "{" "}" serializePair
+serializeObj = between "{sdf" "}" serializePair
 
 serializePoint :: (ExpObj,ExpObj) -> String
 serializePoint (x,y) = "[" ++ serializeExp x ++ "," ++ serializeExp y ++ "]"

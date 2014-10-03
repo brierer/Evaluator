@@ -1,3 +1,5 @@
+{-# LANGUAGE OverloadedStrings, DeriveDataTypeable, DeriveGeneric #-}
+
 module Data.EvalError
 ( EvalError(..)
 , TMTree(..)
@@ -5,6 +7,8 @@ module Data.EvalError
 
 import Data.ExpToken
 import Data.Type
+import GHC.Generics
+import Data.Aeson
 
 data EvalError = InvalidParse Pos [String]
                | MultipleDefinitions Pos String
@@ -20,8 +24,13 @@ data EvalError = InvalidParse Pos [String]
                | TableHeaderLengthMismatch Pos Int Int
                | IllegalTakeTableLength Pos Int Int
                | IndexOutOfBounds Pos Int Int Int
-                 deriving (Eq,Show)
+                 deriving (Eq,Show, Generic)
 
-data TMTree = TMLeaf Pos TypeHead TypeHead
+
+data TMTree = TMLeaf { _pos :: Pos , _exp :: TypeHead , _act :: TypeHead }
             | TMNode [TMTree]
-              deriving (Eq,Show)
+              deriving (Eq,Show, Generic)
+
+instance ToJSON EvalError
+instance ToJSON TMTree
+

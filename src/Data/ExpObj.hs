@@ -1,24 +1,41 @@
+{-# LANGUAGE OverloadedStrings, DeriveDataTypeable, DeriveGeneric #-}
+
+
 module Data.ExpObj
 ( ExpObj(..)
 , ObjPos(..)
 , getObjPos
 , getPos
 , fromObjPos
+, Param(..)
 ) where
 
 import Data.ExpToken
+import Data.Aeson
+import Data.Typeable
+import GHC.Generics
+import Data.Text (pack)
 
-data ExpObj = TableO ObjPos [[ExpObj]]         [ExpObj]
-            | PlotO  ObjPos [(ExpObj,ExpObj)] [(String,ExpObj)]
-            | ArrO   ObjPos  [ExpObj]
-            | ObjO   ObjPos [(String,ExpObj)]
-            | StrO   ObjPos   String
-            | NumO   ObjPos   Double
-            | BoolO  ObjPos   Bool
-            | NullO  ObjPos
-              deriving (Eq,Ord,Show)
+data ExpObj = TableO {_ObjPos :: ObjPos  , _TableData :: [[ExpObj]] , _TableParam :: Param }
+            | PlotO  {_ObjPos :: ObjPos  , _PlotData :: [(ExpObj,ExpObj)] , _PlotParam :: Param }
+            | ArrO   {_ObjPos :: ObjPos  , _ArrayData :: [ExpObj] }
+            | ObjO   {_ObjPos :: ObjPos  , _ObjO :: [(String,ExpObj)] }
+            | StrO   {_ObjPos :: ObjPos  , _StrO ::  String }
+            | NumO   {_ObjPos :: ObjPos  , _NumO ::  Double }
+            | BoolO  {_ObjPos :: ObjPos  , _BoolO ::  Bool }
+            | WidgetO{_ObjPos :: ObjPos  , _Type :: String,  _Param :: Param}
+            | NullO  {_ObjPos :: ObjPos }
+              deriving (Eq,Ord,Show, Generic)
 
-data ObjPos = Upd Pos | Calc Pos deriving (Eq,Ord,Show)
+data ObjPos = Upd Pos | Calc Pos deriving (Eq,Ord,Show, Generic)
+
+data Param = Param [(String,ExpObj)] deriving (Eq,Ord,Show, Generic)
+
+instance ToJSON ExpObj
+instance ToJSON ObjPos
+instance ToJSON Param
+	where toJSON (Param ps) = (object $ fmap toObject ps)
+								where toObject (s,p) = ((pack s)  .= p) 
 
 getObjPos :: ExpObj -> ObjPos
 getObjPos (TableO p _ _) = p

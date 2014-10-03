@@ -1,5 +1,6 @@
 module Eval.MultiPass
-( initTable
+( initValidate,
+  initTable
 , derefVars
 , validateFunctions
 , formVal
@@ -14,6 +15,17 @@ import Control.Monad
 import Data.Eval
 import Data.EvalError
 import Data.ExpToken
+
+initValidate :: [String] -> ProgToken -> Eval Table
+initValidate s p = do
+                  let evalTable = initTable p
+                  table <- evalTable
+                  validateFunctions s table
+                  tableV <- derefVars table
+                  return table
+
+
+
 
 initTable :: ProgToken -> Eval Table
 initTable (ProgT _ fs) = foldM f M.empty fs where

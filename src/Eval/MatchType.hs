@@ -1,6 +1,6 @@
 module Eval.MatchType
 ( getRoot
-, any,none,arr,obj
+, any,none,arr
 , matchType
 ) where
 
@@ -8,6 +8,7 @@ import Prelude hiding (any)
 
 import qualified Prelude  as P
 import qualified Data.Set as S
+import qualified Data.Map as M
 
 import Control.Monad.State
 import Data.Eval
@@ -19,6 +20,7 @@ class HasType a where getRoot :: a -> TypeHead
 instance HasType Type where
   getRoot  Table    = LeafTable
   getRoot  Plot     = LeafPlot
+  getRoot  Widget   = LeafWidget
   getRoot  Str      = LeafStr
   getRoot  Num      = LeafNum
   getRoot  Bool     = LeafBool
@@ -30,6 +32,7 @@ instance HasType Type where
 instance HasType ExpObj where
   getRoot (TableO{}) = LeafTable
   getRoot (PlotO{})  = LeafPlot
+  getRoot (WidgetO{})= LeafWidget
   getRoot (StrO{})   = LeafStr
   getRoot (NumO{})   = LeafNum
   getRoot (BoolO{})  = LeafBool
@@ -41,24 +44,35 @@ instance HasType ExpObj where
 any  :: Type
 none :: Type
 arr  :: Type
-obj  :: Type
+--obj  :: Type
 
-any  = Or [Table,Plot,arr,obj,Str,Num,Bool,Null]
+any  = Or [Table,Plot,arr,Str,Num,Bool,Null]
 none = Or []
 arr  = ArrOf any
-obj  = ObjOf any
+--obj  = ObjOf any
 
 matchType :: Type -> ExpObj -> EvalFunc ExpObj
 matchType  Table    x@(TableO{})   = return x
 matchType  Plot     x@(PlotO{})    = return x
+matchType  Widget   x@(WidgetO{})  = return x
 matchType (ArrOf t)   (ArrO p es)  = liftM (ArrO p) $ mapM (matchType t) es
-matchType (ObjOf t)   (ObjO p ps)  = liftM (ObjO p) $ mapM (\(x,y)->liftM2 (,) (return x) $ matchType t y) ps
+matchType (ObjOf t)   (ObjO p ps)  = liftM (ObjO p) $ mapM (\(s,(o,t))->liftM2 (,) (return s) $ matchType t o) (objByTag t ps)
 matchType  Str      x@(StrO{})     = return x
 matchType  Num      x@(NumO{})     = return x
 matchType  Bool     x@(BoolO{})    = return x
 matchType  Null     x@(NullO{})    = return x
 matchType (Or ts)   x              = do fs <- get; let rs = map (flip evalStateT fs.(`matchType`x)) ts in if P.any isRight rs then return x else orTypeMismatch x rs
 matchType t         x              = typeMismatch t x
+
+getObjByTag :: String -> [(String, b)] -> Maybe b
+getObjByTag s ps = M.lookup s (M.fromList ps)
+
+objByTag  :: [(String, Type)] -> [(String, ExpObj)] -> [(String,(ExpObj, Type))]
+objByTag  t [] = []
+objByTag  t ((s,o):os) = case (getObjByTag s t) of 
+                            Just x -> [(s,(o,x))] ++ objByTag t os  
+                            Nothing -> [] ++ objByTag t os  
+
 
 orTypeMismatch ::  ExpObj -> [Eval ExpObj] -> EvalFunc a
 orTypeMismatch x = simplify x . map f where

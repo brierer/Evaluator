@@ -22,7 +22,8 @@ executable Evaluator
                    statistics >=0.11.0 && <0.12,
                    pretty >=1.1.1 && <1.2,
                    QuickCheck >=2.6 && <2.7,
-                   QuickCheck >=2.6 && <2.7
+                   QuickCheck >=2.6 && <2.7,
+		   eigen      >=0.0.0
   ghc-options:     -Wall
   other-modules:   
                    Data.Eval,
